@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.2
+
+- Backlog: when no project matches, list all projects and ask. Title prefix yields to the neighbours' scheme; search by Russian word stems.
+
 ## 1.0.1
 
 - Relations: document verified semantics (kind = what otherTaskId is to taskId) and that the MCP reply text for subtask/parenttask is inverted; drop the "recreate if reply looks reversed" rule. Note that task_delete only marks tasks done.

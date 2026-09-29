@@ -7,9 +7,12 @@ for confirmation again unless the target is ambiguous.
 ## Steps
 
 1. **Resolve the project.** `projects_list` with `search` (a distinctive word from the user's phrase)
-   and `show: "all"`. Exactly one match: use its id. Zero or several: stop and list the candidates
-   with ids; do not guess. If the user names no project, infer from context (repo name, the task
-   being discussed) and say which you picked, or ask if there is no clue.
+   and `show: "all"`. Exactly one match: use its id. Several: stop and list them with ids. Zero:
+   the project may be named differently (a parent project, Russian name, a generic "Research" or
+   "backlog") — call `projects_list` without `search`, show the user the list (with parents) and ask
+   where to put it. Never guess and never create a project unasked. If the user names no project,
+   infer from context (repo name, the task being discussed) and say which you picked, or ask if
+   there is no clue.
 2. **Check for duplicates.** `tasks_list` with `projectId`, `show: "all"` and 2-3 specific words from
    the idea, one call per word. Read the titles. If something covers it (open or done), report that
    task's link instead of creating; ask only when it is a partial overlap.

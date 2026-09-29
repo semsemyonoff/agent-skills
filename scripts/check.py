@@ -182,6 +182,7 @@ def main() -> int:
         for pdir in sorted(p for p in plugins_dir.iterdir() if p.is_dir()):
             if pdir.name not in listed:
                 err(pdir, "plugin directory not listed in marketplace.json")
+                check_plugin({"name": pdir.name, "source": f"./plugins/{pdir.name}"})
 
     codex_dir = ROOT / "codex"
     if codex_dir.is_dir():

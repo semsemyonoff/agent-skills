@@ -28,7 +28,8 @@ Learned from real sessions; each rule exists because something went wrong withou
   `sortDirection: "desc"`, small `limit`) and copy the project's prefix scheme. Some projects use
   wave or roadmap prefixes (`[W1]`, `[Roadmap]`), others free text; ideas often have no prefix.
 - Slices of a bigger task: description starts "Срез N из #M."; spin-offs: "Выделено из #M."; dependencies:
-  "Зависит от #M." Research tasks are titled "Исследование: ...".
+  "Зависит от #M." A research task in a mixed project may be titled "Исследование: ..."; the
+  neighbours' scheme wins — in a project that is all research (e.g. "Research") skip the prefix.
 - Description sections in `<h3>`: problem, proposal, open questions, done criteria. Do not paste
   chat history; write it so a stranger understands it in a month.
 
@@ -79,6 +80,7 @@ sentence; trust the table. Its wording for `blocking` matches the stored relatio
 - `task_delete` is disabled on this server (safe mode): it marks the task done instead of deleting.
   Say so; the user deletes in the UI if needed.
 - `tasks_list` search is a case-insensitive substring match over title and description; short tokens
-  such as "PR" match half the project. Use 2-3 specific words.
+  such as "PR" match half the project. Use 2-3 specific words; for Russian use word stems
+  ("плагин", not "плагинов"), and if a search returns nothing, skim the latest tasks instead.
 - Project names may differ in case from what the user says ("dwe" vs "DWE"); treat a single
   case-insensitive match as a match, several or none as a stop-and-ask.

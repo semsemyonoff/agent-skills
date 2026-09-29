@@ -6,6 +6,11 @@
   },
   "plugins": [
     {
+      "name": "flow",
+      "source": "./plugins/flow",
+      "description": "Orchestrate work across subagents with explicit model routing"
+    },
+    {
       "name": "gdocs",
       "source": "./plugins/gdocs",
       "description": "Collect project documentation for agents from Google Docs/Sheets into the repo as markdown"
