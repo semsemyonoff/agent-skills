@@ -44,8 +44,9 @@ takes `id`, most others `taskId`), so read each schema instead of assuming.
    default; pass `limit: 0` for a full sweep.
 6. **No personal data** in descriptions or comments: nicknames, logins, passwords, IPs, tokens. Rewrite
    generically; the classifier rejects such calls and the tracker is long-lived.
-7. **Read every response.** After creating or editing, `task_get` the result and check it. A `relation_create`
-   reply says "A is a subtask of B": confirm the direction matches your intent (see conventions).
+7. **Read every response.** After creating or editing, `task_get` the result and check it. Relations are
+   the exception: `relationKind` says what `otherTaskId` is to `taskId` (subtask: `taskId` = parent), and
+   the MCP reply text for subtask/parenttask is inverted — ignore it (see conventions).
 8. **Surface errors, do not skip.** A failing label call (for example 412 "account is disabled") goes
    into the final report as is. If a call fails with "auto mode classifier gave no verdict", retry once.
 9. **Writes need a mandate.** Creating a task or comment is fine when the user asked for it. Closing a

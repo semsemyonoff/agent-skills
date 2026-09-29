@@ -34,15 +34,24 @@ Learned from real sessions; each rule exists because something went wrong withou
 
 ## Relations
 
-`relation_create(taskId, otherTaskId, relationKind)`. The reply states the relationship in words
-("A is a subtask of B"). Semantics are easy to invert: one real call intended "slice under umbrella"
-and produced "umbrella is a subtask of slice". Therefore:
+`relation_create(taskId, otherTaskId, relationKind)`. Semantics (verified against Vikunja source and
+the UI): **the kind says what `otherTaskId` is to `taskId`** — the UI of `taskId` lists `otherTaskId`
+under the kind's heading. Vikunja creates the inverse relation on the other task automatically.
 
-- Before the call, state the intended direction in one line ("#525 is a subtask of #484").
-- After the call, compare the reply with that line. If reversed, delete the relation
-  (`relation_delete`) and recreate it with `taskId` and `otherTaskId` swapped, or use the inverse kind.
-- If you are unsure how a kind maps for this MCP, tell the user the intended direction before creating,
-  and prefer `related` (symmetric) over guessing.
+| Intent | Call |
+| --- | --- |
+| #C is a subtask of #P | `taskId=P, otherTaskId=C, subtask` (or `taskId=C, otherTaskId=P, parenttask`) |
+| #A blocks #B | `taskId=A, otherTaskId=B, blocking` (or `taskId=B, otherTaskId=A, blocked`) |
+| #A comes before #B | `taskId=A, otherTaskId=B, precedes` |
+| loosely related | `related` (symmetric) |
+
+**The MCP reply text is wrong for subtask/parenttask**: `taskId=P, otherTaskId=C, subtask` is answered
+with "Task A (P) is a subtask of Task B (C)", while Vikunja actually stored C under P. Ignore that
+sentence; trust the table. Its wording for `blocking` matches the stored relation.
+
+- `task_get` does not show relations, so they cannot be verified through the MCP. State the intended
+  direction in one line ("#525 is a subtask of #484") and give the user the parent task link to check.
+- Never "fix" a relation because of the reply text.
 - Do not edit or relate tasks the user did not mention.
 
 ## Closing
@@ -67,6 +76,8 @@ and produced "umbrella is a subtask of slice". Therefore:
   user; do not retry in a loop and do not silently omit the label.
 - `task_create` accepts title, projectId, description, priority, dates only. Labels, assignees and
   relations are separate calls. It returns just the id, so verify with `task_get`.
+- `task_delete` is disabled on this server (safe mode): it marks the task done instead of deleting.
+  Say so; the user deletes in the UI if needed.
 - `tasks_list` search is a case-insensitive substring match over title and description; short tokens
   such as "PR" match half the project. Use 2-3 specific words.
 - Project names may differ in case from what the user says ("dwe" vs "DWE"); treat a single
