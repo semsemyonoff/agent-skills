@@ -4,5 +4,16 @@
   "owner": {
     "name": "semsemyonoff"
   },
-  "plugins": []
+  "plugins": [
+    {
+      "name": "gdocs",
+      "source": "./plugins/gdocs",
+      "description": "Collect project documentation for agents from Google Docs/Sheets into the repo as markdown"
+    },
+    {
+      "name": "peer",
+      "source": "./plugins/peer",
+      "description": "Peer conversation with Codex in an agterm split pane (macOS, agterm required)"
+    }
+  ]
 }

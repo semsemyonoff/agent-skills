@@ -44,6 +44,8 @@ can run them. For `codex/` skills follow Codex's built-in `skill-creator` (incl.
   index ("read `sections/backlog.md` when creating a task").
 - Paths inside a skill are relative to its directory. Never reference `~/.claude/skills`,
   `~/.claude/plugins` or a home directory: plugins run from a cache dir, Codex from `~/.agents/skills`.
+  In plugin skills call bundled scripts as `"${CLAUDE_SKILL_DIR}/scripts/<script>"` (Claude Code
+  substitutes it); `codex/` skills reference files relative to `SKILL.md`.
 - A skill is self-contained: no dependency on another skill's files. Duplicate a small piece rather
   than couple two skills.
 - Anything deterministic (resolving ids, building markup, parsing transcripts) goes to `scripts/`;

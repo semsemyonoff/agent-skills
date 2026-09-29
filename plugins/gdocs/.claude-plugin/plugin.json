@@ -1,0 +1,8 @@
+{
+  "name": "gdocs",
+  "description": "Collect project documentation for agents from Google Docs/Sheets into the repo as markdown",
+  "version": "1.0.0",
+  "author": {
+    "name": "semsemyonoff"
+  }
+}
