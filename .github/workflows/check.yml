@@ -1,0 +1,29 @@
+name: check
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Repo checks
+        run: python3 scripts/check.py
+
+      - name: shellcheck
+        run: |
+          files=$(git ls-files '*.sh')
+          if [ -n "$files" ]; then
+            command -v shellcheck >/dev/null || { sudo apt-get update -q && sudo apt-get install -yq shellcheck; }
+            shellcheck $files
+          fi
+
+      - name: Plugin schema
+        run: npx -y @anthropic-ai/claude-code plugin validate .

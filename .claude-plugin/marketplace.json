@@ -1,0 +1,8 @@
+{
+  "name": "semsemyonoff",
+  "description": "Personal workflow skills: orchestration, Vikunja, Redmine, session reflection, docs import",
+  "owner": {
+    "name": "semsemyonoff"
+  },
+  "plugins": []
+}
