@@ -17,6 +17,12 @@ jobs:
       - name: Repo checks
         run: python3 scripts/check.py
 
+      - name: Script tests
+        run: |
+          for d in $(git ls-files '*/test_*.py' | xargs -r -n1 dirname | sort -u); do
+            (cd "$d" && python3 -m unittest -q) || exit 1
+          done
+
       - name: shellcheck
         run: |
           files=$(git ls-files '*.sh')

@@ -112,7 +112,10 @@ def check_text(path: Path) -> None:
     for n, line in enumerate(text.splitlines(), 1):
         if FORBIDDEN_PATH_RE.search(line):
             err(path, f"line {n}: absolute install/home path, use a path relative to the skill")
-    for target in LINK_RE.findall(text):
+    # markup examples live in code, only real links count
+    prose = re.sub(r"```.*?```", "", text, flags=re.DOTALL)
+    prose = re.sub(r"`[^`\n]*`", "", prose)
+    for target in LINK_RE.findall(prose):
         if re.match(r"^[a-z]+:", target):
             continue
         if not (path.parent / target).exists():

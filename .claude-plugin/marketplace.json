@@ -14,6 +14,21 @@
       "name": "peer",
       "source": "./plugins/peer",
       "description": "Peer conversation with Codex in an agterm split pane (macOS, agterm required)"
+    },
+    {
+      "name": "redmine",
+      "source": "./plugins/redmine",
+      "description": "Write to Redmine safely: Textile drafts, house style for manager-facing comments, independent fact-check, send only on explicit approval"
+    },
+    {
+      "name": "retro",
+      "source": "./plugins/retro",
+      "description": "Retrospective over past Claude Code session transcripts: recurring requests, friction, tool errors, model routing, token spend"
+    },
+    {
+      "name": "vikunja",
+      "source": "./plugins/vikunja",
+      "description": "Vikunja task workflows: backlog, intake, progress reports, with HTML-description conventions and a validator"
     }
   ]
 }

@@ -1,7 +1,6 @@
 # Repository Guidelines
 
-Personal skills for Claude Code (plugin marketplace) and Codex (skills.sh). Master is Forgejo
-(`git.horn.semsemyonoff.dev/semsemyonoff/agent-skills`), GitHub is a push mirror; installs come from GitHub.
+Personal skills for Claude Code (plugin marketplace) and Codex (skills.sh).
 
 ## Layout
 
@@ -64,6 +63,7 @@ Bump `version` in the plugin's `plugin.json` on every user-visible change and ad
 python3 scripts/check.py          # manifests, frontmatter, paths, links
 claude plugin validate .          # marketplace + plugin schema (needs Claude Code)
 shellcheck $(git ls-files '*.sh')
+# script tests: python3 -m unittest in every dir with test_*.py
 ```
 
 CI (`.github/workflows/check.yml`) runs the same on Forgejo Actions and on the GitHub mirror.
