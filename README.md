@@ -28,7 +28,7 @@ Per-profile enablement is managed in chezmoi.
 
 ```
 /vikunja:intake <id>         analysis; open decisions → brainstorm, settled solution → plan
-/brainstorm                  design, section by section
+/brainstorm                  design, section by section; its last question offers "Orchestrate"
 /flow:orchestrate <task>     short recon → plan with models → confirm → execute → verify → report
 /vikunja:report <id>         report into the task; closes only when asked
 ```
