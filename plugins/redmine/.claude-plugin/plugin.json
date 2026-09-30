@@ -1,7 +1,7 @@
 {
   "name": "redmine",
-  "description": "Write to Redmine safely: Textile drafts, house style for manager-facing comments, independent fact-check, send only on explicit approval",
-  "version": "1.0.1",
+  "description": "Redmine issues through the MCP: study and summarise an issue, write replies safely (Textile drafts, fact-check, send only on approval), project rules from .claude/redmine-rules.md",
+  "version": "1.1.0",
   "author": {
     "name": "semsemyonoff"
   }

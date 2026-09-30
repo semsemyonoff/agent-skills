@@ -45,10 +45,18 @@ tasks closed without being asked. Three scenarios:
 
 ### redmine — `redmine`
 
-For comments a manager or client will read. Drafts the reply in Textile in an `<id>-drafts.md` file,
-follows a plain house style (first person, no salutation, numbered questions, options with
-consequences, estimates as an upper bound), has an independent subagent fact-check every claim, and
-sends only after an explicit "send it". `/redmine:reply <issue>`.
+For work that lives in Redmine issues. Two scenarios:
+
+- `/redmine:intake <issue>` — read the issue with its journal, related issues and attachments, and
+  summarise: what is asked, what was already decided, who waits for what, open points. Read-only; ends
+  with a choice of brainstorm, reply or plan.
+- `/redmine:reply <issue>` — for comments a manager or client will read: a Textile draft in an
+  `<id>-drafts.md` file, a plain house style (first person, no salutation, numbered questions, options with
+  consequences, estimates as an upper bound), an independent fact-check of every claim, and sending only
+  after an explicit "send it".
+
+Project specifics — where specs and documents live, what may be checked on a stand, where drafts go — are
+described by the project itself in `.claude/redmine-rules.md`.
 
 ### retro — `reflection`
 
