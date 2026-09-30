@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.3
+
+- Brainstorm offer and plan confirmation use AskUserQuestion buttons instead of a text question.
+
 ## 1.0.2
 
 - Trigger when "Orchestrate" is chosen as the next step of a brainstorm; take the brainstorm design as input.

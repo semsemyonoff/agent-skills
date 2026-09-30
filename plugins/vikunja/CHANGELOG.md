@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.4
+
+- Intake offers the brainstorm with AskUserQuestion buttons instead of a text question.
+
 ## 1.0.3
 
 - Intake: brainstorm by default, a plan only when the task already spells out the solution.

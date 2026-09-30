@@ -1,7 +1,7 @@
 {
   "name": "flow",
   "description": "Orchestrate work across subagents with explicit model routing",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "author": {
     "name": "semsemyonoff"
   }

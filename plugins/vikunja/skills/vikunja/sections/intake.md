@@ -18,8 +18,10 @@ This scenario is read-only until the user confirms.
 5. **Decide: brainstorm or plan.** A plan comes only after the solution is settled.
    - **Default — brainstorm.** If the approach is not fully decided in the task (open questions,
      several ways to do it, no concrete design), stop after the analysis: give the summary, list the
-     decisions that are open, and propose a brainstorm (`/brainstorm`, or the brainstorm skill) on
-     them. Do not write a plan.
+     decisions that are open, and ask with AskUserQuestion (buttons, not a text question) whether
+     to start a brainstorm on them — options like "Brainstorm (Recommended)" / "Plan anyway" /
+     "Stop here". On "Brainstorm" invoke the brainstorm skill with the analysis as context. Do not
+     write a plan.
    - **Plan — only for a ready solution.** Go to step 6 only when the task (description plus the
      latest comments) already spells out the solution: what to change, where, and how to verify it,
      with no open design questions. Say in one line why you consider it settled.
