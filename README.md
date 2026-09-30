@@ -73,9 +73,10 @@ documents, so later sessions read the snapshot instead of going back to Drive.
 
 ### peer — `peer-chat`
 
-A peer conversation between Claude Code and Codex running side by side in an
-agterm split (macOS). The Codex side lives in
-`codex/peer-chat`.
+A peer conversation between Claude Code and Codex running side by side in a
+kitty tab (Linux, remote control enabled) or an agterm split (macOS). The Codex side lives in
+`codex/peer-chat`; in kitty that Codex needs `-c sandbox_workspace_write.network_access=true`
+to reach kitty's socket.
 
 ## Task flow
 

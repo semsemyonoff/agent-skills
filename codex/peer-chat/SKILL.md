@@ -1,27 +1,33 @@
 ---
 name: peer-chat
-description: 'Hold a back-and-forth conversation with Claude Code running in the left pane of this agterm session, as peers. Use when the user says "chat with claude", "talk to claude", "work with claude", "do this with claude", "build this with claude", "discuss this with claude", or when a prompt arrives starting with "Chat from Claude". Not for a one-shot task handed to Claude, and not for a read-only second opinion.'
+description: 'Hold a back-and-forth conversation with Claude Code running in the split pane next to this one (kitty tab or agterm split), as peers. Use when the user says "chat with claude", "talk to claude", "work with claude", "do this with claude", "build this with claude", "discuss this with claude", or when a prompt arrives starting with "Chat from Claude". Not for a one-shot task handed to Claude, and not for a read-only second opinion.'
 ---
 
 # Peer chat, Codex side
 
-Talk with Claude Code in the left pane. The user reads both panes, so the conversation itself is the
+Talk with Claude Code in the split pane. The user reads both panes, so the conversation itself is the
 result even when code comes out of it.
 
-Everything that touches the pane goes through `~/.config/agterm/bin/peer-chat.py`. Do not drive `agtermctl` directly:
-the script carries the checks that keep a message out of a dialog, and a raw `session type` bypasses
-all of them.
+Everything that touches the pane goes through `scripts/peer_chat.py`, next to this `SKILL.md`; run it
+by its absolute path. Do not drive `kitty @` or `agtermctl` directly: the script carries the checks
+that keep a message out of a dialog, and a raw `send-text` or `session type` bypasses all of them.
 
 ## Preconditions
 
-The session needs both panes running, with Claude Code on the left, started by the user. This skill
-never starts an agent and never opens a pane. If the left pane is not running Claude Code, say so
-and stop.
+The terminal needs both panes running, started by the user: Claude Code in another window of this
+kitty tab (picked when `KITTY_WINDOW_ID` is set, kitty remote control enabled), or in the left pane
+of this agterm session. This skill never starts an agent and never opens a pane. If no pane next to
+this one is running Claude Code, say so and stop.
+
+In kitty the script talks to kitty's unix socket, which the `workspace-write` sandbox blocks. If a
+send fails with `connect: operation not permitted`, stop and tell the user: this Codex has to be
+started with `-c sandbox_workspace_write.network_access=true`. Do not ask to run the script outside
+the sandbox instead.
 
 ## Sending
 
 ```bash
-~/.config/agterm/bin/peer-chat.py --to claude --stdin <<'CHAT'
+python3 <this skill's dir>/scripts/peer_chat.py --to claude --stdin <<'CHAT'
 the message goes here, as one paragraph
 CHAT
 ```
@@ -36,14 +42,14 @@ view, and the check the script runs after typing can no longer see the `Chat fro
 looks for: the send then fails with the text left sitting in Claude's composer, which the user has
 to clear by hand. Sending a review point at a time is also easier to answer than one wall of text.
 
-If a send refuses saying more than one session shares this checkout, stop. It means this Codex was
+In agterm, if a send refuses saying more than one session shares this checkout, stop. It means this Codex was
 started without its pane's session id injected, and the fix is a launch flag only the user can apply.
 Say so and let him decide; never pass `--session` with an id you inferred, and never try another one
 to see if it works.
 
 Before typing, the script confirms the target pane really is running Claude Code, looking for
-`claude` in what agterm reports for that pane. A wrapper script is common here, and then that name
-is what agterm sees instead: add `--target-command <name>` with the wrapper's name and the send goes
+`claude` in what the terminal reports for that pane. A wrapper script is common here, and then that
+name is what the terminal sees instead: add `--target-command <name>` with the wrapper's name and the send goes
 through; the name to use is recorded here at setup time. Never guess a name after a refusal and
 never retry with a different one until a human has told you which is right.
 

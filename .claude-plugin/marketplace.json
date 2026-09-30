@@ -18,7 +18,7 @@
     {
       "name": "peer",
       "source": "./plugins/peer",
-      "description": "Peer conversation with Codex in an agterm split pane (macOS, agterm required)"
+      "description": "Peer conversation with Codex in a split pane (kitty on Linux, agterm on macOS)"
     },
     {
       "name": "redmine",

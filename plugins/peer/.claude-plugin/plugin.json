@@ -1,7 +1,7 @@
 {
   "name": "peer",
-  "description": "Peer conversation with Codex in an agterm split pane (macOS, agterm required)",
-  "version": "1.0.0",
+  "description": "Peer conversation with Codex in a split pane (kitty on Linux, agterm on macOS)",
+  "version": "1.1.0",
   "author": {
     "name": "semsemyonoff"
   }

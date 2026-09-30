@@ -194,6 +194,11 @@ def main() -> int:
             check_skill(skill_md, SPEC_KEYS)
             for md in sdir.rglob("*.md"):
                 check_text(md)
+            # a script shared with the Claude side of the same skill is a copy, not a fork
+            for script in sorted((sdir / "scripts").glob("*")):
+                for twin in (ROOT / "plugins").glob(f"*/skills/{sdir.name}/scripts/{script.name}"):
+                    if twin.read_bytes() != script.read_bytes():
+                        err(script, f"differs from {twin.relative_to(ROOT)}; keep the copies identical")
 
     for e in errors:
         print(f"error: {e}", file=sys.stderr)
