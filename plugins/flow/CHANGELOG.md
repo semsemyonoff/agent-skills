@@ -2,7 +2,7 @@
 
 ## 1.1.0
 
-- Optional Codex review of the whole change set, offered at plan confirmation when the Codex CLI is installed; disabled by CODEX_REVIEW=off, gated by CODEX_REVIEW_GUARD; model/effort from Codex config or CODEX_MODEL / CODEX_REASONING_EFFORT.
+- Optional Codex review of the whole change set, offered at plan confirmation when the Codex CLI is installed. `scripts/codex_review.py` checks availability (CODEX_REVIEW=off disables, CODEX_REVIEW_GUARD gates) and runs `codex exec` read-only on commits since the start plus staged, unstaged and untracked changes, with a process-group timeout and captured artifacts; model/effort come from Codex config or CODEX_MODEL / CODEX_REASONING_EFFORT. Reviewed twice by Codex.
 
 ## 1.0.3
 

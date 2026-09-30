@@ -1,58 +1,66 @@
 # Optional Codex review
 
-An independent second opinion from another vendor's model on the whole change set, after the
-orchestrator's own verification and before the report. Optional: offered only when available and
-allowed, run only when the user picks it.
+An independent second opinion from another vendor's model on everything the run changed, after the
+orchestrator's own verification and before the report. Offered only when available and allowed, run
+only when the user picks it. All mechanics live in `scripts/codex_review.py`.
 
-## Availability (check during recon, silently)
-
-Offer the step only if all hold:
+## Availability (during recon, silently)
 
 ```sh
-command -v codex >/dev/null                                   # Codex CLI installed
-[ "${CODEX_REVIEW:-}" != "off" ]                              # not disabled for this environment
-[ -z "${CODEX_REVIEW_GUARD:-}" ] || sh -c "$CODEX_REVIEW_GUARD"   # user-defined guard passes
+python3 "${CLAUDE_SKILL_DIR}/scripts/codex_review.py" check
 ```
 
-`CODEX_REVIEW` and `CODEX_REVIEW_GUARD` are set by the user's environment (e.g. per Claude profile),
-not by this skill. If the CLI is missing or `CODEX_REVIEW=off`, do not mention the step. If only the
-guard fails, mention in one line that Codex review is unavailable here and why (the guard's output).
+- `available` (exit 0) — offer the step.
+- `unavailable: skip: ...` — no Codex CLI or `CODEX_REVIEW=off`: do not mention the step at all.
+- `unavailable: guard: ...` — the user's `CODEX_REVIEW_GUARD` refused: say in one line that Codex
+  review is unavailable here and quote the reason.
+
+`CODEX_REVIEW`, `CODEX_REVIEW_GUARD`, `CODEX_MODEL`, `CODEX_REASONING_EFFORT` come from the user's
+environment, not from this skill.
 
 ## Asking
 
-Add a second question to the plan confirmation (same AskUserQuestion call):
-"Codex review at the end?" — "Yes" / "Yes, xhigh reasoning" / "No". Record `git rev-parse HEAD` at
-that moment as the start ref.
+Second question in the plan confirmation call: "Codex review at the end?" — "Yes" /
+"Yes, xhigh reasoning" / "No". At that moment record the start commit (`git rev-parse HEAD`) and,
+if non-empty, `git status --short` (changes that existed before the run).
 
 ## Running
 
-After all steps passed your verification:
+After all steps passed your verification and no worker is still running (the review must see the
+final tree), write a one-paragraph summary of the confirmed plan to a temp file and run in the
+background (Bash `run_in_background`):
 
 ```sh
-codex review --uncommitted \
-  ${CODEX_MODEL:+-c model="$CODEX_MODEL"} \
-  ${EFFORT:+-c model_reasoning_effort="$EFFORT"} \
-  "Review these changes for correctness, regressions and missed edge cases. Intent: <one-paragraph summary of the confirmed plan>" \
-  < /dev/null
+python3 "${CLAUDE_SKILL_DIR}/scripts/codex_review.py" run \
+  --repo "$REPO" --start "$START_SHA" --intent-file "$INTENT_FILE" \
+  [--dirty-at-start "$STATUS_AT_START"] [--xhigh]
 ```
 
-- `EFFORT` = `xhigh` if the user picked it, else `$CODEX_REASONING_EFFORT` if set, else omit — the
-  model and effort then come from the user's Codex config. Never hardcode a model.
-- If the working tree was already dirty at the start ref, say so: `--uncommitted` includes those
-  changes too.
-- If the run produced commits, review them with `--base <start ref>` instead of `--uncommitted`
-  (if the CLI rejects a SHA there, review each commit with `--commit <sha>`).
-- Always end with `< /dev/null`: Codex otherwise waits for stdin when run in the background.
-- Run it in the background (Bash `run_in_background`) and wait for the completion notice; it takes
-  several minutes. Give up after ~15 minutes and say so in the report.
-- `codex review` is read-only. Never run Codex with a write-capable sandbox from this skill.
+The script re-checks availability, then runs `codex exec` with `--sandbox read-only`,
+`approval_policy="never"`, `--ignore-rules`, `--ephemeral`, stdin from `/dev/null`, and a prompt
+that scopes the review to commits since the start commit plus staged, unstaged and untracked changes.
+Model and effort come from Codex's config unless `CODEX_MODEL` / `CODEX_REASONING_EFFORT` are set;
+`--xhigh` forces `model_reasoning_effort="xhigh"`. After `--timeout` minutes (default 15) it
+terminates the whole process group, SIGKILL included.
+
+It prints the artifacts directory: `review.md` (final message), `stdout.log`, `stderr.log`,
+`exit-code` (the script's final status) and, on failure, `error.txt` with the reason. Wait for the
+completion notice, then read `review.md`.
+
+- Exit 0 with a non-empty `review.md` — the review ran; findings may be zero.
+- 124 — timed out; 2 — bad repo or start commit; any other nonzero or an empty `review.md` — the
+  review failed. A failed review is reported as failed, never as "no findings".
+- Do not substitute settings silently: if Codex rejects the model or effort, report the error from
+  `stderr.log`.
+- Never run Codex with a write-capable sandbox or bypass flags from this skill; preset
+  `codex review --uncommitted|--base|--commit` is not used because it cannot take the intent prompt.
 
 ## Findings
 
 Treat them like an opus review: input, not a verdict. For each finding decide yourself:
 
 - **accept** — fix through a worker (same brief rules and verification), then re-run your checks;
-- **reject** — with a one-line reason (wrong, out of scope, already handled).
+- **reject** — with a one-line reason (wrong, out of scope, already handled, pre-existing change).
 
 No second Codex round unless the user asks. In the report add a block: "Codex: N findings — accepted
-K (what was fixed), rejected M (why)". If Codex failed or timed out, report that as is.
+K (what was fixed), rejected M (why)", or that the review failed / timed out and why.
