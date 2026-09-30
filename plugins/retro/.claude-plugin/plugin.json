@@ -1,7 +1,7 @@
 {
   "name": "retro",
   "description": "Retrospective over past Claude Code session transcripts: recurring requests, friction, tool errors, model routing, token spend",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": {
     "name": "semsemyonoff"
   }

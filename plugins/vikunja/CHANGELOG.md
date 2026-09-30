@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.5
+
+- Instance address comes from VIKUNJA_URL instead of a hardcoded host; task language and relation wording follow the project; examples made generic.
+
 ## 1.0.4
 
 - Intake offers the brainstorm with AskUserQuestion buttons instead of a text question.

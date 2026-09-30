@@ -1,6 +1,6 @@
 ---
 name: reflection
-description: Retrospective over past Claude Code session transcripts of the current profile - finds recurring requests that should become skills/commands, repeated corrections that should become CLAUDE.md rules, tool errors, permission denials, wasted effort, subagent model routing and token spend. Use for "reflect on my sessions", "retro for the week", "analyze transcripts", "what can I automate", "what do I keep repeating", "review how I use Claude", «проанализируй сессии», «проанализируй транскрипты», «рефлексия», «ретро за неделю», «что можно автоматизировать», «что я постоянно повторяю», «где я теряю время с Claude». Not for summarizing a single current conversation or for cost dashboards alone (use ccusage).
+description: Retrospective over past Claude Code session transcripts (the Claude config dir this session runs in) - finds recurring requests that should become skills/commands, repeated corrections that should become CLAUDE.md rules, tool errors, permission denials, wasted effort, subagent model routing and token spend. Use for "reflect on my sessions", "retro for the week", "analyze transcripts", "what can I automate", "what do I keep repeating", "review how I use Claude", «проанализируй сессии», «проанализируй транскрипты», «рефлексия», «ретро за неделю», «что можно автоматизировать», «что я постоянно повторяю», «где я теряю время с Claude». Not for summarizing a single current conversation or for cost dashboards alone (use ccusage).
 ---
 
 # Reflection over session transcripts
@@ -16,9 +16,9 @@ redaction slipped through; paraphrase instead.
   (`--days N` or `--since YYYY-MM-DD`). If the request is vague about both period and project, state
   the default in one line and proceed; ask only when the choice changes the result materially.
 - Project: default all projects. Use `--project <substring>` when the user names one.
-- Profile: the script reads `${CLAUDE_CONFIG_DIR:-~/.claude}/projects/`, so it analyzes whichever
-  profile this session runs in. To look at the other profile, pass `--config-dir` (personal `~/.claude`,
-  work `~/.claude-work`) and say which one you read.
+- Config dir: the script reads `${CLAUDE_CONFIG_DIR:-~/.claude}/projects/`, so it analyzes the Claude
+  configuration this session runs in. To analyze another one, pass `--config-dir <dir>` and say which
+  one you read.
 
 ## 2. Extract
 
@@ -54,7 +54,7 @@ routing and spend. Rules that keep the analysis honest:
 
 Structure (in the user's language, compact, no filler):
 
-1. Scope line: period, profile, project filter, sessions and prompts analyzed.
+1. Scope line: period, config dir, project filter, sessions and prompts analyzed.
 2. Recurring intents: table with intent, count, verdict (existing skill covers / new skill candidate /
    CLAUDE.md rule / ignore).
 3. Friction with evidence: quote + session id prefix, and the rule or fix that would prevent it.

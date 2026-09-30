@@ -10,7 +10,7 @@ This scenario is read-only until the user confirms.
    carry the latest decision, so read them to the end.
 2. **Follow the links.** For every `#N` in the description or comments, and for related tasks in the
    `task_get` output, `task_get` them (one level deep is usually enough). Note which are done and
-   what they decided. Also look at the parent or slice siblings when the task is "Срез N из #M".
+   what they decided. Also look at the parent and sibling tasks when the task is a slice of a bigger one.
 3. **Look at the code or docs** the task names, only as far as needed to make the plan realistic.
    Do not start implementing.
 4. **Analyse.** State what is asked, what is already done or blocked, hidden dependencies, risks,

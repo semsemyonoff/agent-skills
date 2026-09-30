@@ -20,7 +20,7 @@ Reply in the user's language.
 
 ## Tools
 
-The Redmine MCP (server name varies, e.g. `work-redmine`): `get_redmine_issue`, `update_redmine_issue`,
+The Redmine MCP (the server name varies): `get_redmine_issue`, `update_redmine_issue`,
 `list_redmine_issue_statuses`, `get_redmine_attachment`, `list_redmine_issues`. If it is not connected,
 say so and stop; do not invent issue content.
 

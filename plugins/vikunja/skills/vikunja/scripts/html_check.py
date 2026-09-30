@@ -9,15 +9,17 @@ and exits 1 when any is found. Optionally builds HTML from simple sections:
 
 Section format for --build: blocks separated by blank lines. "# Title" starts an <h3>; "- " lines
 form a <ul>; "1. " lines form an <ol>; anything else is a <p>. Inline "**x**" -> <b>, "`x`" -> <code>,
-"#N" -> a task link. Text is escaped, so literal < > & are safe.
+"#N" -> a task link when VIKUNJA_URL is set (plain "#N" otherwise). Text is escaped, so literal
+< > & are safe.
 """
 
 import html
+import os
 import re
 import sys
 from html.parser import HTMLParser
 
-BASE = "https://tasks.horn/tasks"
+BASE = os.environ.get("VIKUNJA_URL", "").rstrip("/")
 ALLOWED = {"p", "b", "strong", "i", "em", "u", "code", "pre", "ul", "ol", "li", "h1", "h2", "h3", "h4",
            "a", "br", "blockquote", "hr", "s", "mark"}
 VOID = {"br", "hr"}
@@ -84,7 +86,9 @@ def inline(s: str) -> str:
     s = html.escape(s, quote=False)
     s = re.sub(r"\*\*(.+?)\*\*", r"<b>\1</b>", s)
     s = re.sub(r"`(.+?)`", r"<code>\1</code>", s)
-    return re.sub(r"(?<![\w&])#(\d+)\b", rf'<a href="{BASE}/\1">#\1</a>', s)
+    if not BASE:
+        return s
+    return re.sub(r"(?<![\w&])#(\d+)\b", rf'<a href="{BASE}/tasks/\1">#\1</a>', s)
 
 
 def build(text: str) -> str:

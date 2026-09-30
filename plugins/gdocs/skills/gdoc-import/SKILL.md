@@ -79,8 +79,7 @@ than to run through the script.
 
 ## 5. Place in the repository
 
-Directory: `docs/local/<topic>/` — if the project agrees that `docs/local/` is gitignored (as in
-divan/dwe). Otherwise ask whether to commit it: project Google Docs often contain client information.
+Directory: `docs/local/<topic>/` — if the project agrees that `docs/local/` is gitignored. Otherwise ask whether to commit it: project Google Docs often contain client information.
 
 Layout proven in practice:
 

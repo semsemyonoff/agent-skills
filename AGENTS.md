@@ -19,11 +19,11 @@ codex/<skill>/                      # Codex-only skills, installed via skills.sh
 scripts/check.py                    # repo validation, run locally and in CI
 ```
 
-Plugins are grouped by theme (`flow`, `vikunja`, `redmine`, `retro`, `gdocs`, `peer`), not by profile.
-Which plugin is enabled in which Claude profile (personal `~/.claude`, work `~/.claude-work`) is decided
-in chezmoi, not here — moving a skill between profiles must not rename its command.
+Plugins are grouped by theme (`flow`, `vikunja`, `redmine`, `retro`, `gdocs`, `peer`). Which plugins a
+given Claude setup enables is up to whoever installs them; nothing in this repo assumes a particular
+setup, so keep machine- and account-specific details out of it.
 
-Claude gets workflows (personal and work). Codex gets only `codex/`: skills for its role as a second
+Claude gets the workflows. Codex gets only `codex/`: skills for its role as a second
 opinion — code analysis, review, architecture — plus the Codex side of peer-chat. skills.sh reads
 `marketplace.json` and would expose plugin skills, so Codex installs use the subpath:
 `npx skills add semsemyonoff/agent-skills/codex -a codex -g`.

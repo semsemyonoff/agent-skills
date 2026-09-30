@@ -5,9 +5,13 @@ description: Work with Vikunja tasks through the mcp__vikunja__* tools — creat
 
 # Vikunja
 
-Vikunja is the personal task tracker (`https://tasks.horn`), driven only through the `mcp__vikunja__*`
-tools. Reply in the user's language. Write task content in Russian unless the project's existing tasks
-use another language. MCP calls cannot be scripted, so the model makes them; the only script is the
+Vikunja is driven only through the `mcp__vikunja__*` tools. Reply in the user's language. Write task
+content in the language the project's existing tasks use; if unclear, in the user's language.
+
+Web links need the instance address, which the MCP does not expose: read `VIKUNJA_URL` once
+(`echo "$VIKUNJA_URL"`, e.g. `https://vikunja.example.com`). Task links are then
+`$VIKUNJA_URL/tasks/N`. If it is unset, write references as plain `#N`, give the user task ids instead of
+links, and mention once that setting `VIKUNJA_URL` enables links. MCP calls cannot be scripted, so the model makes them; the only script is the
 offline HTML validator.
 
 ## Setup
@@ -36,7 +40,7 @@ takes `id`, most others `taskId`), so read each schema instead of assuming.
 2. **Validate before sending** anything non-trivial:
    `python3 "${CLAUDE_SKILL_DIR}/scripts/html_check.py" file.html` (or `-` for stdin). It rejects markdown
    markers and escaped tags. `--build` turns a simple section format into HTML (see its docstring).
-3. **Task references** are `<a href="https://tasks.horn/tasks/N">#N</a>`; code, commits, plans and ADRs go
+3. **Task references** are `<a href="$VIKUNJA_URL/tasks/N">#N</a>` (plain `#N` without it); code, commits, plans and ADRs go
    in `<code>`.
 4. **Numeric camelCase parameters:** `projectId`, `taskId`, `otherTaskId`, `commentId` are numbers.
 5. **Search with `show: "all"`** in `projects_list` and `tasks_list`, otherwise archived projects and done

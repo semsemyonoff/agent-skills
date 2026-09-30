@@ -19,9 +19,9 @@ for confirmation again unless the target is ambiguous.
 3. **Match the style.** Look at a handful of recent titles (`sortBy: "created"`, `sortDirection: "desc"`,
    `limit: 10`, `show: "all"`) and pick a title in the same scheme: short, concrete, verbs and
    nouns instead of a sentence.
-4. **Write the description** in Russian HTML with `<h3>` sections. Typical: Проблема (what hurts, with
-   numbers if known), Предложение, Открытые вопросы, Критерий готовности. Related tasks as
-   `<a href="https://tasks.horn/tasks/N">#N</a>`; "Выделено из #N." when it is a spin-off. Strip
+4. **Write the description** in HTML with `<h3>` sections, in the project's language. Typical: problem
+   (what hurts, with numbers if known), proposal, open questions, done criteria. Related tasks as
+   `<a href="$VIKUNJA_URL/tasks/N">#N</a>`; say where it was split from when it is a spin-off. Strip
    personal data. Write it to a temp file and run
    `python3 "${CLAUDE_SKILL_DIR}/scripts/html_check.py" file.html`; fix every reported problem.
 5. **Create.** `task_create` with numeric `projectId`, `title`, `description`; `priority` only if the
@@ -29,7 +29,7 @@ for confirmation again unless the target is ambiguous.
 6. **Verify.** `task_get` with the returned id; confirm title and that the description holds the raw HTML you
    sent. Then do the extras the user asked for (relation to the parent task, label) as separate calls,
    reading each reply.
-7. **Report** in the user's language: link `https://tasks.horn/tasks/<id>`, project id, and any
+7. **Report** in the user's language: link `$VIKUNJA_URL/tasks/<id>` (or the id), project id, and any
    failed extra (label errors included) verbatim.
 
 ## Pitfalls

@@ -21,7 +21,7 @@ Use after work is done or when the user says "отпишись в N", "отпи�
    - `<p><b>Прогресс (2026-09-29)</b></p>` when partial;
    - `<p><b>Решение (2026-09-29)</b></p>` when the outcome is a decision or a "won't do".
 3. Body: what changed and why, in a short `<ul>`; commits, plans, ADRs, files as `<code>`; links to other
-   tasks as `<a href="https://tasks.horn/tasks/N">#N</a>`.
+   tasks as `<a href="$VIKUNJA_URL/tasks/N">#N</a>`.
 4. If anything is still open, add an explicit `<p><b>Что осталось</b></p>` with a list. Be specific:
    items the reader can act on.
 5. Validate with `python3 "${CLAUDE_SKILL_DIR}/scripts/html_check.py" file.html`, then `comment_create`

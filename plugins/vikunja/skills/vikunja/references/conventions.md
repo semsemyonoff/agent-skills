@@ -12,7 +12,7 @@ Learned from real sessions; each rule exists because something went wrong withou
 | bullets | `<ul><li>one</li><li>two</li></ul>` |
 | steps | `<ol><li>first</li><li>second</li></ol>` |
 | code, commit, plan, ADR | `<code>docs/plans/completed/x.md</code>` |
-| task link | `<a href="https://tasks.horn/tasks/N">#N</a>` |
+| task link | `<a href="$VIKUNJA_URL/tasks/N">#N</a>` (plain `#N` if `VIKUNJA_URL` is unset) |
 | literal angle bracket in text | `&lt;branch&gt;` (inside `<code>` too) |
 
 - Tags are sent raw. If a tool echoes content back with `&lt;p&gt;`, that is often only how the response
@@ -27,9 +27,9 @@ Learned from real sessions; each rule exists because something went wrong withou
 - Short concrete title. Look at neighbours first (`tasks_list`, `show: "all"`, `sortBy: "created"`,
   `sortDirection: "desc"`, small `limit`) and copy the project's prefix scheme. Some projects use
   wave or roadmap prefixes (`[W1]`, `[Roadmap]`), others free text; ideas often have no prefix.
-- Slices of a bigger task: description starts "Срез N из #M."; spin-offs: "Выделено из #M."; dependencies:
-  "Зависит от #M." A research task in a mixed project may be titled "Исследование: ..."; the
-  neighbours' scheme wins — in a project that is all research (e.g. "Research") skip the prefix.
+- Say how a task relates to others in the first line of its description, in the wording the project
+  already uses — for example "Slice N of #M.", "Split from #M.", "Depends on #M." (in the project's
+  language). The same for title prefixes such as "Research: ...": use them only if neighbours do.
 - Description sections in `<h3>`: problem, proposal, open questions, done criteria. Do not paste
   chat history; write it so a stranger understands it in a month.
 
@@ -82,5 +82,5 @@ sentence; trust the table. Its wording for `blocking` matches the stored relatio
 - `tasks_list` search is a case-insensitive substring match over title and description; short tokens
   such as "PR" match half the project. Use 2-3 specific words; for Russian use word stems
   ("плагин", not "плагинов"), and if a search returns nothing, skim the latest tasks instead.
-- Project names may differ in case from what the user says ("dwe" vs "DWE"); treat a single
+- Project names may differ in case from what the user says ("api" vs "API"); treat a single
   case-insensitive match as a match, several or none as a stop-and-ask.

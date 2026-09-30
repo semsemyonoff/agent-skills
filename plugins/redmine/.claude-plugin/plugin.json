@@ -1,7 +1,7 @@
 {
   "name": "redmine",
   "description": "Write to Redmine safely: Textile drafts, house style for manager-facing comments, independent fact-check, send only on explicit approval",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": {
     "name": "semsemyonoff"
   }
