@@ -51,6 +51,13 @@ class CheckTest(unittest.TestCase):
 
 
 def alive(pid: int) -> bool:
+    """A killed orphan stays a zombie where PID 1 does not reap (CI containers); count it as dead."""
+    stat = Path(f"/proc/{pid}/stat")
+    if Path("/proc/self/stat").exists():
+        try:
+            return stat.read_text().rsplit(")", 1)[1].split()[0] not in ("Z", "X")
+        except FileNotFoundError:
+            return False
     try:
         os.kill(pid, 0)
     except ProcessLookupError:
