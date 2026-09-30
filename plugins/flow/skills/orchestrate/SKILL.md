@@ -36,6 +36,11 @@ broad sweeps, bulk implementation, independent verification go to a worker.
 
 ### 2. Plan
 
+A plan comes only after the solution is settled. If recon shows open design decisions (several ways
+to do it, unclear scope, no agreed approach) and no brainstorm or design discussion preceded this
+run, stop after recon: list the open decisions and propose a brainstorm on them. Plan directly only
+when the approach is already decided — in the conversation, a design, or the task itself.
+
 Present the plan as a table (template in `references/templates.md`): step, worker + model, input,
 done-criterion, dependencies. Mark independent steps as parallel. Pick models by
 `references/routing.md`; when you deviate from it, give a one-line reason in the row. Risky parts

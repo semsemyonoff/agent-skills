@@ -1,5 +1,5 @@
 ---
-description: Analyse a Vikunja task and propose a plan with delegation, then wait for confirmation
+description: Analyse a Vikunja task, then propose a brainstorm on open decisions, or a plan with delegation if the task already settles the solution
 argument-hint: "<task id or link>"
 ---
 

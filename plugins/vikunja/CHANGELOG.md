@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.3
+
+- Intake: brainstorm by default, a plan only when the task already spells out the solution.
+
 ## 1.0.2
 
 - Backlog: when no project matches, list all projects and ask. Title prefix yields to the neighbours' scheme; search by Russian word stems.

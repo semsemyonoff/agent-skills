@@ -23,7 +23,7 @@ takes `id`, most others `taskId`), so read each schema instead of assuming.
 | The user wants | Read |
 | --- | --- |
 | a new task recorded (backlog, "for later", a spin-off, a follow-up) | `sections/backlog.md` |
-| to understand or start a task ("look at task N, plan it") | `sections/intake.md` |
+| to understand or start a task ("look at task N"): analysis, then brainstorm, or a plan if the solution is settled | `sections/intake.md` |
 | progress written into tasks, tasks closed, a sweep over a project | `sections/report.md` |
 | anything else (edit a description, add a label, link tasks) | rules below, details in `references/conventions.md` |
 

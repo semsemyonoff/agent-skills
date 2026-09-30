@@ -1,4 +1,4 @@
-# Intake: understand a task and propose a plan
+# Intake: understand a task, then brainstorm or plan
 
 Use when the user points at a task ("посмотри задачу N викунджа, проанализируй, опиши план, что
 делегируешь и на кого, начинай после подтверждения", "look at task N and tell me how you'd do it").
@@ -15,19 +15,29 @@ This scenario is read-only until the user confirms.
    Do not start implementing.
 4. **Analyse.** State what is asked, what is already done or blocked, hidden dependencies, risks,
    and anything the task leaves undecided.
-5. **Write the plan** to the user, in their language:
+5. **Decide: brainstorm or plan.** A plan comes only after the solution is settled.
+   - **Default — brainstorm.** If the approach is not fully decided in the task (open questions,
+     several ways to do it, no concrete design), stop after the analysis: give the summary, list the
+     decisions that are open, and propose a brainstorm (`/brainstorm`, or the brainstorm skill) on
+     them. Do not write a plan.
+   - **Plan — only for a ready solution.** Go to step 6 only when the task (description plus the
+     latest comments) already spells out the solution: what to change, where, and how to verify it,
+     with no open design questions. Say in one line why you consider it settled.
+   If the user already said what comes next («потом брейншторм», «потом в оркестраторе»), follow that.
+6. **Write the plan** (ready solution only), in the user's language:
    - ordered steps, each small enough to verify;
    - for each step who does it: the main session, or a delegated subagent, and on which model
      (a cheaper model for mechanical search or edits, the strongest for design and review). If the
      user named the split, follow it;
    - what will be checked at the end (tests, lint, manual check);
    - open questions that need an answer before starting.
-6. **Wait.** Do nothing in the tracker or the repo until the user confirms, unless they said
+7. **Wait.** Do nothing in the tracker or the repo until the user confirms, unless they said
    "начинай после подтверждения", which means the confirmation is the go signal, not a
    reason to ask twice. Once confirmed, do the work, then use `sections/report.md` to write it up.
 
 ## Pitfalls
 
 - Analysing only the description and missing the comment that changed the scope.
+- Writing a plan for a task whose solution is still open: brainstorm first.
 - A plan without an owner per step: the user asked "who does what", answer it.
 - Editing the task, changing status or creating subtasks before the user agreed.
