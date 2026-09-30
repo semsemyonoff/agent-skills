@@ -34,6 +34,8 @@ in parallel and return conclusions with `path:line` references, not file dumps: 
 context is the scarce resource. Threshold: 1-2 targeted reads or a couple-line edit, do it yourself;
 broad sweeps, bulk implementation, independent verification go to a worker.
 
+Also check silently whether an optional Codex review is available (`references/codex-review.md`).
+
 ### 2. Plan
 
 A plan comes only after the solution is settled. If recon shows open design decisions (several ways
@@ -53,7 +55,9 @@ Parallel steps that edit code must not touch the same files; if they would, make
 ### 3. Confirmation
 
 Ask with AskUserQuestion, not a text question: "Start" / "Start phase by phase" / "Change the plan"
-(free-text answers still come through "Other"). Apply plan changes before starting, and show the
+(free-text answers still come through "Other"). If a Codex review is available, add a second
+question in the same call: "Codex review at the end?" — "Yes" / "Yes, xhigh reasoning" / "No".
+Apply plan changes before starting, and show the
 changed rows if the edit was more than cosmetic.
 
 ### 4. Execution
@@ -84,11 +88,14 @@ On failure:
 2. Second failure: escalate one model up (haiku to sonnet, sonnet to opus) and note it for the report.
 3. Escalation fails, or opus already failed twice: stop and ask the user.
 
+If the user chose a Codex review, run it after all steps passed, as described in
+`references/codex-review.md`, and handle its findings the same way as an opus review.
+
 ### 6. Report
 
 In the user's language, short, using the template in `references/templates.md`: what was done (2-5
 lines); table of steps (worker, model, result, escalations); deviations from the plan and why; what
-was not verified; what remains. No retelling of the process.
+was not verified; what remains; Codex findings accepted/rejected, if it ran. No retelling of the process.
 
 ## When to stop and ask
 
@@ -106,3 +113,4 @@ Workers never commit or push; the orchestrator commits only if the user asked fo
 - `references/routing.md` - which model for which work, and how to justify a deviation.
 - `references/brief.md` - worker brief template with a filled-in example.
 - `references/templates.md` - plan table and final report templates.
+- `references/codex-review.md` - optional Codex review: availability, the call, findings.

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.0
+
+- Optional Codex review of the whole change set, offered at plan confirmation when the Codex CLI is installed; disabled by CODEX_REVIEW=off, gated by CODEX_REVIEW_GUARD; model/effort from Codex config or CODEX_MODEL / CODEX_REASONING_EFFORT.
+
 ## 1.0.3
 
 - Brainstorm offer and plan confirmation use AskUserQuestion buttons instead of a text question.

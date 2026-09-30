@@ -35,3 +35,13 @@ Per-profile enablement is managed in chezmoi.
 
 A plan comes only after the solution is settled: if the task leaves design decisions open, brainstorm
 first. Add «по фазам» / "phase by phase" to `/flow:orchestrate` to stop after each phase.
+
+## Environment
+
+`flow:orchestrate` offers an optional Codex review when the `codex` CLI is installed:
+
+| Variable | Effect |
+| --- | --- |
+| `CODEX_REVIEW=off` | never offer the review (e.g. in a work profile) |
+| `CODEX_REVIEW_GUARD` | shell command that must exit 0 before the review runs |
+| `CODEX_MODEL`, `CODEX_REASONING_EFFORT` | override the model / reasoning from Codex config |
