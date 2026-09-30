@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.2
+
+- Trigger when "Orchestrate" is chosen as the next step of a brainstorm; take the brainstorm design as input.
+
 ## 1.0.1
 
 - Plan only after the solution is settled; otherwise propose a brainstorm after recon.
