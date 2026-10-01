@@ -114,6 +114,36 @@ class RunTest(unittest.TestCase):
                            capture_output=True, text=True)
         self.assertEqual(r.returncode, 2)
 
+    def test_rejected_native_route_is_failure_without_retry(self):
+        attempts = Path(self.tmp.name) / "attempts"
+        self.fake_codex(f'''
+if [ -e "{attempts}" ]; then
+  while [ "$#" -gt 0 ]; do
+    if [ "$1" = "--output-last-message" ]; then
+      shift
+      printf 'unexpected fallback succeeded\\n' > "$1"
+      exit 0
+    fi
+    shift
+  done
+fi
+printf 'attempt\\n' >> "{attempts}"
+printf 'configured model or effort rejected\\n' >&2
+exit 42
+''')
+        for overrides in ({"CODEX_MODEL": "unsupported-model"},
+                          {"CODEX_REASONING_EFFORT": "unsupported-effort"}):
+            with self.subTest(overrides=overrides):
+                attempts.unlink(missing_ok=True)
+                r = self.run_review(**overrides)
+                self.assertEqual(r.returncode, 42)
+                out = Path(r.stdout.strip())
+                self.assertEqual((out / "exit-code").read_text().strip(), "42")
+                self.assertIn("rejected", (out / "stderr.log").read_text())
+                self.assertIn("codex exited with 42", (out / "error.txt").read_text())
+                self.assertFalse((out / "review.md").exists())
+                self.assertEqual(attempts.read_text().splitlines(), ["attempt"])
+
     def test_guard_timeout_kills_its_children(self):
         pidfile = Path(self.tmp.name) / "guard.pid"
         self.fake_codex("exit 0\n")

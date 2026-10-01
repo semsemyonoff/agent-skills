@@ -1,59 +1,57 @@
 # Worker brief
 
-The worker does not see the conversation, the plan or other workers' results. Everything it needs is
-in the brief; anything missing it will guess. Write the brief in English or in the user's language,
-whichever the surrounding code and docs use.
+Assume no conversation history unless the actual harness proves otherwise. Put everything needed
+in a self-contained brief. The coordinator owns the complete plan even if the native worker is
+allowed to delegate. Write in English or the user's language as appropriate for the surrounding code.
 
 ## Template
 
-```
-Goal: <one sentence: what must be true when you are done>
+```text
+Goal: <what must be true when done>
+Category and native route: <research/mechanics/implementation/review; discovered agent identity>
 
 Context:
-- <repo/dir, relevant files with paths, entry points>
-- <decisions already made and constraints: style, libraries, versions, what was ruled out>
-- <facts from recon the worker would otherwise re-discover>
-- <commands: how to build, test, lint>
+- <workspace, exact files/entry points, input artifact paths and relevant source locations>
+- <approved approach, contracts, constraints, versions, decisions already settled>
+- <pre-existing edits to preserve and facts already learned>
+
+Change/questions:
+- <specific edits, APIs, cases, or research/review questions>
+- <mechanical example when appropriate; review candidate diff and original acceptance criteria>
 
 Boundaries:
-- May touch: <files or dirs>
-- Must not: commit, push, write to trackers/forges or any external system, touch files outside the
-  list above, touch <files another worker owns>. If the task cannot be done within these limits,
-  stop and say why instead of widening the scope.
+- May touch: <exact file ownership; read-only for research/review>
+- Do not touch: <other owners' files, unrelated edits, external systems/configuration>
+- Skip shared gates, model evals, smoke runs, and formatters during concurrent implementation.
+  Verification owner: <coordinator or independent assigned checker>; commands: <central checks>.
+- No commits, push, installs, destructive deletion, tracker/forge writes, external messages,
+  model/settings mutations, or unapproved second-opinion calls.
+- Nested delegation: <forbidden for this slice, or actual permitted capabilities and bounded scope>.
+  Never assume nesting is available; preserve these permissions in any child brief.
 
-Done when: <checkable criterion: tests X pass, function Y handles Z, list covers all N items>
+Acceptance: <observable consumer behavior/boundaries, not just files present or tests written>
 
-Answer format (compact, no retelling of the process):
-- What was done, 1-3 lines.
-- Changed files (or, for research: findings with path:line references).
-- What you are unsure about or did not verify.
+Return compactly:
+- Findings/changes with exact paths and source locations.
+- Evidence actually observed; commands suggested but not run must be identified as such.
+- Uncertainties, missing capabilities, model/effort only if exposed, and precise blockers.
 ```
 
-## Tips
-
-- Give paths and line hints, not pasted file contents; the worker can read files.
-- For recon, give the questions as a checklist so the answer maps to it one to one.
-- For edits by spec, give one fully worked example of the change; mechanical workers copy the pattern.
-- On a retry, add a "Previous attempt" line: what was wrong, and what exactly fixes it.
+On retry append the previous defect, its evidence, and the acceptance result that would resolve it.
+A worker that cannot finish within scope reports the gap; it does not widen permissions or switch
+models. Independent review must use a separate worker who did not implement the reviewed result.
 
 ## Example
 
-```
-Goal: Add request-size limiting to the upload handler so bodies over the configured limit get 413.
-
-Context:
-- Go service in the current repo. Handler: internal/http/upload.go, func (h *Handler) Upload.
-- Config struct: internal/config/config.go; add MaxUploadBytes int64, env UPLOAD_MAX_BYTES,
-  default 10 MiB, same pattern as ReadTimeout on line 41.
-- Use http.MaxBytesReader; on *http.MaxBytesError respond 413 with the existing writeError helper.
-- Tests live in internal/http/upload_test.go (table-driven, httptest). Run: go test ./internal/...
-
-Boundaries:
-- May touch: internal/http/upload.go, internal/http/upload_test.go, internal/config/config.go.
-- Must not: commit, push, change other handlers, add dependencies.
-
-Done when: a test with a body over the limit gets 413, one under the limit still gets 200, and
-go test ./internal/... passes.
-
-Answer format: what was done (1-3 lines), changed files, anything you are unsure about.
+```text
+Goal: Upload bodies over the approved 10 MiB limit get HTTP 413; smaller bodies still upload.
+Category: implementation; native route: the discovered implementation agent.
+Context: internal/http/upload.go handler; internal/config/config.go follows existing timeout pattern.
+Change: use the service's current body-limit pattern and error helper; cover exact-limit and over-limit.
+May touch: internal/http/upload.go, internal/http/upload_test.go, internal/config/config.go.
+Do not change other handlers, dependencies, native routing, or pre-existing unrelated edits.
+Skip checks/formatters mid-flight; coordinator will run project gates and exercise upload requests.
+No external writes/commits/push/installs; no nested delegation for this slice.
+Acceptance: 10 MiB succeeds; 10 MiB + 1 byte receives 413 without storing the oversized body.
+Return: changed paths, unchecked assumptions, suggested central scenario commands.
 ```

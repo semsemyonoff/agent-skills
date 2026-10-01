@@ -1,0 +1,4 @@
+{"type": "session", "version": 3, "id": "omp-synthetic-child", "timestamp": "2099-01-02T10:01:00Z", "cwd": "/work/shop-api"}
+{"type": "session_init", "id": "child-init", "parentId": null, "timestamp": "2099-01-02T10:01:01Z", "agent": "scout", "modelRole": "smol", "resolvedModel": "openai-codex/gpt-small", "systemPrompt": "Synthetic child contract", "task": "review release", "tools": ["read"]}
+{"type": "message", "id": "child-task", "parentId": "child-init", "timestamp": "2099-01-02T10:01:02Z", "message": {"role": "user", "content": "review release"}}
+{"type": "message", "id": "child-answer", "parentId": "child-task", "timestamp": "2099-01-02T10:01:03Z", "message": {"role": "assistant", "provider": "openai-codex", "model": "gpt-small", "content": [{"type": "toolCall", "id": "child-read", "name": "read", "arguments": {"path": "/work/shop-api/release"}}], "usage": {"input": 4, "output": 2, "cacheRead": 8, "cacheWrite": 0, "totalTokens": 14}, "stopReason": "stop"}}

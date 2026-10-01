@@ -1,0 +1,22 @@
+[
+  {"query":"Reflect on my Claude Code sessions for shop-api over the last month: what requests and corrections keep repeating, and what should become a skill or project rule?","should_trigger":true},
+  {"query":"Сделай ретро за неделю по сессиям omp в billing-api: повторяющиеся ошибки инструментов, лишние токены, модель и effort субагентов, что улучшить?","should_trigger":true},
+  {"query":"I use Codex through omp, not the Codex CLI. Analyze my omp history since Monday and find recurring workflows worth automating, with session evidence.","should_trigger":true},
+  {"query":"Я постоянно заново объясняю Claude, как выпускать релиз. Посмотри прошлые транскрипты за месяц и предложи конкретные изменения навыков и правил проекта.","should_trigger":true},
+  {"query":"Compare my Claude Code and omp session histories for payments since September 1, including child routing and permission denials. One combined retrospective, please.","should_trigger":true},
+  {"query":"Проанализируй только omp-профиль research: почему я опять исправляю агента и какие повторяющиеся запросы можно убрать автоматизацией?","should_trigger":true},
+  {"query":"What do I keep asking for in previous Claude sessions? Group recurring intents across projects, distinguish existing skills from missing ones, and rank improvements.","should_trigger":true},
+  {"query":"Рефлексия по Claude Code в monorepo с начала месяца: где повторяются отказы разрешений, ошибки Bash и просьбы не коммитить без запроса?","should_trigger":true},
+  {"query":"Review how I use omp for worktrees over the last seven days. Include subagent usage but do not mistake delegated task prompts for my requests.","should_trigger":true},
+  {"query":"Ретро моих AI-сессий в omp, даже если модель называется Claude: найди паттерны из истории за неделю и обоснуй предложения ссылками на сессии.","should_trigger":true},
+  {"query":"Summarize this current conversation so I can hand off the unfinished parser task; do not inspect past sessions.","should_trigger":false},
+  {"query":"Подведи краткий итог текущего диалога и перечисли решения, без анализа истории других сессий.","should_trigger":false},
+  {"query":"Open a Claude usage cost dashboard for today. I only need dollar totals by model, no retrospective or automation advice.","should_trigger":false},
+  {"query":"Покажи стоимость токенов за сегодня в ccusage; анализ повторяющихся запросов и правил проекта не нужен.","should_trigger":false},
+  {"query":"Write a facilitator agenda for our team's sprint retrospective from these meeting notes, not AI session logs.","should_trigger":false},
+  {"query":"Проведи ретроспективу спринта команды по Jira-задачам и meeting notes; журналы Claude/omp не относятся к этому.","should_trigger":false},
+  {"query":"Analyze native Codex CLI session files under .codex and build a usage dashboard; these are not omp journals.","should_trigger":false},
+  {"query":"Настрой профиль omp с новым default model и effort high, но пока не исследуй историю сессий.","should_trigger":false},
+  {"query":"Implement an exponential backoff fix for this one tool error; here is the stack trace from the current run.","should_trigger":false},
+  {"query":"Создай новый skill для релизов по готовому процессу ниже; не анализируй прошлые транскрипты, требования уже согласованы.","should_trigger":false}
+]

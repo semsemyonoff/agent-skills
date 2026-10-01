@@ -1,39 +1,34 @@
 #!/usr/bin/env python3
-"""Extract a compact, redacted digest from Claude Code session transcripts.
+"""Build a redacted retrospective digest from explicitly selected Claude/omp JSONL.
 
-Reads <config-dir>/projects/*/*.jsonl (plus */*/subagents/*.jsonl with
---include-subagents). Deterministic extraction only; interpretation is left
-to the caller. Stdlib only.
+Read-only, stdlib-only. Select --source claude|omp|both; model names never
+select the parser. Native Codex CLI logs are not supported.
 """
 import argparse
 import collections
 import datetime as dt
 import glob
+import hashlib
 import json
+import math
 import os
 import re
 import sys
 
 TEXT_MAX = 200
-
-# Heuristic markers of a user correcting the previous assistant turn.
+METRICS = ("input", "cache_creation", "cache_read", "output", "total")
 CORRECTION_RE = re.compile(
     r"(?:^|[\s,.;:!?(\"'])(?:"
     r"нет\b|не так|не то\b|не надо|не нужно|поправь|исправь|опять|снова|"
     r"я же (?:говорил|просил|писал)|зачем|почему ты|не делай|перестань|"
     r"stop\b|wrong\b|don'?t\b|do not\b|no,|nope\b|that'?s not|not what i|"
-    r"again\b|i (?:said|told|asked)|why did you|undo\b|revert\b"
-    r")",
-    re.I,
-)
-
+    r"again\b|i (?:said|told|asked)|why did you|undo\b|revert\b)", re.I)
 META_PREFIXES = (
     "<system-reminder>", "<task-notification", "<local-command", "<command-message>",
     "<user-prompt-submit-hook", "Caveat:", "[Request interrupted",
     "Base directory for this skill", "This session is being continued",
     "<ide_", "<bash-", "<tool_use_error>",
 )
-
 REDACT_PATTERNS = [
     (re.compile(r"(?i)\b(pass(?:word|wd)?|passphrase|secret|token|api[_-]?key|apikey|auth|credentials?|пароль|токен|ключ)\b(\s*[:=]\s*|\s+is\s+|\s+)\S+"), r"\1 [REDACTED]"),
     (re.compile(r"(?i)\b(Bearer|Basic)\s+[A-Za-z0-9._~+/=-]{8,}"), r"\1 [REDACTED]"),
@@ -52,320 +47,559 @@ def redact(s):
 
 def clip(s, n=TEXT_MAX):
     s = redact(" ".join(str(s).split()))
-    return s if len(s) <= n else s[: n - 1] + "…"
+    return s if len(s) <= n else s[:n - 1] + "…"
+
+
+def obj(value):
+    return value if isinstance(value, dict) else {}
+
+
+def string(value):
+    return value if isinstance(value, str) else None
+
+
+def blocks(value):
+    return [b for b in value if isinstance(b, dict)] if isinstance(value, list) else []
+
+
+def text_content(value):
+    if isinstance(value, str):
+        return value
+    return "\n".join(b["text"] for b in blocks(value)
+                     if b.get("type") == "text" and isinstance(b.get("text"), str))
+
+
+def user_text(msg):
+    content = msg.get("content")
+    if any(b.get("type") == "tool_result" for b in blocks(content)):
+        return "tool_result", ""
+    text = text_content(content).strip()
+    if not text:
+        return "meta", ""
+    command = re.search(r"<command-name>\s*(/?[^<\s]+)\s*</command-name>", text)
+    if command:
+        args = re.search(r"<command-args>(.*?)</command-args>", text, re.S)
+        return "command", (command.group(1) + " " + (args.group(1).strip() if args else "")).strip()
+    if text.startswith(META_PREFIXES):
+        return "meta", ""
+    return "prompt", text
+
+
+def timestamp(value):
+    try:
+        if isinstance(value, (float, int)) and not isinstance(value, bool):
+            return dt.datetime.fromtimestamp(value / 1000, dt.timezone.utc)
+        if isinstance(value, str):
+            parsed = dt.datetime.fromisoformat(value.replace("Z", "+00:00"))
+            return parsed.astimezone(dt.timezone.utc)
+    except (ValueError, OverflowError, OSError):
+        pass
+    return None
 
 
 def parse_args(argv=None):
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--since", help="YYYY-MM-DD (local date, inclusive)")
-    p.add_argument("--days", type=int, help="last N days (default 7 when --since is absent)")
-    p.add_argument("--project", help="substring of project dir name or cwd")
-    p.add_argument("--config-dir", default=os.environ.get("CLAUDE_CONFIG_DIR") or os.path.expanduser("~/.claude"))
-    p.add_argument("--include-subagents", action="store_true", help="also read subagents/*.jsonl (tokens, tools, errors)")
-    p.add_argument("--include-sdk", action="store_true", help="include non-interactive sdk-* sessions (excluded by default: automation noise)")
-    p.add_argument("--out", choices=["json", "md"], default="md")
+    p.add_argument("--source", choices=("claude", "omp", "both"), required=True,
+                   help="explicit harness format; both only by request")
+    period = p.add_mutually_exclusive_group()
+    period.add_argument("--since", help="YYYY-MM-DD (local date, inclusive)")
+    period.add_argument("--days", type=int, help="last N days (default 7)")
+    p.add_argument("--project", help="substring of recorded cwd or project bucket; filters ALL totals")
+    p.add_argument("--config-dir", default=os.environ.get("CLAUDE_CONFIG_DIR") or "~/.claude",
+                   help="Claude config root containing projects/ (CLAUDE_CONFIG_DIR or ~/.claude)")
+    p.add_argument("--omp-sessions-dir", default="~/.omp/agent/sessions",
+                   help="exact omp sessions root; pass active profile/XDG/custom root explicitly")
+    p.add_argument("--include-subagents", action="store_true",
+                   help="include child tools/errors/usage; delegated tasks are never user prompts")
+    p.add_argument("--include-sdk", action="store_true", help="include Claude sdk-* sessions")
+    p.add_argument("--out", choices=("json", "md"), default="md")
     p.add_argument("--max-prompts", type=int, default=80)
     p.add_argument("--max-sessions", type=int, default=25)
     p.add_argument("--max-corrections", type=int, default=30)
-    return p.parse_args(argv)
-
-
-def since_iso(args):
+    args = p.parse_args(argv)
+    if args.days is not None and args.days < 1:
+        p.error("--days must be positive")
+    for name in ("max_prompts", "max_sessions", "max_corrections"):
+        if getattr(args, name) < 0:
+            p.error("caps must be nonnegative")
     if args.since:
-        d = dt.datetime.strptime(args.since, "%Y-%m-%d")
-    else:
-        d = dt.datetime.now() - dt.timedelta(days=args.days or 7)
-    return d.astimezone(dt.timezone.utc).strftime("%Y-%m-%dT%H:%M:%S")
+        try:
+            dt.datetime.strptime(args.since, "%Y-%m-%d")
+        except ValueError:
+            p.error("--since must be YYYY-MM-DD")
+    args.config_dir = os.path.abspath(os.path.expanduser(args.config_dir))
+    args.omp_sessions_dir = os.path.abspath(os.path.expanduser(args.omp_sessions_dir))
+    return args
 
 
-def find_files(root, include_sub):
-    files = glob.glob(os.path.join(root, "projects", "*", "*.jsonl"))
-    if include_sub:
-        files += glob.glob(os.path.join(root, "projects", "*", "*", "subagents", "*.jsonl"))
-    return files
+def since_time(args):
+    if args.since:
+        return dt.datetime.strptime(args.since, "%Y-%m-%d").astimezone(dt.timezone.utc)
+    return dt.datetime.now(dt.timezone.utc) - dt.timedelta(days=args.days or 7)
 
 
-def user_text(msg):
-    """Return (kind, text): kind is 'prompt', 'command', 'tool_result' or 'meta'."""
-    c = msg.get("content")
-    if isinstance(c, str):
-        text = c
-    elif isinstance(c, list):
-        if any(isinstance(b, dict) and b.get("type") == "tool_result" for b in c):
-            return "tool_result", ""
-        text = "\n".join(b.get("text", "") for b in c if isinstance(b, dict) and b.get("type") == "text")
-    else:
-        return "meta", ""
-    t = text.strip()
-    if not t:
-        return "meta", ""
-    m = re.search(r"<command-name>\s*(/?[^<\s]+)\s*</command-name>", t)
-    if m:
-        a = re.search(r"<command-args>(.*?)</command-args>", t, re.S)
-        return "command", (m.group(1) + " " + (a.group(1).strip() if a else "")).strip()
-    if t.startswith(META_PREFIXES):
-        return "meta", ""
-    return "prompt", t
+def fingerprint(value):
+    return hashlib.sha256(json.dumps(value, sort_keys=True, ensure_ascii=False).encode()).hexdigest()
+
+
+def read_records(path, diagnostics):
+    records = []
+    try:
+        with open(path, encoding="utf-8", errors="replace") as fh:
+            for number, line in enumerate(fh, 1):
+                try:
+                    record = json.loads(line)
+                    if not isinstance(record, dict):
+                        raise ValueError("not an object")
+                except (ValueError, RecursionError):
+                    diagnostics["malformed_records"] += 1
+                    continue
+                records.append((number, record))
+    except OSError:
+        diagnostics["unreadable_files"] += 1
+    return records
+
+
+def load_sessions(args, diagnostics):
+    sessions = {}
+    sources = ("claude", "omp") if args.source == "both" else (args.source,)
+    roots = {}
+    for source in sources:
+        root = os.path.join(args.config_dir, "projects") if source == "claude" else args.omp_sessions_dir
+        roots[source] = root
+        if not os.path.isdir(root):
+            raise ValueError(f"no {source} transcript directory: {root}")
+        pattern = os.path.join(root, "**", "*.jsonl") if source == "omp" else os.path.join(root, "*", "*.jsonl")
+        files = glob.glob(pattern, recursive=source == "omp")
+        if source == "claude" and args.include_subagents:
+            files += glob.glob(os.path.join(root, "*", "*", "subagents", "*.jsonl"))
+        for path in sorted(set(files)):
+            diagnostics["files_read"] += 1
+            records = read_records(path, diagnostics)
+            if not records:
+                continue
+            relative = os.path.relpath(path, root)
+            parts = relative.split(os.sep)
+            header = {}
+            if source == "omp":
+                logical = [d for _, d in records if d.get("type") != "title"]
+                header = logical[0] if logical else {}
+                if header.get("type") != "session" or not isinstance(header.get("id"), str):
+                    diagnostics["invalid_headers"] += 1
+                    continue
+                sid = header["id"]
+                child = any(d.get("type") == "session_init" for _, d in records)
+                # Artifacts live under <parent-file-without-.jsonl>/<agent>.jsonl.
+                parent_file = os.path.dirname(path) + ".jsonl"
+                if os.path.isfile(parent_file):
+                    child = True
+            else:
+                child = "subagents" in parts
+                sid = next((d.get("sessionId") for _, d in records if isinstance(d.get("sessionId"), str)), None)
+                sid = (parts[-3] + "/" + os.path.basename(path)[:-6]) if child else (sid or os.path.basename(path)[:-6])
+                parent_file = os.path.join(root, *parts[:-3], parts[-3] + ".jsonl") if child else ""
+            identity = f"{source}:{sid}"
+            sess = sessions.setdefault(identity, {
+                "id": identity, "source": source, "raw_id": sid, "paths": [], "records": [],
+                "project": parts[0] if len(parts) > 1 else "", "cwd": string(header.get("cwd")) or "",
+                "is_subagent": child, "parent_lineage": header.get("parentSession"), "entrypoint": "",
+                "artifact_parent": parent_file if parent_file and os.path.isfile(parent_file) else None,
+            })
+            sess["paths"].append(path)
+            sess["records"].extend((path, number, d) for number, d in records)
+            sess["is_subagent"] |= child
+            for _, d in records:
+                if not sess["cwd"] and isinstance(d.get("cwd"), str):
+                    sess["cwd"] = d["cwd"]
+                if isinstance(d.get("entrypoint"), str):
+                    sess["entrypoint"] = d["entrypoint"]
+    return sessions, roots
+
+
+def normalize(sess):
+    """Yield stable consumer events; effort/model state follows each omp branch."""
+    events = {}
+    states = {}
+    last_state = {"provider": None, "model": None, "effort": None, "configured_effort": None}
+    ordered_records = []
+    last_times = {}
+    earliest = dt.datetime.min.replace(tzinfo=dt.timezone.utc)
+    for path, number, d in sess["records"]:
+        recorded_time = timestamp(d.get("timestamp")) or timestamp(obj(d.get("message")).get("timestamp"))
+        if recorded_time is not None:
+            last_times[path] = recorded_time
+        # Untimed appends keep their position after the preceding timed record.
+        # Equal timestamps use append position, then payload rather than filename.
+        ordered_records.append((recorded_time or last_times.get(path, earliest),
+                                number, fingerprint(d), path, d))
+    ordered_records.sort(key=lambda record: record[:3])
+    for _, number, raw_fingerprint, path, d in ordered_records:
+        source, typ = sess["source"], d.get("type")
+        msg = obj(d.get("message"))
+        ts = timestamp(d.get("timestamp")) or timestamp(msg.get("timestamp"))
+        state = dict(states.get(string(d.get("parentId")), last_state if "parentId" not in d else {
+            "provider": None, "model": None, "effort": None, "configured_effort": None}))
+        if source == "omp":
+            if typ == "model_change" and d.get("role", "default") == "default":
+                selector = d.get("model")
+                if isinstance(selector, str):
+                    state["provider"], sep, state["model"] = selector.partition("/")
+                    if not sep:
+                        state["provider"], state["model"] = None, selector
+            if typ == "thinking_level_change":
+                state["effort"] = string(d.get("thinkingLevel"))
+                state["configured_effort"] = string(d.get("configured", d.get("thinkingLevel")))
+            if typ == "session_init":
+                selector = d.get("resolvedModel")
+                if isinstance(selector, str):
+                    state["provider"], sep, state["model"] = selector.partition("/")
+                    if not sep:
+                        state["provider"], state["model"] = None, selector
+                sess["agent"] = string(d.get("agent"))
+                sess["model_role"] = string(d.get("modelRole"))
+                sess["resolved_model"] = string(d.get("resolvedModel"))
+            if isinstance(d.get("id"), str):
+                states[d["id"]] = state
+            last_state = state
+        record_id = d.get("id") if source == "omp" else d.get("uuid")
+        fallback = f"{path}:{number}"
+        identity = str(record_id or fallback)
+
+        def emit(kind, key, **fields):
+            event = {"kind": kind, "key": key, "time": ts, "entry": identity,
+                     "fingerprint": raw_fingerprint, **fields}
+            # Stable ids merge streaming updates. No-id records retain line identity.
+            previous = events.get((kind, key))
+            if previous and event["time"] is None:
+                event["time"] = previous["time"]
+            if previous and kind == "usage":
+                event["usage"] = {k: event["usage"].get(k) if event["usage"].get(k) is not None
+                                  else previous["usage"].get(k) for k in METRICS}
+                for field in ("provider", "model", "effort", "configured_effort"):
+                    if event[field] is None:
+                        event[field] = previous[field]
+                if not event["reported_total"] and previous["reported_total"]:
+                    event["usage"]["total"] = previous["usage"]["total"]
+                    event["reported_total"] = True
+                if not event["reported_total"]:
+                    components = [event["usage"][k] for k in METRICS[:-1]]
+                    event["usage"]["total"] = sum(components) if all(v is not None for v in components) else None
+            if previous and kind == "tool":
+                if event["name"] == "?":
+                    event["name"] = previous["name"]
+                if not event["arguments"]:
+                    event["arguments"] = previous["arguments"]
+            events[(kind, key)] = event
+
+        role = msg.get("role") if source == "omp" else typ
+        if typ == "model_usage" and source == "omp":
+            # Standalone calls (e.g. titles) do not necessarily use conversation effort.
+            unknown_state = {"provider": None, "model": None, "effort": None, "configured_effort": None}
+            emit("usage", identity, **usage_event(d, source, unknown_state), purpose=d.get("purpose"))
+            if d.get("errorMessage"):
+                emit("error", identity, name="model_usage", text=d["errorMessage"])
+            continue
+        if source == "omp" and typ != "message":
+            continue
+        content = msg.get("content")
+        if role == "assistant":
+            mid = str(msg.get("id") or record_id or fallback)
+            model = msg.get("model")
+            if not (isinstance(model, str) and model.startswith("<")):
+                emit("usage", mid, **usage_event(msg, source, state))
+            if msg.get("errorMessage"):
+                emit("error", mid, name="model", text=msg["errorMessage"])
+            if msg.get("stopReason") == "aborted":
+                emit("interrupt", mid)
+            for index, block in enumerate(blocks(content)):
+                if block.get("type") != ("toolCall" if source == "omp" else "tool_use"):
+                    continue
+                tid = str(block.get("id") or f"{identity}:block:{index}")
+                emit("tool", tid, name=block.get("name") or "?", arguments=obj(block.get("arguments" if source == "omp" else "input")))
+        elif role == "toolResult" and source == "omp":
+            if msg.get("isError"):
+                emit("error", identity, tool_id=msg.get("toolCallId"), name=msg.get("toolName"), text=text_content(content))
+        elif role == "user":
+            for index, block in enumerate(blocks(content)):
+                if block.get("type") == "tool_result" and block.get("is_error"):
+                    # Entry id preserves distinct results of the same tool call.
+                    emit("error", f"{identity}:block:{index}", tool_id=block.get("tool_use_id"), name=None, text=text_content(block.get("content")))
+            kind, text = user_text(msg)
+            if text_content(content).startswith("[Request interrupted"):
+                emit("interrupt", identity)
+            if kind in ("prompt", "command") and not sess["is_subagent"] and not d.get("isSidechain") and not d.get("isMeta"):
+                emit("prompt", identity, text=text, command=kind == "command")
+    return list(events.values())
+
+
+def numeric(value):
+    if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
+        return value
+    return value if isinstance(value, float) and math.isfinite(value) and value >= 0 else None
+
+
+def usage_event(msg, source, state):
+    usage = obj(msg.get("usage"))
+    fields = ("input", "cacheWrite", "cacheRead", "output", "totalTokens") if source == "omp" else (
+        "input_tokens", "cache_creation_input_tokens", "cache_read_input_tokens", "output_tokens", "total_tokens")
+    values = {k: numeric(usage.get(field)) for k, field in zip(METRICS, fields)}
+    if values["total"] is None and all(values[k] is not None for k in METRICS[:-1]):
+        values["total"] = sum(values[k] for k in METRICS[:-1])
+    controls = obj(msg.get("requestControls"))
+    return {"usage": values, "reported_total": numeric(usage.get(fields[-1])) is not None,
+            "provider": string(msg.get("provider")) or state["provider"],
+            "model": string(msg.get("model")) or state["model"],
+            "effort": string(msg.get("effort")) or string(controls.get("effort")) or state["effort"],
+            "configured_effort": state["configured_effort"]}
+
+
+def metric_summary(events):
+    result = {"messages": len(events), "known": {}, "missing": {}}
+    for key in METRICS:
+        values = [e["usage"][key] for e in events]
+        known = [v for v in values if v is not None]
+        result[key] = sum(known) if values and len(known) == len(values) else None
+        result["known"][key] = sum(known) if known else None
+        result["missing"][key] = len(values) - len(known)
+    return result
 
 
 def norm_error(name, text):
-    first = next((ln for ln in text.splitlines() if ln.strip()), "")
+    first = next((ln for ln in str(text).splitlines() if ln.strip()), "")
     first = re.sub(r"(?:/[\w.@+-]+){2,}", "<path>", first)
     first = re.sub(r"\d+", "N", first)
-    return f"{name}: {clip(first, 90)}"
-
-
-def result_text(b):
-    c = b.get("content")
-    if isinstance(c, str):
-        return c
-    if isinstance(c, list):
-        return "\n".join(x.get("text", "") for x in c if isinstance(x, dict))
-    return ""
+    return f"{clip(name)}: {clip(first, 90)}"
 
 
 def classify_denial(text):
     if "denied by the Claude Code auto mode classifier" in text:
-        m = re.search(r"Reason:\s*\[([^\]]+)", text)
-        return "classifier: " + (m.group(1) if m else "unspecified")
+        match = re.search(r"Reason:\s*\[([^\]]+)", text)
+        return "classifier: " + clip(match.group(1) if match else "unspecified")
     if "doesn't want to proceed with this tool use" in text or "tool use was rejected" in text:
         return "user rejected"
+    if re.search(r"permission (?:denied|denial)|denied by.*(?:policy|approval)|approval (?:denied|rejected)|not allowed by.*policy", text, re.I):
+        return "permission denied"
     return None
 
 
-def new_session(sid, project):
-    return {
-        "id": sid, "project": project, "start": None, "end": None, "prompts": 0,
-        "first_prompt": None, "tools": collections.Counter(), "errors": 0, "denials": 0,
-        "agents": 0, "tokens": 0, "interrupts": 0, "cwd": "", "entrypoint": "",
-    }
-
-
-def process_file(path, since, agg):
-    is_sub = os.sep + "subagents" + os.sep in path
-    parts = path.split(os.sep)
-    if is_sub:
-        proj_dir, sid = parts[-4], parts[-3]
-    else:
-        proj_dir, sid = parts[-2], os.path.basename(path)[:-6]
-    sess = agg["sessions"].get(sid) or new_session(sid, proj_dir)
-    tool_names = {}
-    seen_tool = set()
-    msg_usage = {}  # message id -> (model, usage); streaming repeats the id
-    seen_prompt = False
-    interesting = False
-    with open(path, "r", encoding="utf-8", errors="replace") as fh:
-        for line in fh:
-            try:
-                d = json.loads(line)
-            except ValueError:
-                continue
-            ts = d.get("timestamp")
-            typ = d.get("type")
-            if not ts or ts < since or typ not in ("user", "assistant"):
-                continue
-            if d.get("cwd") and not sess["cwd"]:
-                sess["cwd"] = d["cwd"]
-                sess["entrypoint"] = d.get("entrypoint", "")
-            interesting = True
-            sess["start"] = min(sess["start"] or ts, ts)
-            sess["end"] = max(sess["end"] or ts, ts)
-            msg = d.get("message") or {}
-            content = msg.get("content")
-            if typ == "assistant":
-                mid = msg.get("id") or d.get("uuid")
-                if msg.get("usage"):
-                    msg_usage[mid] = (msg.get("model") or "unknown", msg["usage"])
-                for b in content if isinstance(content, list) else []:
-                    if b.get("type") != "tool_use" or b.get("id") in seen_tool:
-                        continue
-                    seen_tool.add(b.get("id"))
-                    name = b.get("name", "?")
-                    tool_names[b.get("id")] = name
-                    sess["tools"][name] += 1
-                    agg["tools"][name] += 1
-                    if name in ("Agent", "Task"):
-                        inp = b.get("input") or {}
-                        sess["agents"] += 1
-                        agg["subagents"][(inp.get("subagent_type") or "general-purpose", inp.get("model") or "unset")] += 1
-                continue
-            kind, text = user_text(msg)
-            if kind == "tool_result":
-                for b in content:
-                    if not (isinstance(b, dict) and b.get("type") == "tool_result") or not b.get("is_error"):
-                        continue
-                    rt = result_text(b)
-                    name = tool_names.get(b.get("tool_use_id"), "?")
-                    den = classify_denial(rt)
-                    if den:
-                        sess["denials"] += 1
-                        agg["denials"][den] += 1
-                        agg["denial_tools"][f"{name} / {den}"] += 1
-                    else:
-                        sess["errors"] += 1
-                        agg["errors"][norm_error(name, rt)] += 1
-                continue
-            if isinstance(content, list) and any(
-                isinstance(b, dict) and b.get("type") == "text" and b.get("text", "").startswith("[Request interrupted")
-                for b in content
-            ):
-                sess["interrupts"] += 1
-            if kind not in ("prompt", "command") or is_sub or d.get("isSidechain") or d.get("isMeta"):
-                continue
-            sess["prompts"] += 1
-            clipped = clip(text)
-            if sess["first_prompt"] is None:
-                sess["first_prompt"] = clipped
-            key = re.sub(r"\W+", " ", clipped.lower()).strip()[:120]
-            entry = agg["prompts"].setdefault((sid, key), {"text": clipped, "count": 0})
-            entry["count"] += 1
-            words = key.split()
-            if words:
-                agg["openers"][" ".join(words[:3])] += 1
-            if kind == "prompt" and seen_prompt and CORRECTION_RE.search(text[:300]):
-                agg["corrections"].append({"session": sid[:8], "time": ts[:16], "text": clipped})
-            seen_prompt = True
-    if not interesting:
-        return
-    for model, u in msg_usage.values():
-        if model.startswith("<"):  # <synthetic> placeholders carry no usage
-            continue
-        t = agg["tokens"][model]
-        inp, cw = u.get("input_tokens", 0) or 0, u.get("cache_creation_input_tokens", 0) or 0
-        cr, out = u.get("cache_read_input_tokens", 0) or 0, u.get("output_tokens", 0) or 0
-        t["input"] += inp
-        t["cache_creation"] += cw
-        t["cache_read"] += cr
-        t["output"] += out
-        t["messages"] += 1
-        sess["tokens"] += inp + cw + out
-        agg["sub_tokens" if is_sub else "main_tokens"][model] += out
-    agg["sessions"][sid] = sess
-
-
-def build(args):
-    since = since_iso(args)
-    agg = {
-        "sessions": {}, "tools": collections.Counter(), "errors": collections.Counter(),
-        "denials": collections.Counter(), "denial_tools": collections.Counter(),
-        "subagents": collections.Counter(), "prompts": {}, "openers": collections.Counter(),
-        "corrections": [], "main_tokens": collections.Counter(), "sub_tokens": collections.Counter(),
-        "tokens": collections.defaultdict(collections.Counter),
-    }
-    since_epoch = dt.datetime.strptime(since, "%Y-%m-%dT%H:%M:%S").replace(tzinfo=dt.timezone.utc).timestamp()
-    nfiles = 0
-    for f in find_files(args.config_dir, args.include_subagents):
-        try:
-            if os.path.getmtime(f) < since_epoch:
-                continue
-        except OSError:
-            continue
-        nfiles += 1
-        process_file(f, since, agg)
-    sessions = list(agg["sessions"].values())
-    if not args.include_sdk:
-        sessions = [s for s in sessions if not s["entrypoint"].startswith("sdk")]
-    if args.project:
-        pl = args.project.lower()
-        sessions = [s for s in sessions if pl in s["project"].lower() or pl in s["cwd"].lower()]
-    return since, nfiles, sessions, agg
-
-
 def top(counter, n):
-    return [{"name": k, "count": v} for k, v in counter.most_common(n)]
+    return [{"name": clip(k), "count": v} for k, v in counter.most_common(n)]
 
 
 def digest(args):
-    since, nfiles, sessions, agg = build(args)
-    keep = {s["id"] for s in sessions}
-    merged = {}
-    for (sid, key), e in agg["prompts"].items():
-        if sid in keep:
-            m = merged.setdefault(key, {"text": e["text"], "count": 0, "sessions": 0})
-            m["count"] += e["count"]
-            m["sessions"] += 1
-    prompts = sorted(merged.values(), key=lambda e: (-e["count"], -e["sessions"]))
-    keep8 = {s[:8] for s in keep}
-    corrections = [c for c in agg["corrections"] if c["session"] in keep8]
-    for s in sessions:
-        s["project"] = os.path.basename(s["cwd"]) or s["project"]
-    by_proj = collections.Counter(s["project"] for s in sessions)
-    out = {
-        "period_since_utc": since,
-        "config_dir": args.config_dir,
-        "files_read": nfiles,
-        "sessions_total": len(sessions),
-        "prompts_total": sum(s["prompts"] for s in sessions),
-        "note": "heuristic extraction; correction candidates are regex matches, not verified friction; tool/token totals cover all sessions read (not project-filtered)",
-        "projects_top": top(by_proj, 10),
-        "tools_top": top(agg["tools"], 15),
-        "errors_top": top(agg["errors"], 15),
-        "denials": top(agg["denials"], 10),
-        "denials_by_tool": top(agg["denial_tools"], 10),
-        "subagent_calls": [{"subagent_type": k[0], "model": k[1], "count": v} for k, v in agg["subagents"].most_common(20)],
-        "subagent_model_set": sum(v for k, v in agg["subagents"].items() if k[1] != "unset"),
-        "subagent_model_unset": sum(v for k, v in agg["subagents"].items() if k[1] == "unset"),
-        "tokens_by_model": {m: dict(t) for m, t in sorted(agg["tokens"].items(), key=lambda kv: -sum(kv[1].values()))},
-        "prompt_openers_top": top(agg["openers"], 15),
-        "prompts": prompts[: args.max_prompts],
-        "prompts_omitted": max(0, len(prompts) - args.max_prompts),
-        "correction_candidates": corrections[: args.max_corrections],
+    since = since_time(args)
+    diagnostics = collections.Counter()
+    sessions, roots = load_sessions(args, diagnostics)
+    normalized = {sid: normalize(sess) for sid, sess in sessions.items()}
+    # Opaque lineage is used only to prove identical copied records, never child status.
+    families = {sid: sid for sid in sessions}
+
+    def family(sid):
+        while families[sid] != sid:
+            sid = families[sid]
+        return sid
+
+    paths = {os.path.abspath(path): sid for sid, sess in sessions.items() for path in sess["paths"]}
+    for sid, sess in sessions.items():
+        parent = sess["artifact_parent"] or sess["parent_lineage"]
+        if isinstance(parent, str):
+            target = sess["source"] + ":" + parent
+            target = target if target in sessions else paths.get(os.path.abspath(parent))
+            if target is not None and sessions[target]["source"] != sess["source"]:
+                target = None
+            if target is None:
+                # Sibling forks can share a lineage marker even without their origin file.
+                target = sess["source"] + "-lineage:" + parent
+                families.setdefault(target, target)
+            families[family(sid)] = family(target)
+    tools, errors, denials, denial_tools, openers = (collections.Counter() for _ in range(5))
+    routing = collections.Counter()
+    usage_groups = collections.defaultdict(list)
+    usage_routes = collections.defaultdict(list)
+    output_split = {"main": collections.defaultdict(list), "subagents": collections.defaultdict(list)}
+    prompts, corrections, session_rows = {}, [], []
+    seen_copies = set()
+    for sid, sess in sorted(sessions.items(), key=lambda pair: (pair[1]["is_subagent"], pair[0])):
+        if sess["is_subagent"] and not args.include_subagents:
+            continue
+        if sess["source"] == "claude" and not args.include_sdk and sess["entrypoint"].startswith("sdk"):
+            continue
+        if args.project and not any(args.project.lower() in str(value).lower() for value in (sess["project"], sess["cwd"])):
+            continue
+        names = {e["key"]: e["name"] for e in normalized[sid] if e["kind"] == "tool"}
+        selected = []
+        for event in normalized[sid]:
+            if not event["time"]:
+                diagnostics["untimed_events"] += 1
+                continue
+            if event["time"] < since:
+                continue
+            # Suppress proven family copies, not unrelated sessions with colliding ids.
+            if sess["source"] == "omp":
+                copy_key = ("omp", family(sid), event["kind"], event["key"], event["fingerprint"])
+            else:
+                copy_key = ("claude", family(sid), event["kind"], event["key"])
+            if copy_key in seen_copies:
+                diagnostics["copied_events_skipped"] += 1
+                continue
+            seen_copies.add(copy_key)
+            selected.append(event)
+        if not selected:
+            continue
+        row = {"id": sid, "source": sess["source"], "project": clip(os.path.basename(sess["cwd"]) or sess["project"]),
+               "cwd": clip(sess["cwd"]), "is_subagent": sess["is_subagent"],
+               "evidence_files": [clip(os.path.relpath(path, roots[sess["source"]])) for path in sess["paths"][:3]],
+               "agent": sess.get("agent"), "model_role": sess.get("model_role"), "resolved_model": sess.get("resolved_model"),
+               "start": min(e["time"] for e in selected).isoformat(), "end": max(e["time"] for e in selected).isoformat(),
+               "prompts": 0, "first_prompt": None, "tools": 0, "errors": 0, "denials": 0, "agents": 0, "interrupts": 0}
+        previous_prompt = False
+        session_usage = []
+        for event in selected:
+            kind = event["kind"]
+            if kind == "usage":
+                provider, model = event["provider"], event["model"]
+                group = f"{sess['source']}:{provider or 'unknown'}/{model or 'unknown'}"
+                usage_groups[group].append(event)
+                usage_routes[(sess["source"], provider, model, event["effort"], event["configured_effort"])].append(event)
+                session_usage.append(event)
+                output_split["subagents" if sess["is_subagent"] else "main"][group].append(event)
+            elif kind == "tool":
+                name = clip(event["name"])
+                tools[name] += 1
+                row["tools"] += 1
+                if name in ("Agent", "Task", "task"):
+                    arguments = event["arguments"]
+                    tasks = arguments.get("tasks")
+                    items = [obj(item) for item in tasks] if isinstance(tasks, list) else [arguments]
+                    for item in items:
+                        routing[(sess["source"], string(item.get("subagent_type")) or string(item.get("agent")) or "default", string(item.get("model")), string(item.get("effort")))] += 1
+                        row["agents"] += 1
+            elif kind == "error":
+                name = event.get("name") or names.get(string(event.get("tool_id")), "?")
+                text = str(event["text"])
+                denial = classify_denial(text)
+                if denial:
+                    denials[denial] += 1
+                    denial_tools[f"{name} / {denial}"] += 1
+                    row["denials"] += 1
+                else:
+                    errors[norm_error(name, text)] += 1
+                    row["errors"] += 1
+            elif kind == "interrupt":
+                row["interrupts"] += 1
+            elif kind == "prompt":
+                raw = event["text"]
+                clipped = clip(raw)
+                # Group complete redacted text, not the clipped prefix (distinct intents survive caps).
+                key = redact(" ".join(raw.split())).casefold()
+                prompt = prompts.setdefault(key, {"text": clipped, "count": 0, "refs": set()})
+                prompt["count"] += 1
+                prompt["refs"].add(sid)
+                row["prompts"] += 1
+                if row["first_prompt"] is None:
+                    row["first_prompt"] = clipped
+                words = re.sub(r"\W+", " ", clipped.lower()).split()
+                if words:
+                    openers[" ".join(words[:3])] += 1
+                if not event["command"] and previous_prompt and CORRECTION_RE.search(raw[:300]):
+                    corrections.append({"session": sid, "entry": event["entry"], "time": event["time"].isoformat(), "text": clipped})
+                previous_prompt = True
+        row["usage"] = metric_summary(session_usage)
+        row["tokens_in_out"] = (sum(row["usage"][k] for k in ("input", "cache_creation", "output"))
+                                if all(row["usage"][k] is not None for k in ("input", "cache_creation", "output")) else None)
+        session_rows.append(row)
+    prompt_rows = sorted(({"text": p["text"], "count": p["count"], "sessions": len(p["refs"]), "session_refs": sorted(p["refs"])[:10]}
+                          for p in prompts.values()), key=lambda p: (-p["count"], -p["sessions"], p["text"]))
+    session_rows.sort(key=lambda row: (-(row["usage"]["known"]["total"] or 0), row["id"]))
+    subagent_calls = [{"source": source, "subagent_type": clip(agent), "model": clip(model) if model else None,
+                       "effort": clip(effort) if effort else None, "count": count}
+                      for (source, agent, model, effort), count in routing.most_common(20)]
+    result = {
+        "schema_version": 2, "source": args.source, "period_since_utc": since.isoformat(),
+        "roots": {source: redact(root) for source, root in roots.items()}, "diagnostics": dict(diagnostics),
+        "files_read": diagnostics["files_read"], "sessions_total": len(session_rows),
+        "prompts_total": sum(row["prompts"] for row in session_rows),
+        "note": "heuristic extraction; all event totals obey source/project/period/SDK/subagent filters; null metrics are unavailable, known sums may be partial; all historical branches count, not just active context",
+        "projects_top": top(collections.Counter(row["project"] for row in session_rows), 10),
+        "tools_top": top(tools, 15), "errors_top": top(errors, 15), "denials": top(denials, 10),
+        "denials_by_tool": top(denial_tools, 10), "subagent_calls": subagent_calls,
+        "subagent_model_set": sum(count for (_, _, model, _), count in routing.items() if model),
+        "subagent_model_unset": sum(count for (_, _, model, _), count in routing.items() if not model),
+        "tokens_by_model": {clip(key): metric_summary(values) for key, values in sorted(usage_groups.items())},
+        "usage_routes": [{"source": source, "provider": clip(provider) if provider else None,
+                          "model": clip(model) if model else None, "effort": clip(effort) if effort else None,
+                          "configured_effort": clip(configured) if configured else None, "usage": metric_summary(values)}
+                         for (source, provider, model, effort, configured), values in usage_routes.items()],
+        "prompt_openers_top": top(openers, 15), "prompts": prompt_rows[:args.max_prompts],
+        "prompts_omitted": max(0, len(prompt_rows) - args.max_prompts),
+        "correction_candidates": corrections[:args.max_corrections],
         "correction_candidates_omitted": max(0, len(corrections) - args.max_corrections),
-        "sessions": [
-            {"id": s["id"][:8], "project": s["project"], "start": (s["start"] or "")[:16], "end": (s["end"] or "")[:16],
-             "prompts": s["prompts"], "first_prompt": s["first_prompt"], "tools": sum(s["tools"].values()),
-             "errors": s["errors"], "denials": s["denials"], "agents": s["agents"], "interrupts": s["interrupts"],
-             "tokens_in_out": s["tokens"]}
-            for s in sorted(sessions, key=lambda s: -s["tokens"])[: args.max_sessions]
-        ],
-        "sessions_omitted": max(0, len(sessions) - args.max_sessions),
+        "sessions": session_rows[:args.max_sessions], "sessions_omitted": max(0, len(session_rows) - args.max_sessions),
     }
     if args.include_subagents:
-        out["output_tokens_main_vs_subagent"] = {"main": dict(agg["main_tokens"]), "subagents": dict(agg["sub_tokens"])}
-    return out
+        result["output_tokens_main_vs_subagent"] = {
+            kind: {clip(key): metric_summary(values)["output"] for key, values in groups.items()}
+            for kind, groups in output_split.items()}
+    return redact_tree(result)
 
 
-def fmt_md(o):
-    L = []
-    a = L.append
-    kv = lambda xs: ", ".join(f"{x['name']} {x['count']}" for x in xs) or "-"
-    a(f"# Transcript digest (since {o['period_since_utc']} UTC)")
-    a(f"config: {o['config_dir']} | files: {o['files_read']} | sessions: {o['sessions_total']} | user prompts: {o['prompts_total']}")
-    a(f"_{o['note']}_\n")
-    a("## Projects\n" + kv(o["projects_top"]))
-    a("\n## Tools\n" + kv(o["tools_top"]))
-    a("\n## Errors (tool_result is_error, normalized)")
-    a("\n".join(f"- {x['count']}x {x['name']}" for x in o["errors_top"]) or "-")
-    a("\n## Permission denials / rejections\n" + kv(o["denials"]))
-    a("by tool: " + kv(o["denials_by_tool"]))
-    a("\n## Subagent routing")
-    a(f"model set: {o['subagent_model_set']} | unset (inherits): {o['subagent_model_unset']}")
-    a("\n".join(f"- {x['count']}x {x['subagent_type']} -> model={x['model']}" for x in o["subagent_calls"]) or "-")
-    a("\n## Tokens by model (deduped by message id)")
-    for m, t in o["tokens_by_model"].items():
-        a(f"- {m}: in {t['input']:,} | cache_write {t['cache_creation']:,} | cache_read {t['cache_read']:,} | out {t['output']:,} | msgs {t['messages']}")
-    if "output_tokens_main_vs_subagent" in o:
-        a("output tokens main vs subagents: " + json.dumps(o["output_tokens_main_vs_subagent"]))
-    a("\n## Prompt openers (first 3 words)\n" + kv(o["prompt_openers_top"]))
-    a(f"\n## User prompts (deduped, by count; {o['prompts_omitted']} more omitted)")
-    for p in o["prompts"]:
-        a(f"- [{p['count']}x/{p['sessions']}s] {p['text']}")
-    a(f"\n## Correction candidates (HEURISTIC; {o['correction_candidates_omitted']} more omitted)")
-    for c in o["correction_candidates"]:
-        a(f"- {c['session']} {c['time']}: {c['text']}")
-    a(f"\n## Sessions by tokens ({o['sessions_omitted']} more omitted)")
-    for s in o["sessions"]:
-        a(f"- {s['id']} {s['project']} {s['start']}..{s['end']} p={s['prompts']} tools={s['tools']} err={s['errors']} deny={s['denials']} agents={s['agents']} int={s['interrupts']} tok={s['tokens_in_out']:,} | {s['first_prompt']}")
-    return "\n".join(L)
+def redact_tree(value):
+    """Apply final redaction to metadata and evidence refs as well as excerpts."""
+    if isinstance(value, str):
+        return redact(value)
+    if isinstance(value, list):
+        return [redact_tree(item) for item in value]
+    if isinstance(value, dict):
+        return {redact(str(key)): redact_tree(item) for key, item in value.items()}
+    return value
+
+
+def fmt_md(digest_value):
+    def metric(value):
+        return "unavailable" if value is None else f"{value:,}"
+
+    def counts(values):
+        return ", ".join(f"{row['name']} {row['count']}" for row in values) or "-"
+
+    lines = [f"# Transcript digest (since {digest_value['period_since_utc']})",
+             f"source: {digest_value['source']} | roots: {json.dumps(digest_value['roots'], ensure_ascii=False)} | files: {digest_value['files_read']} | sessions: {digest_value['sessions_total']} | prompts: {digest_value['prompts_total']}",
+             f"_{digest_value['note']}_", "\n## Projects", counts(digest_value["projects_top"])]
+    for title, key in (("Tools", "tools_top"), ("Errors (normalized)", "errors_top"),
+                       ("Permission denials / rejections", "denials"), ("Denials by tool", "denials_by_tool")):
+        lines.extend((f"\n## {title}", counts(digest_value[key])))
+    lines.extend(("\n## Subagent routing", f"explicit model: {digest_value['subagent_model_set']} | no explicit model: {digest_value['subagent_model_unset']} (omp resolves roles/policy; Claude may inherit)"))
+    for row in digest_value["subagent_calls"]:
+        lines.append(f"- {row['count']}x {row['source']}:{row['subagent_type']} model={row['model'] or 'unavailable'} effort={row['effort'] or 'unavailable'}")
+    lines.append("\n## Tokens by source/provider/model")
+    for key, usage in digest_value["tokens_by_model"].items():
+        lines.append(f"- {key}: " + " | ".join(f"{name} {metric(usage[name])}" for name in METRICS) + f" | calls {usage['messages']} | known {json.dumps(usage['known'])} | missing {json.dumps(usage['missing'])}")
+    lines.append("\n## Provider/model/effort observations")
+    for row in digest_value["usage_routes"]:
+        lines.append(f"- {row['source']}:{row['provider'] or 'unavailable'}/{row['model'] or 'unavailable'} effort={row['effort'] or 'unavailable'} configured={row['configured_effort'] or 'unavailable'} calls={row['usage']['messages']}")
+    if "output_tokens_main_vs_subagent" in digest_value:
+        lines.append("output main/subagent: " + json.dumps(digest_value["output_tokens_main_vs_subagent"]))
+    lines.extend(("\n## Prompt openers", counts(digest_value["prompt_openers_top"]),
+                  f"\n## User prompts ({digest_value['prompts_omitted']} omitted)"))
+    for row in digest_value["prompts"]:
+        lines.append(f"- [{row['count']}x/{row['sessions']}s; {', '.join(row['session_refs'])}] {row['text']}")
+    lines.append(f"\n## Correction candidates (heuristic; {digest_value['correction_candidates_omitted']} omitted)")
+    for row in digest_value["correction_candidates"]:
+        lines.append(f"- {row['session']} entry={row['entry']} {row['time']}: {row['text']}")
+    lines.append(f"\n## Sessions ({digest_value['sessions_omitted']} omitted)")
+    for row in digest_value["sessions"]:
+        lines.append(f"- {row['id']} {row['project']} {row['start']}..{row['end']} subagent={row['is_subagent']} p={row['prompts']} tools={row['tools']} err={row['errors']} deny={row['denials']} tokens={metric(row['usage']['total'])} agent={row['agent']} role={row['model_role']} resolved={row['resolved_model']} | {row['first_prompt']} | files={row['evidence_files']}")
+    lines.append("\nRead diagnostics: " + json.dumps(digest_value["diagnostics"]))
+    return "\n".join(lines)
 
 
 def main(argv=None):
     args = parse_args(argv)
-    if not os.path.isdir(os.path.join(args.config_dir, "projects")):
-        print(f"error: no projects dir under {args.config_dir}", file=sys.stderr)
+    try:
+        result = digest(args)
+    except ValueError as error:
+        print(f"error: {redact(str(error))}", file=sys.stderr)
         return 2
-    o = digest(args)
-    print(json.dumps(o, ensure_ascii=False, indent=1) if args.out == "json" else fmt_md(o))
+    print(json.dumps(result, ensure_ascii=False, indent=1) if args.out == "json" else fmt_md(result))
     return 0
 
 

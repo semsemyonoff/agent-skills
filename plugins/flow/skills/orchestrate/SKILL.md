@@ -1,116 +1,134 @@
 ---
 name: orchestrate
-description: Run a task as orchestrator and reviewer - recon, a plan that picks haiku/sonnet/opus per step, user confirmation, execution through subagents with the model always set explicitly, verification by the main session itself, short report. Use ONLY when the user explicitly asks for this mode - /flow:orchestrate, "orchestrate this", "you are the orchestrator", "delegate to subagents", "use subagents by complexity", "subagents on haiku/sonnet/opus", «ты оркестратор», «ты оркестратор и проверяющий», «делегируй на сабагентов», «раздай сабагентам», «сабагенты по сложности», «сабагенты на хайку/сонет/опус», or when "Orchestrate" is picked as the next step after a brainstorm (use the validated design as input). Do not trigger just because a task is big, and not for "workflow" or "ultracode" requests (that is the Workflow tool).
+description: 'Run explicit orchestration requests through recon, a role-based plan, approval, delegated execution, independent verification, and a short report in Claude Code or omp. Use for /flow:orchestrate, /skill:orchestrate, "orchestrate this", "you are the orchestrator", "delegate to subagents", "use subagents by complexity", «ты оркестратор», «ты оркестратор и проверяющий», «делегируй на сабагентов», «раздай сабагентам», «сабагенты по сложности», or choosing Orchestrate after a brainstorm. Do not trigger merely because a task is large or mentions workflow; do not substitute for a separate Workflow tool.'
 argument-hint: "[task]"
 ---
 
 # Orchestrate
 
-The main session becomes the orchestrator: it plans, delegates each step to a subagent (a worker) with
-an explicitly chosen model, checks the workers' output itself and reports. It does not write large
-chunks of code; it decides and verifies. Reply in the user's language.
+Act as coordinator, not bulk implementer: establish facts, settle the approach, obtain approval,
+delegate, independently verify, and report in the user's language. Use ONE process below in both
+harnesses. Categories describe work, not models: research, mechanics, implementation, review,
+and an optional second opinion.
 
-If the task is 1-2 steps, say in one line that doing it directly is cheaper, and do it.
+## Select the runtime adapter
 
-## Harness facts
+Identify the running harness from its actual tools/session, not the model's vendor. Read only the
+applicable adapter before dispatch:
 
-- **Always pass `model`** (`haiku`, `sonnet`, `opus`) in every Agent call. Without it the worker
-  inherits the session model, which is usually opus, silently. `subagent_type: "fork"` ignores
-  `model`, so never use forks as workers. Use a read-only type (for example `Explore`) for pure
-  search, `general-purpose` for anything that edits.
-- **Workers are leaves.** Subagents cannot spawn subagents, so each brief is one self-contained task;
-  any fan-out is the orchestrator's job.
-- **Agents run in the background** and notify on completion. Do not poll, sleep or read their output
-  files; do other independent work or wait for the notification.
-- **The user does not see worker reports.** Relay what matters in your own words.
-- **Never claim results of a worker that has not reported.** If asked mid-run, say it is still running.
+- Claude Code: `references/claude-code.md`.
+- omp (including a Codex model inside omp): `references/omp.md`.
 
-## Phases
+Resolve every bundled path from the directory containing this loaded `SKILL.md`. Do not assume an
+installation location or environment variable. Discover available delegation, ask UI, independent
+review, background/wait, permissions, and native routing. If neither adapter matches, describe the
+missing prerequisite instead of inventing compatible APIs. Never edit configuration to make a route
+available. Native setup and source citations are in `references/native-setup.md`.
 
-### 1. Recon
+A trivial, self-contained change may be done inline if dispatch costs more than the change; explain
+that briefly. It still needs approval, truthful verification, and an independent review for a
+claimed independently verified result. Missing delegation for substantive work is a blocker, not
+permission to silently become the implementer.
 
-Gather facts before planning. Cheap workers (haiku, or sonnet when reading needs interpretation) run
-in parallel and return conclusions with `path:line` references, not file dumps: the orchestrator's
-context is the scarce resource. Threshold: 1-2 targeted reads or a couple-line edit, do it yourself;
-broad sweeps, bulk implementation, independent verification go to a worker.
+## 1. Recon
 
-Also check silently whether an optional Codex review is available (`references/codex-review.md`).
+Read the request and every referenced plan, audit, checklist, and artifact. Expand them into the full
+acceptance surface; inspect the relevant current state and pre-existing edits without resetting
+user work. Gather facts before planning. Make a handful of targeted reads inline; delegate broad
+research to the adapter's read-only category. Return source locations and conclusions, not dumps.
 
-### 2. Plan
+Discover capabilities and native routes before promising workers or settings. Do not assume workers
+are leaves, inherit this conversation, share every tool, or have identical user visibility. Bound
+any permitted nested delegation in the brief; the coordinator retains ownership of the full plan.
 
-A plan comes only after the solution is settled. If recon shows open design decisions (several ways
-to do it, unclear scope, no agreed approach) and no brainstorm or design discussion preceded this
-run, stop after recon: list the open decisions and offer a brainstorm with AskUserQuestion (buttons:
-"Brainstorm (Recommended)" / "Plan anyway"). Plan directly only
-when the approach is already decided — in the conversation, a design, or the task itself.
+If the approach remains undecided, name the decisions and offer
+"Brainstorm (Recommended) / Plan anyway" («Обсудить варианты / Всё равно составить план») through
+the adapter's real ask mechanism. Existing validated designs and explicit implementation choices
+are input, not decisions to reopen. An optional second opinion is opt-in, not automatic recon work.
 
-Present the plan as a table (template in `references/templates.md`): step, worker + model, input,
-done-criterion, dependencies. Mark independent steps as parallel. Pick models by
-`references/routing.md`; when you deviate from it, give a one-line reason in the row. Risky parts
-(migrations, concurrency, security, data integrity, public API changes) get an explicit opus review
-step after the implementing step.
+## 2. Plan
 
-Parallel steps that edit code must not touch the same files; if they would, make them sequential.
+Use `references/routing.md` and `references/templates.md`. Every row names the category, discovered
+native agent/route, inputs, precise done criterion, dependencies, and verification owner. Include
+model/effort only when observed and permitted; otherwise write unknown or not exposed, never guess.
+The native configuration is authoritative, not a shared skill model table.
 
-### 3. Confirmation
+Run independent slices in parallel with disjoint edit ownership. Specify shared contracts first;
+serialize only a real dependency. Include a separate reviewer who did not implement the change.
+Risky changes need a focused independent review (security, data integrity, concurrency, migrations,
+or public API as applicable), plus executable checks. List external actions separately with their
+exact target and permission needs. Approval of local implementation does not authorize them.
 
-Ask with AskUserQuestion, not a text question: "Start" / "Start phase by phase" / "Change the plan"
-(free-text answers still come through "Other"). If a Codex review is available, add a second
-question in the same call: "Codex review at the end?" — "Yes" / "Yes, xhigh reasoning" / "No".
-Apply plan changes before starting, and show the
-changed rows if the edit was more than cosmetic.
+## 3. Confirmation
 
-### 4. Execution
+Offer "Start / Start phase by phase / Change the plan"
+(«Начать / Начать по фазам / Изменить план») with the adapter's available ask UI. If unavailable,
+ask in ordinary text and wait for an explicit answer. Silence, tool failure, a dismissal, or a
+worker's answer is not approval. An explicit earlier approval of this exact plan can satisfy this
+checkpoint; do not ask again just because delegation starts.
 
-Each worker gets a self-contained brief built from `references/brief.md`: the worker does not see
-this conversation. Launch independent steps together (several Agent calls in one message); start a
-dependent step only after its inputs have reported and passed verification.
+Default approved execution is autonomous through the report. Pause after phases only if the user
+explicitly chooses that mode («по фазам», «пофазно», "phase by phase", or an explicit request to
+approve each phase). Do not interpret a task broken into numbered steps as phase-by-phase permission.
+Apply substantive plan changes before execution and obtain approval for changed scope or routes.
 
-Default: run the whole confirmed plan autonomously to the report. Phase-by-phase mode only when the
-user explicitly asks («по фазам», «пофазно», "step by step", "phase by phase"): after each phase stop
-with a short summary and wait for the go-ahead.
+If offering a second opinion, distinguish it from the required independent reviewer. Ask separately
+whether the available native/CLI route is wanted and obtain permission for its external model call.
+Do not assume a different vendor. `references/codex-review.md` describes the optional CLI route.
 
-### 5. Verification
+## 4. Execution
 
-Done by the orchestrator, never delegated to the worker that did the step:
+Use `references/brief.md` for self-contained briefs: context, decisions, files, boundaries, data,
+acceptance criteria, checks reserved for the verification owner, and concise output/evidence.
+Workers must not run shared gates or formatters while edits overlap. No worker commits, pushes,
+installs, changes native routing, or writes externally without exact explicit permission.
 
-- **Code:** read the diff yourself (`git diff`, `git status`) and run the project's tests, lint and
-  build yourself. A worker's "tests pass" is a claim, not evidence.
-- **Research and analysis:** spot-check 1-2 key claims against the source (open the file, run the
-  query). If a claim does not hold, treat the whole report as suspect.
-- **Boundaries:** check the worker touched only what its brief allowed (files outside scope, commits,
-  external writes). Work outside the brief fails the step, even if it looks useful.
-- **Review steps:** an opus review worker's findings are input, not a verdict; decide on each yourself.
+Launch all ready independent slices together using the adapter's real schema. For background work,
+continue independent work and accept completion notifications; wait only when blocked. For blocking
+calls consume their returned results. Never claim an unfinished worker's output or assume summaries
+are hidden from the user. Start dependent work only when its inputs have arrived and passed the
+checks assigned to that phase.
 
-On failure:
+After failure, sharpen the brief first: state the concrete defect and observable acceptance result.
+Retry the same permitted route if useful. Escalate only through an existing configured or explicitly
+user-approved native route; record the reason and observed route. No fixed model ladder, secret
+settings mutation, paid-provider substitution, or fallback invented by this skill. An unexpected
+observed model/effort switch is a routing deviation: stop affected work, disclose it, and obtain
+approval before accepting or continuing on that route. If no permitted route resolves the failure,
+report the exact blocker and ask for a decision; never label incomplete work done.
 
-1. Retry once on the same model with a sharper brief: name what was wrong and what "done" means.
-2. Second failure: escalate one model up (haiku to sonnet, sonnet to opus) and note it for the report.
-3. Escalation fails, or opus already failed twice: stop and ask the user.
+## 5. Independent verification
 
-If the user chose a Codex review, run it after all steps passed, as described in
-`references/codex-review.md`, and handle its findings the same way as an opus review.
+The implementer cannot verify its own work as the independent reviewer. Dispatch the planned actual
+reviewer separately; the coordinator also checks boundaries and source claims and runs the shared
+gates once the phase's edits have landed. A worker's claim of passing checks is not evidence.
 
-### 6. Report
+- Code: inspect changed scope, run the relevant project checks, and exercise the changed path with
+  a targeted scenario/smoke run. Record actual results, not inferred success.
+- Research: independently spot-check key claims against their sources.
+- Review: assess every finding; accept and route fixes, or reject with a reason. Verify fixes before
+  continuing. Reviewer output is input to the coordinator, not automatic approval.
+- Boundaries: preserve pre-existing user changes; flag out-of-scope edits and unapproved external
+  actions. Do not conceal them or destructively revert unrelated work.
 
-In the user's language, short, using the template in `references/templates.md`: what was done (2-5
-lines); table of steps (worker, model, result, escalations); deviations from the plan and why; what
-was not verified; what remains; Codex findings accepted/rejected, if it ran. No retelling of the process.
+If independent review is unavailable, say that it is missing and request an approved reviewer route
+or a user decision. Self-checks may still be reported as self-checks, but cannot become independent
+verification. A failed/empty optional review is failure, not "no findings". Run an approved second
+opinion only at its agreed checkpoint, after the final tree is stable.
 
-## When to stop and ask
+## 6. Report
 
-The confirmed plan is the mandate. Outside it, stop only for:
+Use `references/templates.md`: outcome, categories/native workers, observed routing and deviations,
+checks actually exercised, independent reviewer findings and their disposition, optional second
+opinion if it ran, and exact blockers/unverified items. Keep it short and in the user's language.
+Do not stop at a phase boundary unless phase-by-phase execution was requested or an actual blocker
+requires a decision.
 
-- a deviation from the confirmed plan (new step, changed scope, different approach);
-- a failure after escalation;
-- any outward-facing or irreversible action: push, writes to trackers or forges, deletions, sending
-  messages. These always need the user, even if the plan implied them.
+## Permission boundaries
 
-Workers never commit or push; the orchestrator commits only if the user asked for it.
-
-## References
-
-- `references/routing.md` - which model for which work, and how to justify a deviation.
-- `references/brief.md` - worker brief template with a filled-in example.
-- `references/templates.md` - plan table and final report templates.
-- `references/codex-review.md` - optional Codex review: availability, the call, findings.
+The confirmed plan authorizes only its explicit scope. Pause for changed scope/approach, an unresolved
+failure, or an unapproved route. Obtain explicit permission for exact outward-facing or irreversible
+actions: commit/push, tracker/forge writes, installs, destructive deletions, sending messages, or
+external second-opinion calls. Explicitly asking for that exact action can supply permission; a
+broad "start" or autonomy instruction cannot. Routine in-scope local edits are not blanket permission
+for destructive cleanup. Carry these limits into every worker brief.

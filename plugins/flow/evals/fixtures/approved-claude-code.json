@@ -1,0 +1,125 @@
+{
+  "adapter": "claude-code",
+  "events": [
+    {
+      "type": "capabilities",
+      "source": "fixture:synthetic-observation",
+      "delegation": true,
+      "reviewer": true,
+      "ask_ui": true,
+      "second_opinion": true,
+      "native_routes": {
+        "implementation": null,
+        "review": "discovered-reviewer"
+      }
+    },
+    {
+      "type": "phase",
+      "source": "fixture:synthetic-observation",
+      "name": "recon"
+    },
+    {
+      "type": "dispatch",
+      "source": "fixture:synthetic-observation",
+      "worker": "research-1",
+      "category": "research",
+      "params": {
+        "subagent_type": "discovered-researcher",
+        "prompt": "Read checkout behavior"
+      }
+    },
+    {
+      "type": "phase",
+      "source": "fixture:synthetic-observation",
+      "name": "plan"
+    },
+    {
+      "type": "plan",
+      "source": "fixture:synthetic-observation",
+      "id": "P1",
+      "scopes": [
+        "checkout"
+      ],
+      "text": "Implement checkout rounding locally, then independent review; no publish or configuration changes."
+    },
+    {
+      "type": "ask",
+      "source": "fixture:synthetic-observation",
+      "channel": "ui",
+      "text": "Approve P1 autonomous execution through independent verification and report?"
+    },
+    {
+      "type": "approval",
+      "source": "fixture:synthetic-observation",
+      "actor": "user",
+      "plan": "P1",
+      "phases": [
+        "execution",
+        "verification",
+        "report"
+      ],
+      "text": "Approve P1. Continue autonomously through verification and report."
+    },
+    {
+      "type": "phase",
+      "source": "fixture:synthetic-observation",
+      "name": "execution"
+    },
+    {
+      "type": "dispatch",
+      "source": "fixture:synthetic-observation",
+      "worker": "implementer-1",
+      "category": "implementation",
+      "scope": "checkout",
+      "params": {
+        "subagent_type": "discovered-implementer",
+        "prompt": "Implement only checkout"
+      }
+    },
+    {
+      "type": "work",
+      "source": "fixture:synthetic-observation",
+      "actor": "implementer-1",
+      "scope": "checkout",
+      "kind": "local_write",
+      "target": "checkout/rounding.py"
+    },
+    {
+      "type": "phase",
+      "source": "fixture:synthetic-observation",
+      "name": "verification"
+    },
+    {
+      "type": "dispatch",
+      "source": "fixture:synthetic-observation",
+      "worker": "reviewer-1",
+      "category": "review",
+      "params": {
+        "subagent_type": "discovered-reviewer",
+        "prompt": "Inspect checkout independently"
+      }
+    },
+    {
+      "type": "review",
+      "source": "fixture:synthetic-observation",
+      "actor": "reviewer-1",
+      "scopes": [
+        "checkout"
+      ],
+      "result": "pass",
+      "text": "Inspected the changed rounding path and observed exact currency results; no findings."
+    },
+    {
+      "type": "phase",
+      "source": "fixture:synthetic-observation",
+      "name": "report"
+    },
+    {
+      "type": "report",
+      "source": "fixture:synthetic-observation",
+      "status": "completed",
+      "independent_verified": true,
+      "text": "Checkout rounding changed locally; reviewer-1 independently reviewed checkout. No publish, model, or configuration changes."
+    }
+  ]
+}

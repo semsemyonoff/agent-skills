@@ -1,0 +1,82 @@
+[
+  {
+    "query": "Orchestrate this checkout refactor: research the current paths, delegate implementation and independent review, then show me a plan before starting.",
+    "should_trigger": true
+  },
+  {
+    "query": "Оркестрируй исправление расчёта скидки: сначала разведка и план, потом согласование, делегированное исполнение и независимая проверка.",
+    "should_trigger": true
+  },
+  {
+    "query": "Use /flow:orchestrate for the checkout currency change. I want to approve the plan before the agents touch code.",
+    "should_trigger": true
+  },
+  {
+    "query": "Запусти /flow:orchestrate для проверки платежей; после утверждения плана доведи автономно до отчёта.",
+    "should_trigger": true
+  },
+  {
+    "query": "This crosses parser, storage and CLI. Split it among subagents, coordinate dependencies, and have a separate reviewer check the integrated changes.",
+    "should_trigger": true
+  },
+  {
+    "query": "Здесь несколько независимых частей: делегируй агентам исследование, реализацию и отдельную проверку, а сам координируй интеграцию.",
+    "should_trigger": true
+  },
+  {
+    "query": "Delegate the migration investigation and implementation to subagents because the contracts are too coupled for one thread; bring me their coordinated plan first.",
+    "should_trigger": true
+  },
+  {
+    "query": "Из-за сложности API и фронтенда разбей работу между субагентами, согласуй их план со мной и организуй независимый ревью.",
+    "should_trigger": true
+  },
+  {
+    "query": "Orchestrate this security fix phase by phase. Pause before each phase; do not publish anything.",
+    "should_trigger": true
+  },
+  {
+    "query": "Оркестрируй задачу, но без поэтапных остановок после утверждения плана; нужен независимый проверяющий.",
+    "should_trigger": true
+  },
+  {
+    "query": "Explain our GitHub Actions workflow in .github/workflows/build.yml and why the cache key changes. Do not edit anything.",
+    "should_trigger": false
+  },
+  {
+    "query": "Объясни workflow сборки в .github/workflows/ci.yml, особенно зависимость deploy от tests.",
+    "should_trigger": false
+  },
+  {
+    "query": "Implement the new billing dashboard, API pagination, CSV export, and deployment documentation. Start with the repository conventions.",
+    "should_trigger": false
+  },
+  {
+    "query": "Задача большая: обнови биллинг, пагинацию, экспорт и документацию. Сначала изучи текущий код.",
+    "should_trigger": false
+  },
+  {
+    "query": "Review this orchestration.yml as configuration data and explain its dependency graph; do not launch agents.",
+    "should_trigger": false
+  },
+  {
+    "query": "В README встречается «оркестрация контейнеров». Поправь перевод этого абзаца; агентов не запускай.",
+    "should_trigger": false
+  },
+  {
+    "query": "Think through the workflow for approving refunds and give me three UX alternatives, not an agent execution plan.",
+    "should_trigger": false
+  },
+  {
+    "query": "Продумай рабочий процесс обработки возвратов и сравни варианты; пока только обсуждение, не делегируй.",
+    "should_trigger": false
+  },
+  {
+    "query": "Update the string “delegate to subagents” in the help text to “run background jobs”. This is a text edit, not a delegation request.",
+    "should_trigger": false
+  },
+  {
+    "query": "Слово «оркестрируй» в примере команды написано с ошибкой: исправь только этот пример в help.txt.",
+    "should_trigger": false
+  }
+]

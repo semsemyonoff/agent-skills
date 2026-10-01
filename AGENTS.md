@@ -1,6 +1,7 @@
 # Repository Guidelines
 
-Personal skills for Claude Code (plugin marketplace) and Codex (skills.sh).
+Personal skills for Claude Code (plugin marketplace), omp (compatible plugin skill directories), and
+native Codex CLI (the separate `codex/` tree via skills.sh).
 
 ## Layout
 
@@ -23,9 +24,11 @@ Plugins are grouped by theme (`flow`, `vikunja`, `redmine`, `retro`, `gdocs`, `p
 given Claude setup enables is up to whoever installs them; nothing in this repo assumes a particular
 setup, so keep machine- and account-specific details out of it.
 
-Claude gets the workflows. Codex gets only `codex/`: skills for its role as a second
-opinion — code analysis, review, architecture — plus the Codex side of peer-chat. skills.sh reads
-`marketplace.json` and would expose plugin skills, so Codex installs use the subpath:
+Claude gets the plugin workflows; omp can load harness-compatible skills from their plugin skill
+directories (currently `orchestrate`, `reflection`, and `vikunja`). A Codex model running inside omp
+uses omp's tools and session format, not native Codex CLI's. Native Codex CLI gets only `codex/`:
+skills for its role as a second opinion — code analysis, review, architecture — plus peer-chat.
+skills.sh reads `marketplace.json` and would expose plugin skills, so native Codex installs use:
 `npx skills add semsemyonoff/agent-skills/codex -a codex -g`.
 
 ## Writing skills
@@ -43,8 +46,10 @@ can run them. For `codex/` skills follow Codex's built-in `skill-creator` (incl.
   index ("read `sections/backlog.md` when creating a task").
 - Paths inside a skill are relative to its directory. Never reference `~/.claude/skills`,
   `~/.claude/plugins` or a home directory: plugins run from a cache dir, Codex from `~/.agents/skills`.
-  In plugin skills call bundled scripts as `"${CLAUDE_SKILL_DIR}/scripts/<script>"` (Claude Code
-  substitutes it); `codex/` skills reference files relative to `SKILL.md`.
+  Resolve bundled scripts and references from the directory of the loaded `SKILL.md`.
+  Claude-only adapters may use `"${CLAUDE_SKILL_DIR}/scripts/<script>"` (Claude Code substitutes it);
+  shared instructions and omp adapters must not require that variable. Keep model routing in each
+  harness's native configuration, not in a shared skill-specific settings file.
 - A skill is self-contained: no dependency on another skill's files. Duplicate a small piece rather
   than couple two skills.
 - Anything deterministic (resolving ids, building markup, parsing transcripts) goes to `scripts/`;
@@ -68,8 +73,9 @@ shellcheck $(git ls-files '*.sh')
 
 CI (`.github/workflows/check.yml`) runs the same on Forgejo Actions and on the GitHub mirror.
 
-Before merging a skill, test it by hand in the target agent: explicit invocation (`/<plugin>:<skill>`
-in Claude) and a natural prompt in Russian and in English that should trigger it.
+Before merging a skill, test it by hand in each supported harness: explicit invocation
+(`/<plugin>:<skill>` in Claude, `/skill:<skill>` in omp) and a natural prompt in Russian and in
+English that should trigger it. Exercise capability-unavailable paths without pretending they ran.
 `claude plugin details <plugin>@semsemyonoff` shows the always-on token cost — keep it small.
 
 ## Commits

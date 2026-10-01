@@ -100,7 +100,7 @@ def run(args: argparse.Namespace) -> int:
 
     out = Path(tempfile.mkdtemp(prefix="flow-codex-review."))
     cmd = ["codex", "exec", "--cd", repo, "--sandbox", "read-only", "--skip-git-repo-check",
-           "--ignore-rules", "--ephemeral", "--color", "never",
+           "--ephemeral", "--color", "never",
            "-c", 'approval_policy="never"', "--output-last-message", str(out / "review.md")]
     if model := os.environ.get("CODEX_MODEL"):
         cmd += ["-c", f'model="{model}"']

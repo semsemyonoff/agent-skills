@@ -17,19 +17,20 @@ Work from the digest top to bottom. Keep notes as short evidence lines; the repo
    - existing skill/command covers it: name it, then find why it did not fire (description lacks the
      user's phrasing? user does not know it exists?);
    - new skill candidate: 3+ occurrences over 2+ sessions and a multi-step, stable workflow;
-   - CLAUDE.md rule: a preference or constraint that is restated (language, style, "do not commit");
+   - project instruction rule: a preference or constraint that is restated (language, style, "do not commit");
    - ignore: one-off or already trivial.
 
 ## Friction
 
-Read each correction candidate in context of the session id prefix. Keep it as friction only if the
-user redirected or reverted the assistant's work. Group by cause: assumed scope too large, wrong
-tool or language, ignored an earlier instruction, over-engineering, missing project knowledge.
-A cause that recurs in 2+ sessions becomes a rule (CLAUDE.md, or the relevant skill's rules).
+Read each correction candidate with its source-qualified session ref and excerpt. Keep it as friction
+only if the evidence shows that the user redirected or reverted work; mark missing context uncertain
+rather than opening private raw logs. Group by cause: assumed scope too large, wrong tool/language,
+ignored instructions, over-engineering, missing project knowledge. A cause in 2+ sessions can justify
+a project rule (CLAUDE.md for Claude Code, AGENTS.md or the applicable context file for omp).
 Write the proposed rule text in one line, in the imperative, with the reason.
 
-Also read: sessions with many interrupts (`int=`), many errors, or large token counts relative to
-prompts - open their first prompts to see whether the task was mis-scoped or looped.
+Also compare sessions with many interrupts, errors, or high known usage relative to prompts.
+Use the redacted first prompts already in the digest; do not expand private transcript bodies.
 
 ## Errors and denials
 
@@ -40,25 +41,30 @@ prompts - open their first prompts to see whether the task was mis-scoped or loo
   report the count as noise, not as a proposal.
 - Classifier denials by category and tool: a denial that was then approved manually every time is a
   candidate for an explicit allow rule; a denial for something the assistant should never try
-  (credential exploration, destructive git) is a candidate for a CLAUDE.md rule instead.
+  (credential exploration, destructive git) is a candidate for a project instruction rule instead.
 - "user rejected" repeated on the same tool signals the assistant proposes actions the user does not
   want; find out which and write the rule.
 
 ## Routing and spend
 
-- Subagent calls: compare `model set` vs `unset`. Unset inherits the parent model, so exploration
-  or research subagents running on the most expensive model are the usual waste. Look at which
-  `subagent_type` runs unset and whether the work is read-only search (fits a cheaper model) or
-  needs the strongest model (review, hard design).
-- Tokens: cache_read dwarfs everything in long sessions; that is normal. Look for output-heavy
-  models, sessions with huge cache_write (context churn, many `/clear`s), and the main-vs-subagent
-  split when `--include-subagents` was used. Without that flag subagent tokens are not counted, so
-  the model table understates cheaper models; say so.
-- Do not convert tokens to dollars from memory; point to `npx ccusage` for that.
+- Separate the harness source from the provider/model: an openai-codex model in omp is still an omp
+  session. Never infer source, provider or effort from a model name alone.
+- Subagent calls: compare explicit versus missing model arguments. In Claude Code a missing model
+  may inherit the parent; in omp the agent definition, configured role and policy can resolve it.
+  Use child `agent`, `model_role`, `resolved_model` and observed usage routes when available rather
+  than claiming inheritance. A configured effort selector such as auto differs from resolved high/low.
+- Tokens: null/unavailable means unknown. Inspect `known` subtotals and `missing` call counts before
+  comparing spend. Report incomplete sums as partial, never zero. Cache reads dominate many long
+  sessions; that is normal. Look for output-heavy models or context churn and the main/child split.
+- Child tokens/tools/errors appear only with `--include-subagents`; delegated tasks are not user
+  prompts. Standalone omp model_usage calls contribute usage, not conversation turns. All totals
+  already obey the selected source, project and period. Row caps limit evidence, not totals.
+- Do not guess dollars or run a pricing/dashboard tool unasked. ccusage is an optional Claude-only
+  pricing route; omp stats is an optional omp usage surface, not a required report dependency.
 
 ## Proposals
 
 Rank by value (occurrences x time saved) over effort. Prefer, in order: fix an existing skill's
-description, add a CLAUDE.md rule, add a permission allow rule, add a subagent `model:` default,
-write a new skill or command. For each proposal give: the change, the file/place, one line of
-evidence, effort (S/M/L). Stop at 3-7 items; a longer list dilutes the top ones.
+description, add a relevant project rule, add a permission allow rule, adjust verified subagent
+routing, write a new skill or command. For each proposal give the change, file/place, one line of
+source-qualified evidence, effort (S/M/L). Stop at 3-7 items; a longer list dilutes the top ones.

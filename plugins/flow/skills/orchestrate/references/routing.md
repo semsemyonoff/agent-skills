@@ -1,33 +1,34 @@
-# Model routing
+# Work categories and native routing
 
-Default for every worker. Deviating is allowed, but the plan row must say why in one line.
+Use this table to split work. Choose the actual native agent from the loaded runtime adapter;
+model selection belongs to that harness's configuration. Do not translate categories into a
+cross-harness model ladder or maintain a second routing settings file.
 
-| Model | Use for | Not for |
+| Category | Work | Boundary |
 | --- | --- | --- |
-| haiku | search and listings; reading with summarisation; fact gathering by a checklist; bulk mechanical edits by an exact spec (rename, replace a pattern, add a field everywhere) | anything that needs judgment |
-| sonnet | implementation from a clear spec; tests; docs; CSS and markup; texts and copy; log and transcript analysis; ordinary refactoring | architectural forks; final review of risky changes |
-| opus | architecture and design; risky backend (migrations, concurrency, security, data integrity); review of other workers' output; murky debugging without a hypothesis | CSS, copy, small doc edits |
+| Research | File discovery, source reading, fact gathering, recon with source locations | Read-only; use interpretation-capable research when needed, not an editing worker |
+| Mechanics | Exact, bounded transformations with a worked example and complete spec | No unresolved design choices; split out judgment work |
+| Implementation | Features, refactors, tests, docs, or debugging requiring decisions within the agreed design | Disjoint files/contracts; no unapproved scope expansion |
+| Review | Independent correctness, regression, boundary, security, or data-integrity analysis | A different worker from the implementer; findings require disposition |
+| Second opinion (optional) | A specifically approved additional checkpoint on the stable result | Not a substitute for mandatory review; need not be another vendor |
 
-The orchestrator itself runs on the session model: it plans, verifies and decides.
+The coordinator plans, manages dependencies/approval, evaluates findings, and runs shared checks.
+An implementer may perform local self-checks if its brief allows them, but these are never independent
+review. For parallel changes reserve shared gates/formatters for the phase's verification owner.
 
-## Why this matters
+## Choosing a route
 
-A worker launched without `model` inherits the session model, usually opus. In past sessions most
-opus spend was justified; the waste was CSS tweaks, copy rewrites and small doc edits run on opus. The
-table exists to catch exactly those.
+1. Classify each slice by required capabilities, not size alone. Split mixed mechanics/design work.
+2. Discover the adapter's enabled agents and effective native overrides. Check tool permissions,
+   edit/read boundaries, available reviewer, background support, and nesting limits.
+3. Record the native worker identity in the plan. Record model/effort only if observed and permitted;
+   an alias is an alias, not evidence of a resolved model. Use unknown when not exposed.
+4. If the configured worker cannot do the work, sharpen/split the brief before proposing a different
+   approved native route. Do not guess more expensive or different-provider fallback models.
+5. If a native system reports an unexpected substitution, stop affected work and disclose the
+   routing deviation. Obtain approval before continuing or accepting substituted output.
 
-## Picking in unclear cases
-
-- **Mixed step** (a migration plus the handler that uses it): split it, or route by the hardest part.
-- **Unsure between two models:** take the cheaper one; verification and escalation catch a miss.
-  Exception: risky backend goes to opus from the start, because a subtle bug there may pass tests
-  and slip past a quick diff read.
-- **Spec quality decides as much as the task.** "Add endpoint X exactly like Y" is sonnet; "figure out
-  how X should work" is opus. If a sonnet step needs design decisions, make them in the plan first.
-- **Review is a separate step on a different worker**, not self-review by the implementer.
-
-## Deviation examples
-
-- `sonnet` for a migration: "additive column with a default, no backfill, pattern copied from 0042".
-- `opus` for a doc: "ADR that has to weigh three storage designs".
-- `haiku` for tests: "parametrised cases added to an existing table, exact inputs listed in the brief".
+Examples: an exact rename is mechanics; designing the replacement API is implementation/design;
+analyzing a migration for lost data is review. Risky backend work needs a focused independent review
+regardless of which model native configuration assigns. Lack of a configured reviewer remains a
+capability gap, not an invitation for the implementer or coordinator to call self-review independent.

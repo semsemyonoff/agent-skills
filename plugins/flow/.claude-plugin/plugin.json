@@ -1,7 +1,7 @@
 {
   "name": "flow",
-  "description": "Orchestrate work across subagents with explicit model routing",
-  "version": "1.1.0",
+  "description": "Approved role-based orchestration with native Claude Code/omp adapters and independent review",
+  "version": "2.0.0",
   "author": {
     "name": "semsemyonoff"
   }

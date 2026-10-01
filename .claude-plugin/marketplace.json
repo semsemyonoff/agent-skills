@@ -8,7 +8,7 @@
     {
       "name": "flow",
       "source": "./plugins/flow",
-      "description": "Orchestrate work across subagents with explicit model routing"
+      "description": "Orchestrate work in Claude Code or omp with native agent routing, plan approval and independent verification"
     },
     {
       "name": "gdocs",
@@ -28,7 +28,7 @@
     {
       "name": "retro",
       "source": "./plugins/retro",
-      "description": "Retrospective over past Claude Code session transcripts: recurring requests, friction, tool errors, model routing, token spend"
+      "description": "Retrospective over selected Claude Code and omp session transcripts: recurring requests, friction, tool errors, native model routing, token usage"
     },
     {
       "name": "vikunja",

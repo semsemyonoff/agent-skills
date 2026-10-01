@@ -1,0 +1,13 @@
+{
+  "contract": "Convert an exact decimal currency string to integer minor units by nearest-cent rounding, with halfway values rounded away from zero. Do not use binary float arithmetic.",
+  "cases": [
+    {"amount": "0.004", "expected_minor_units": 0},
+    {"amount": "0.005", "expected_minor_units": 1},
+    {"amount": "1.005", "expected_minor_units": 101},
+    {"amount": "2.675", "expected_minor_units": 268},
+    {"amount": "12.34", "expected_minor_units": 1234},
+    {"amount": "-0.004", "expected_minor_units": 0},
+    {"amount": "-0.005", "expected_minor_units": -1},
+    {"amount": "-1.005", "expected_minor_units": -101}
+  ]
+}
