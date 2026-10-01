@@ -19,8 +19,9 @@ Learned from real sessions; each rule exists because something went wrong withou
   is displayed; judge by whether you sent raw tags, do not "fix" blindly. If a page really shows
   visible tags, the content was escaped on the way in: rewrite it with `task_update` or `comment_update`.
 - Keep one thought per `<p>`; long comments read better as a bold lead line plus a short `<ul>`.
-- A validator is bundled: `scripts/html_check.py`. Example:
-  `printf '%s' "$HTML" | python3 "${CLAUDE_SKILL_DIR}/scripts/html_check.py" -`.
+- A validator is bundled: `scripts/html_check.py`. Resolve `SKILL_DIR` from the loaded `SKILL.md`
+  as described in Setup, then run:
+  `printf '%s' "$HTML" | python3 "$SKILL_DIR/scripts/html_check.py" -`.
 
 ## Style of tasks in the tracker
 

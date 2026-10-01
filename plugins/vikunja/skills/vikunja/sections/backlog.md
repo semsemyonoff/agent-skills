@@ -23,7 +23,8 @@ for confirmation again unless the target is ambiguous.
    (what hurts, with numbers if known), proposal, open questions, done criteria. Related tasks as
    `<a href="$VIKUNJA_URL/tasks/N">#N</a>`; say where it was split from when it is a spin-off. Strip
    personal data. Write it to a temp file and run
-   `python3 "${CLAUDE_SKILL_DIR}/scripts/html_check.py" file.html`; fix every reported problem.
+   `python3 "$SKILL_DIR/scripts/html_check.py" file.html` (resolve `SKILL_DIR` as in Setup);
+   fix every reported problem.
 5. **Create.** `task_create` with numeric `projectId`, `title`, `description`; `priority` only if the
    user stated one. Do not invent due dates.
 6. **Verify.** `task_get` with the returned id; confirm title and that the description holds the raw HTML you

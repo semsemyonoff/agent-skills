@@ -1,7 +1,7 @@
 {
   "name": "vikunja",
   "description": "Vikunja task workflows: backlog, intake, progress reports, with HTML-description conventions and a validator",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "author": {
     "name": "semsemyonoff"
   }

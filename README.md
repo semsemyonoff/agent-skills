@@ -43,6 +43,16 @@ tasks closed without being asked. Three scenarios:
 - `/vikunja:report <id>` — write progress or a completion report into linked tasks; close only when
   asked.
 
+The Vikunja skill also works in omp with any supported model provider. Point omp's
+`skills.customDirectories` at this repository's `plugins/vikunja/skills` directory (the parent of
+`vikunja/`), then invoke `/skill:vikunja` or use a natural prompt. This custom-directory entry
+overrides older same-named installed copies. The namespaced commands above are Claude Code aliases.
+Connect the Vikunja MCP separately using the harness's configuration, then reload MCP or restart
+the session. The skill discovers actual tool names/schemas and supports omp's `xd://` devices;
+Claude Code's deferred ToolSearch remains supported. Bundled references and the offline Python 3
+HTML validator resolve relative to the loaded `SKILL.md`, with no required Claude environment
+variables. Set `VIKUNJA_URL` for clickable task links; no tokens belong in skill files.
+
 ### redmine — `redmine`
 
 For work that lives in Redmine issues. Two scenarios:

@@ -24,8 +24,8 @@ Use after work is done or when the user says "отпишись в N", "отпи�
    tasks as `<a href="$VIKUNJA_URL/tasks/N">#N</a>`.
 4. If anything is still open, add an explicit `<p><b>Что осталось</b></p>` with a list. Be specific:
    items the reader can act on.
-5. Validate with `python3 "${CLAUDE_SKILL_DIR}/scripts/html_check.py" file.html`, then `comment_create`
-   with numeric `taskId`.
+5. Validate with `python3 "$SKILL_DIR/scripts/html_check.py" file.html` (resolve `SKILL_DIR` as in
+   Setup), then `comment_create` with numeric `taskId`.
 6. Read back with `comments_list`/`comment_get` if the content was long; fix a mistake with
    `comment_update` (`commentId` plus the full HTML).
 
