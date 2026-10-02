@@ -46,6 +46,13 @@ If the approach remains undecided, name the decisions and offer
 the adapter's real ask mechanism. Existing validated designs and explicit implementation choices
 are input, not decisions to reopen. An optional second opinion is opt-in, not automatic recon work.
 
+For a validated-design or plan handoff, carry the original goal, settled decisions, files, dependencies,
+acceptance, selected rule path/provenance and exact permissions into recon and the plan table. Read
+the full referenced artifact; do not restart design questions or discard its execution/gate boundaries.
+A plan file or review verdict does not itself approve execution. If loaded rules assign the plan to
+another executor, retain that owner unless the user explicitly chooses a compatible orchestration
+route. Missing handoff facts are precise prerequisites, not an invitation to guess or invoke exec.
+
 ## 2. Plan
 
 Use `references/routing.md` and `references/templates.md`. Every row names the category, discovered

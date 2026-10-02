@@ -1,5 +1,9 @@
 # Changelog
 
+## 2.0.1
+
+- Carry validated design/plan decisions, rules, acceptance and execution boundaries into recon without repeating design or treating an artifact as execution approval; preserve an existing execution owner unless the user explicitly selects orchestration.
+
 ## 2.0.0
 
 - Replace Claude-specific shared model routing with one recon → plan → approval → autonomous execution → independent verification → report process for Claude Code and omp. Execution pauses per phase only on request; external actions and routing deviations need explicit permission.

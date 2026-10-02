@@ -1,0 +1,9 @@
+{
+  "name": "planning",
+  "description": "Portable brainstorm, compact implementation planning and independent read-only plan review with preserved custom rules",
+  "version": "1.0.1",
+  "license": "MIT",
+  "author": {
+    "name": "semsemyonoff"
+  }
+}

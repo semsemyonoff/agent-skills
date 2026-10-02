@@ -1,6 +1,6 @@
 {
   "name": "semsemyonoff",
-  "description": "Personal workflow skills: orchestration, Vikunja, Redmine, session reflection, docs import",
+  "description": "Personal workflow skills: planning, orchestration, Vikunja, Redmine, session reflection, docs import",
   "owner": {
     "name": "semsemyonoff"
   },
@@ -19,6 +19,11 @@
       "name": "peer",
       "source": "./plugins/peer",
       "description": "Peer conversation with Codex in a split pane (kitty on Linux, agterm on macOS)"
+    },
+    {
+      "name": "planning",
+      "source": "./plugins/planning",
+      "description": "Portable brainstorm, compact planning and independent read-only plan review, preserving project/user custom rules"
     },
     {
       "name": "redmine",

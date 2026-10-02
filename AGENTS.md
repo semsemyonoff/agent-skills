@@ -20,13 +20,14 @@ codex/<skill>/                      # Codex-only skills, installed via skills.sh
 scripts/check.py                    # repo validation, run locally and in CI
 ```
 
-Plugins are grouped by theme (`flow`, `vikunja`, `redmine`, `retro`, `gdocs`, `peer`). Which plugins a
+Plugins are grouped by theme (`planning`, `flow`, `vikunja`, `redmine`, `retro`, `gdocs`, `peer`). Which plugins a
 given Claude setup enables is up to whoever installs them; nothing in this repo assumes a particular
 setup, so keep machine- and account-specific details out of it.
 
 Claude gets the plugin workflows; omp can load harness-compatible skills from their plugin skill
-directories (currently `orchestrate`, `reflection`, and `vikunja`). A Codex model running inside omp
-uses omp's tools and session format, not native Codex CLI's. Native Codex CLI gets only `codex/`:
+directories (currently `brainstorm`, `planning`, `plan-review`, `orchestrate`, `reflection`, and `vikunja`).
+A Codex model running inside omp uses omp's tools and session format, not native Codex CLI's.
+Native Codex CLI gets only `codex/`:
 skills for its role as a second opinion — code analysis, review, architecture — plus peer-chat.
 skills.sh reads `marketplace.json` and would expose plugin skills, so native Codex installs use:
 `npx skills add semsemyonoff/agent-skills/codex -a codex -g`.
@@ -52,6 +53,10 @@ can run them. For `codex/` skills follow Codex's built-in `skill-creator` (incl.
   harness's native configuration, not in a shared skill-specific settings file.
 - A skill is self-contained: no dependency on another skill's files. Duplicate a small piece rather
   than couple two skills.
+- Keep portable planning rules outside skills: first nonempty project `.agents/<name>-rules.md`,
+  then `.claude/<name>-rules.md`, then XDG `agent-skills/<name>-rules.md`; never merge or embed
+  personal rules. Include upstream MIT copyright/license in each separately distributed adapted
+  skill directory. Native agent resources are optional files, not automatic installations.
 - Anything deterministic (resolving ids, building markup, parsing transcripts) goes to `scripts/`;
   the model interprets results. Scripts use only the standard library of Python 3 or POSIX shell.
 - Writes to external systems (trackers, forges) happen only after explicit user confirmation unless

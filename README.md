@@ -19,6 +19,42 @@ npx skills add semsemyonoff/agent-skills/codex -a codex -g
 
 ## Plugins
 
+### planning — `brainstorm`, `planning`, `plan-review`
+
+Portable adaptations of [umputun/cc-thingz](https://github.com/umputun/cc-thingz): incremental design,
+compact `docs/plans/YYYYMMDD-name.md` creation, and one independent read-only plan review. Each skill
+is self-contained, with its own rule resolver/resources and upstream MIT notice. No exec workflow,
+automatic implementation, commit, install or review loop.
+
+In omp, load these three skills from the shared `.agents/skills` tree via skills.sh, or point native
+skill discovery at `plugins/planning/skills`. Invoke `/skill:brainstorm`, `/skill:planning` or
+`/skill:plan-review`. Loading skills does not automatically expose native agent resources.
+Existing Claude setups using `brainstorm@umputun-cc-thingz` and `planning@umputun-cc-thingz` can keep
+those workflows and custom data unchanged; do not enable a second conflicting planning plugin merely
+to connect the omp skills. This repository does not modify the upstream install.
+
+Custom rules: first nonempty `.agents/<name>-rules.md`, then `.claude/<name>-rules.md` in the actual
+project directory, otherwise `${XDG_CONFIG_HOME:-$HOME/.config}/agent-skills/<name>-rules.md`.
+Use `brainstorm` or `planning` as the name; plan review loads planning rules. No merging, no personal
+rules embedded in shared files, and no required Claude plugin environment variables. The read-only
+resolver reports the selected path/provenance/content; no rules is normal, unreadable rules is an
+explicit blocker. User-rule symlinks preserve the existing source without copying it into the repo.
+
+The optional omp agent resource is
+[`plugins/planning/skills/plan-review/agents/omp.md`](plugins/planning/skills/plan-review/agents/omp.md):
+native name `plan-review`, model role `@plan_review`, tools `read`, `grep`, `glob`, no spawns.
+An operator can expose that file through native agent discovery and route `modelRoles.plan_review`
+to an approved selector/role; the skill never installs it or changes models. The driver may call its
+bundled read-only resolver once; the reviewer worker never runs a shell, helper or tests.
+
+Brainstorm preserves loaded next-step rules and passes validated decisions/files without re-design.
+Planning honors the loaded execution owner (including ralphex when selected), fast targeted
+Validation Commands and a final verification task. Project-specific restrictions come only from
+loaded custom rules, with applicability established from conditions defined by those rules;
+unknown conditions remain unknown rather than checked.
+Plan creation starts neither ralphex nor orchestrate. Plan-review returns `APPROVE` or `NEEDS REVISION`
+with evidenced findings; it cannot modify the plan or stand in for an absent independent reviewer.
+
 ### flow — `orchestrate`
 
 For tasks too big for one pass but small enough for one session. One shared workflow for Claude Code
@@ -120,12 +156,24 @@ to reach kitty's socket.
 
 ```
 /vikunja:intake <id>         analysis; open decisions → brainstorm, settled solution → plan
-/brainstorm                  design, section by section; can hand over to orchestrate at the end
+/brainstorm                  validate design; selected route → orchestrate or durable planning
 /flow:orchestrate <task>     recon → plan with native agents → confirm → execute → verify → report
 /vikunja:report <id>         report into the task; closes only when asked
 ```
 
-`/brainstorm` comes from [umputun/cc-thingz](https://github.com/umputun/cc-thingz).
+Portable omp chain:
+
+```
+/skill:brainstorm            validated decisions + files + rules provenance
+  → /skill:orchestrate       explicit one-session choice; retains execution approval
+  → /skill:planning         explicit durable-plan choice; writes docs/plans/YYYYMMDD-name.md
+      → /skill:plan-review  one read-only review, only when selected
+      → ralphex             completed plan path/instructions; no automatic launch
+```
+
+The existing Claude brainstorm/planning workflows and the portable adaptations above originate from
+[umputun/cc-thingz](https://github.com/umputun/cc-thingz). Selecting a next workflow is not blanket
+permission for implementation, model switches, external writes or commits.
 
 ## Environment
 
