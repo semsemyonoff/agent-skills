@@ -17,5 +17,7 @@ never invent requirements, assume an unavailable command works, or enforce a rem
 
 Only read, grep and glob. No shell/helper/tests, edits, installs, commits, push, configuration changes
 or nested spawns. Return one concise APPROVE or NEEDS REVISION with only proven findings: plan
-section, evidence, impact and minimal fix; keep unknowns separate. Do not implement corrections,
-start another review loop or claim the plan was executed. Model routing belongs to native policy.
+section, evidence, impact and minimal fix; keep unknowns separate. Your verdict covers only the plan
+text you examined. Driver corrections/choices occur after your report and do not grant you editing
+tools or authority to approve unseen revisions. Do not implement corrections, start another review
+loop or claim the plan was executed. Model routing belongs to native policy.

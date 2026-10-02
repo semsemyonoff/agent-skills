@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.2 (Unreleased)
+
+- Keep one separate plan reviewer read-only; after its actual report, the driver checks evidence and automatically corrects only the target plan for unambiguous task/decision/rule-consistent findings, unless explicit review-only/no-edits was requested.
+- Require 2–5 concrete options, tradeoffs, one recommendation and a real user answer for choices/conflicts/ambiguity or agreed scope/route/budget changes; use native question buttons when exposed, otherwise wait in text. Independent safe fixes may precede the question; dependent findings stay unapplied without consent.
+- Carry correction permissions through planning handoffs and native guidance; re-read changed plan text locally, without gates, implementation or a second automatic review, and report the original verdict separately from applied changes and unresolved choices.
+
 ## 1.0.1 (Unreleased)
 
 - Keep project-specific execution policy exclusively in custom rules; shared planning/review resources apply only loaded constraints whose rule-defined conditions are confirmed, without inferring applicability from project names or presenting unknowns as checked.

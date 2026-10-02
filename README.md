@@ -22,9 +22,10 @@ npx skills add semsemyonoff/agent-skills/codex -a codex -g
 ### planning — `brainstorm`, `planning`, `plan-review`
 
 Portable adaptations of [umputun/cc-thingz](https://github.com/umputun/cc-thingz): incremental design,
-compact `docs/plans/YYYYMMDD-name.md` creation, and one independent read-only plan review. Each skill
-is self-contained, with its own rule resolver/resources and upstream MIT notice. No exec workflow,
-automatic implementation, commit, install or review loop.
+compact `docs/plans/YYYYMMDD-name.md` creation, and one independent read-only plan review followed
+by bounded driver corrections to that plan. Each skill is self-contained, with its own rule
+resolver/resources and upstream MIT notice. No exec workflow, automatic implementation, commit,
+install or review loop.
 
 In omp, load these three skills from the shared `.agents/skills` tree via skills.sh, or point native
 skill discovery at `plugins/planning/skills`. Invoke `/skill:brainstorm`, `/skill:planning` or
@@ -52,8 +53,21 @@ Planning honors the loaded execution owner (including ralphex when selected), fa
 Validation Commands and a final verification task. Project-specific restrictions come only from
 loaded custom rules, with applicability established from conditions defined by those rules;
 unknown conditions remain unknown rather than checked.
-Plan creation starts neither ralphex nor orchestrate. Plan-review returns `APPROVE` or `NEEDS REVISION`
-with evidenced findings; it cannot modify the plan or stand in for an absent independent reviewer.
+Plan creation starts neither ralphex nor orchestrate. The separate reviewer returns `APPROVE` or
+`NEEDS REVISION` with evidenced findings and never edits. After its actual report, the driver checks
+the evidence and automatically fixes only the review-target plan for unambiguous corrections
+consistent with the original task, validated decisions and loaded rules. Explicit **review only**,
+**no edits**, **только review** or **без правок** disables all autofix.
+
+Architectural/product choices, conflicting requirements, agreed scope/route/budget changes or
+ambiguity get 2–5 concrete options with tradeoffs and one recommendation: native omp `ask` buttons,
+Claude `AskUserQuestion` only if exposed, otherwise text options and a real answer before dependent
+edits. Timeout, redirect, cancellation, silence and defaults are not consent. Independent safe fixes
+may precede the question; dependent findings remain unapplied. No code, other plans, rules/config
+changes, project gates, implementation or automatic second review. The driver re-reads changed plan
+text for local consistency and reports the **original reviewer verdict**, **actual applied changes**
+and **unresolved choices** separately, never attributing reviewer approval to unseen revisions.
+An absent independent reviewer remains a blocker, not a successful author self-review.
 
 ### flow — `orchestrate`
 
@@ -167,7 +181,7 @@ Portable omp chain:
 /skill:brainstorm            validated decisions + files + rules provenance
   → /skill:orchestrate       explicit one-session choice; retains execution approval
   → /skill:planning         explicit durable-plan choice; writes docs/plans/YYYYMMDD-name.md
-      → /skill:plan-review  one read-only review, only when selected
+      → /skill:plan-review  one read-only reviewer + target-plan driver fixes/choices; only when selected
       → ralphex             completed plan path/instructions; no automatic launch
 ```
 

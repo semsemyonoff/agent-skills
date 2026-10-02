@@ -37,6 +37,27 @@ Use only supported parameters. Supply original task, plan path, source evidence,
 and the exact rules packet. Read the current completion/background mechanism; no omp wait API is
 invented here. The operator's existing upstream Claude workflows are not replaced by this package.
 
+## Driver decision buttons
+
+After the actual reviewer report, apply only the driver's bounded target-plan correction rules from
+SKILL.md. Never give the worker editing tools or re-dispatch it to approve the driver's changes.
+For each unresolved architectural/product choice, conflict, agreed scope/route/budget change or
+ambiguity, offer 2–5 concrete options with tradeoffs and one recommended option.
+
+- **omp:** use the exposed `ask` tool with its current schema. Questions use `id`, `question`,
+  options with `label`/optional `description`, and optional `multi`/`recommended`. Supply a stable
+  question id; use `multi` only for compatible independent choices and mark the recommendation
+  without treating it as selected. Discover the actual field shapes rather than inventing them.
+- **Claude Code:** use `AskUserQuestion` only when exposed, with its actual `header`, options and
+  `multiSelect` fields. A recommended label is advice, not authorization.
+- **No native UI:** present the same numbered text options/tradeoffs/recommendation and wait for a
+  real answer. Do not assume an unavailable tool ran or replace a necessary choice with a default.
+
+Only an explicit user answer resolving the choice permits its dependent target-plan corrections.
+`timedOut`, defaults/auto-selection, redirect, cancellation, silence or missing response never count
+as approval. Independent safe findings may already be fixed; dependent findings stay unapplied until
+answered. Explicit review-only/no-edits disables autofix throughout, even when options are discussed.
+
 ## Driver rules exception
 
 Before dispatch, the driver may run the bundled read-only `scripts/load_rules.py` once with

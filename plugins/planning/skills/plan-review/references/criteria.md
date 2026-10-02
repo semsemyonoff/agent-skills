@@ -32,4 +32,6 @@ are not overengineering merely because the reviewer prefers a different style.
 
 Report only prioritized proven issues. A clean pass is a concise APPROVE plus checked scope/limits;
 a blocked or materially flawed plan is NEEDS REVISION with concrete corrections or prerequisites.
-The reviewer does not implement fixes, invoke another reviewer, or start a retry loop.
+The reviewer does not implement fixes, invoke another reviewer, or start a retry loop. Its verdict
+covers only the examined text; later driver corrections and unresolved choices are reported separately,
+not promoted to independent approval of the revised plan.

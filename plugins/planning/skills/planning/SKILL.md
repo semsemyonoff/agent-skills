@@ -62,7 +62,9 @@ silently replace blocked requirements with a smaller scope.
 
 Report the created path, goal and unresolved prerequisites. Offer only relevant next steps:
 - **One independent plan-review**, only on explicit selection. Pass the plan path, original request,
-  design/decisions, project root, rule path/provenance/content, source evidence and permissions.
+  design/decisions, project root, rule path/provenance/content, source evidence and permissions,
+  including any review-only/no-edits restriction. Its reviewer stays read-only; its driver may correct
+  only the target plan for evidenced unambiguous findings and must ask before decision-dependent edits.
 - **Ready for ralphex**, when it is the configured execution owner: give the completed plan path.
   Give an invocation only after inspecting its actual help/schema; no invented flags or automatic run.
 - **Orchestrate**, only if the user selects a compatible one-session route. Pass the full plan/design;
@@ -70,8 +72,10 @@ Report the created path, goal and unresolved prerequisites. Offer only relevant 
 - **Stop**, leaving the plan without further action.
 
 No exec workflow, implementation launch, automatic review/retry loop, installs, commits or push.
-Choosing review does not authorize edits to the plan; report its verdict and stop. Further revision
-or execution needs the user's exact request, not an implicit follow-on to writing a file.
+Selecting review includes bounded target-plan driver corrections unless **review only**, **no edits**,
+**только review** or **без правок** was requested. Choices need a real answer; it is not permission to
+expand scope, edit other artifacts or execute the plan. The review handoff reports the original
+reviewer verdict separately from applied changes and unresolved choices, with no automatic re-review.
 
 ## Resources
 
