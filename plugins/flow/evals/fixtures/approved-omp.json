@@ -10,8 +10,8 @@
       "second_opinion": true,
       "native_routes": {
         "research": "scout",
-        "implementation": null,
-        "review": "discovered-reviewer"
+        "implementation": ["flow-worker-light", "flow-worker-standard", "flow-worker-strong"],
+        "review": "flow-review-standard"
       }
     },
     {
@@ -47,7 +47,7 @@
       "scopes": [
         "checkout"
       ],
-      "text": "Implement checkout rounding locally, then independent review; no publish or configuration changes."
+      "text": "Capability editing; standard complexity: exact decimal/public boundaries require a local choice but API/paths are known. Request flow-worker-standard with its configured medium reasoning and native model role; actual identity is not spawned yet. One separate standard-risk review covers checkout. No publish/configuration writes; model selectors remain native."
     },
     {
       "type": "ask",
@@ -82,6 +82,7 @@
         "context": "approved plan P1",
         "tasks": [
           {
+            "agent": "flow-worker-standard",
             "task": "Implement only checkout",
             "solutionSpace": "Implement the approved rounding contract only; choose the smallest local correction."
           }
@@ -110,7 +111,7 @@
         "context": "review checkout independently",
         "tasks": [
           {
-            "agent": "discovered-reviewer",
+            "agent": "flow-review-standard",
             "task": "Inspect actual checkout changes",
             "solutionSpace": "Implementation is specified; independent acceptance and failure-mode verification remain open."
           }
@@ -137,7 +138,7 @@
       "source": "fixture:synthetic-observation",
       "status": "completed",
       "independent_verified": true,
-      "text": "Checkout rounding changed locally; reviewer-1 independently reviewed checkout. No publish, model, or configuration changes."
+      "text": "Checkout changed locally on the assessed standard editing profile; one separate standard-risk reviewer covered checkout. Configured/requested selection is distinct from actual identity, which remains unknown if not exposed. No publication or settings writes."
     }
   ]
 }

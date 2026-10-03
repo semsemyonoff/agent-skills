@@ -1,6 +1,6 @@
 ---
 name: orchestrate
-description: 'Run explicit orchestration requests through recon, a role-based plan, approval, delegated execution, independent verification, and a short report in Claude Code or omp. Use for /flow:orchestrate, /skill:orchestrate, "orchestrate this", "you are the orchestrator", "delegate to subagents", "use subagents by complexity", «ты оркестратор», «ты оркестратор и проверяющий», «делегируй на сабагентов», «раздай сабагентам», «сабагенты по сложности», or choosing Orchestrate after a brainstorm. Do not trigger merely because a task is large or mentions workflow; do not substitute for a separate Workflow tool.'
+description: 'Run explicit orchestration requests through recon, capability and complexity assessment, permitted native model/reasoning profiles, approval, delegated execution, independent verification, and a short report in Claude Code or omp. Use for /flow:orchestrate, /skill:orchestrate, "orchestrate this", "you are the orchestrator", "delegate to subagents", "use subagents by complexity", «ты оркестратор», «ты оркестратор и проверяющий», «делегируй на сабагентов», «раздай сабагентам», «сабагенты по сложности», or choosing Orchestrate after a brainstorm. Do not trigger merely because a task is large or mentions workflow; do not substitute for a separate Workflow tool.'
 argument-hint: "[task]"
 ---
 
@@ -8,8 +8,9 @@ argument-hint: "[task]"
 
 Act as coordinator, not bulk implementer: establish facts, settle the approach, obtain approval,
 delegate, independently verify, and report in the user's language. Use ONE process below in both
-harnesses. Categories describe work, not models: research, mechanics, implementation, review,
-and an optional second opinion.
+harnesses. Categories describe required capabilities, not model cost. Separately assess each slice's
+remaining decisions, uncertainty, coupling and failure cost; choose the minimum sufficient permitted
+native model/reasoning profile from that assessment, not from the implementation/docs label.
 
 ## Select the runtime adapter
 
@@ -25,10 +26,12 @@ review, background/wait, permissions, and native routing. If neither adapter mat
 missing prerequisite instead of inventing compatible APIs. Never edit configuration to make a route
 available. Native setup and source citations are in `references/native-setup.md`.
 
-A trivial, self-contained change may be done inline if dispatch costs more than the change; explain
-that briefly. It still needs approval, truthful verification, and an independent review for a
-claimed independently verified result. Missing delegation for substantive work is a blocker, not
-permission to silently become the implementer.
+A trivial self-contained change may be done inline when dispatch costs more than the work. Combine
+related simple changes with the same ownership/contract instead of spawning a worker per edit.
+Keep approval and truthful verification; do not add a separate review just to fill a template.
+Nontrivial independent verification must still use a different worker, never the implementer.
+Missing required delegation or profiles is a prerequisite, not a silent default-worker fallback.
+Explicitly requested delegation or independent-review acceptance still applies to inline shortcuts.
 
 ## 1. Recon
 
@@ -55,16 +58,22 @@ route. Missing handoff facts are precise prerequisites, not an invitation to gue
 
 ## 2. Plan
 
-Use `references/routing.md` and `references/templates.md`. Every row names the category, discovered
-native agent/route, inputs, precise done criterion, dependencies, and verification owner. Include
-model/effort only when observed and permitted; otherwise write unknown or not exposed, never guess.
-The native configuration is authoritative, not a shared skill model table.
+Use `references/routing.md` and `references/templates.md`. For every slice, choose capability and
+complexity separately: unresolved decisions; known approach/pattern/API/paths; change radius/coupling;
+and failure cost, including security, data, public API, lifecycle and concurrency. Size and labels
+alone do not classify work. State complexity plus a short reason and the minimum sufficient allowed
+native profile. Show expected model/reasoning from accessible effective native configuration and
+requested selection separately from actual identity, which is only reported after exposure.
+Unknown metadata stays unknown; known configuration is not made unknown merely by a terse spawn
+summary. Missing/unapproved profiles block that route. Generic/default dispatch needs an explicit
+policy match and suitability reason; implementation never automatically means default task.
 
-Run independent slices in parallel with disjoint edit ownership. Specify shared contracts first;
-serialize only a real dependency. Include a separate reviewer who did not implement the change.
-Risky changes need a focused independent review (security, data integrity, concurrency, migrations,
-or public API as applicable), plus executable checks. List external actions separately with their
-exact target and permission needs. Approval of local implementation does not authorize them.
+Run independent slices in parallel with disjoint edit ownership; group related simple work first.
+Specify contracts and serialize only real dependencies. Assess review effort by the changed result's
+risk, not by the author's category or a fixed highest model. Use one adequate separate reviewer for
+compatible changed scopes rather than mandatory reviews per worker. Focus security/data/lifecycle
+checks where warranted, plus executable verification. List exact external actions and approvals;
+local implementation approval does not authorize them.
 
 ## 3. Confirmation
 
@@ -96,19 +105,20 @@ calls consume their returned results. Never claim an unfinished worker's output 
 are hidden from the user. Start dependent work only when its inputs have arrived and passed the
 checks assigned to that phase.
 
-After failure, sharpen the brief first: state the concrete defect and observable acceptance result.
-Retry the same permitted route if useful. Escalate only through an existing configured or explicitly
-user-approved native route; record the reason and observed route. No fixed model ladder, secret
-settings mutation, paid-provider substitution, or fallback invented by this skill. An unexpected
-observed model/effort switch is a routing deviation: stop affected work, disclose it, and obtain
-approval before accepting or continuing on that route. If no permitted route resolves the failure,
-report the exact blocker and ask for a decision; never label incomplete work done.
+After failure, sharpen the brief or isolate the genuinely hard part before changing the route.
+Reassess with the new evidence; no blind retries or fixed model ladder. Use a stronger native profile
+only inside the previously authorized policy/plan, otherwise ask for exact permission. Ordinary
+assignments of an already authorized matching profile need no repeated approval. Never mutate
+global role/model settings between parallel dispatches, use hidden bridge overrides, or invent a
+paid fallback. Compare exposed actual identity/reasoning with the requested/configured expectation;
+an unexplained substitution stops affected work until resolved within policy or explicitly approved.
+If no permitted route meets the requirement, report its precise prerequisite, not incomplete success.
 
 ## 5. Independent verification
 
-The implementer cannot verify its own work as the independent reviewer. Dispatch the planned actual
-reviewer separately; the coordinator also checks boundaries and source claims and runs the shared
-gates once the phase's edits have landed. A worker's claim of passing checks is not evidence.
+The implementer cannot act as its own independent reviewer. Dispatch the planned risk-appropriate
+reviewer separately; combine compatible scope coverage and run shared gates once the edits land.
+A worker's passing-check claim is not evidence, and independence does not imply highest-cost routing.
 
 - Code: inspect changed scope, run the relevant project checks, and exercise the changed path with
   a targeted scenario/smoke run. Record actual results, not inferred success.
@@ -125,9 +135,10 @@ opinion only at its agreed checkpoint, after the final tree is stable.
 
 ## 6. Report
 
-Use `references/templates.md`: outcome, categories/native workers, observed routing and deviations,
-checks actually exercised, independent reviewer findings and their disposition, optional second
-opinion if it ran, and exact blockers/unverified items. Keep it short and in the user's language.
+Use `references/templates.md`: outcome; capability, complexity/reason and selected native profile;
+configured/requested pair versus exposed actual model/reasoning; checks actually exercised;
+reviewer findings/disposition; approved escalations; and exact blockers/unverified items. Keep it short
+and in the user's language. Do not promise subscription-quota savings from API price cards.
 Do not stop at a phase boundary unless phase-by-phase execution was requested or an actual blocker
 requires a decision.
 

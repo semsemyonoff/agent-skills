@@ -6,17 +6,28 @@ Use this adapter only in Claude Code. Keep the process in the loaded `SKILL.md`;
 
 Discover the exposed native delegation tool: some Claude Code surfaces call it `Agent`, others `Task`. Read the actual tool's schema and available subagent descriptions, enabled plugin identity, and applicable native definitions/overrides; absence of the name `Agent` alone is not missing delegation. Plugin agents use scoped identifiers, normally `flow:flow-research`, `flow:flow-mechanics`, `flow:flow-implementation`, and `flow:flow-review`; treat these as expected names, not proof that they loaded. Use the actual discovered `subagent_type` only when supported. The @-mention typeahead exposes loaded scoped names; `/agents` behavior is version-dependent and is not a reliable universal listing UI. See `references/native-setup.md` for native override precedence. [1][3]
 
-| Shared category | Native definition | Typical plugin default | Capability |
+| Capability template | Native definition | Historical template default, not routing policy | Capability |
 | --- | --- | --- | --- |
-| Research | `flow-research` | `haiku` | Read/search sources, no edits or shell |
-| Mechanics | `flow-mechanics` | `haiku` | Exact specified file transformations, no shell |
-| Implementation | `flow-implementation` | `sonnet` | Approved implementation and scoped commands |
-| Review | `flow-review` | `opus` | Separate reviewer; inspect and exercise the result |
-| Optional second opinion | A discovered, user-approved reviewer or explicit CLI review | No fixed default | Supplement, not replace independent verification |
+| Research | `flow-research` | `haiku` | Source reading, no editing/shell |
+| Mechanics | `flow-mechanics` | `haiku` | Exact known transformations |
+| Full editing | `flow-implementation` | `sonnet` | Same implementation capability across permitted complexity profiles |
+| Independent review | `flow-review` | `opus` | Separate read/verification; assess budget by risk, not this default |
+| Optional opinion | Discovered user-selected reviewer/CLI route | No fixed default | Supplemental only |
 
-These defaults belong to Claude-native frontmatter, not the shared routing policy. Native user/project/session definitions or a permitted, user-approved delegation `model` parameter can change the selection without editing `SKILL.md`, only when exposed by that tool's schema. Do not force these aliases over an existing approved override. They are aliases, not evidence of a concrete model/version or effort. Native allowlists omit both `Agent` and `Task`, making these workers leaves by policy; current Claude Code supports nested subagents generally. Do not describe leaf behavior as a runtime impossibility. [1]
+These native templates establish capabilities, not a blanket implementation→sonnet or review→opus
+budget rule. Apply `references/routing.md` first. Native user/project/session definitions can provide
+same-capability light/standard/strong profiles with supported model/effort selectors. A live Agent/Task
+schema may instead permit a model selection covered by the already authorized routing policy/plan;
+ordinary matching assignments need no new question. Do not invent invocation effort fields or force
+template aliases over approved overrides. Missing permitted profile/pair is a prerequisite, not a
+silent expensive template default. Native allowlists omit Agent/Task, making these workers leaves
+by policy rather than claiming the harness forbids nesting. [1][2]
 
-Record the selected category, discovered agent identity, and allowed selection. Record actual model/effort only when the runtime exposes them; otherwise use `unknown`. `/tasks` can show a running subagent's model and, in supported versions, explicit effort. Definition values describe requested defaults, not necessarily execution: invocation overrides, forced subagent environment settings, alias resolution, organization restrictions, and fallbacks can change them. Inspect only relevant non-secret configuration; never dump settings, environment variables, or private routing profiles into the plan/report. [1][2]
+Record accessible effective **configured/requested** model and reasoning in the plan after complexity
+assessment, separately from **actual** metadata after spawn. `/tasks` can expose running identity or
+effort in supported versions; unavailable actual stays unknown, not known configuration. Model defaults,
+invocation overrides, forced environment settings, alias resolution, restrictions and fallbacks can
+differ. Inspect only relevant non-secret fields, never whole settings/environment/private profiles. [1][2]
 
 If an observed model substitution is outside the approved selection/fallback permissions, do not accept its output as an approved step. Stop affected dispatch, disclose the requested versus observed difference, and obtain exact approval or use an already-approved available route. Do not mutate settings to bypass the restriction. If identity remains unavailable, keep it `unknown` rather than asserting a model guarantee.
 
@@ -31,15 +42,28 @@ A request for phase-by-phase execution is an explicit user choice, not the defau
 
 ## Dispatch, completion, and review
 
-Use the discovered native delegation tool (`Agent` or `Task`) and its actual schema with the approved discovered subagent identity and a self-contained brief from `references/brief.md`; include source paths, assigned files, approved actions, acceptance criteria, and dependencies. Do not rename a tool call, invent a wrapper, or copy fields from the other surface. Normally let the native definition/configuration resolve the model. Pass a per-call `model` only when the exposed schema supports it and the particular override is already allowed. Do not invent effort parameters: frontmatter effort is documented, while invocation fields must come from the live schema. Do not use conversation forks as independent workers/reviewers. [1]
+Use the discovered Agent/Task schema with the selected permitted profile/subagent identity and the
+full brief (capability, complexity/reason, expected pair, scope, acceptance and routing allowance).
+Do not copy fields from another tool surface or invent a wrapper. Native definitions or supported
+per-call model selection implement the assessed pair; only pre-authorized policy/plan choices are
+routine. Use effort only through actually supported native controls; otherwise require a matching
+native profile rather than inheriting a guessed expensive setting. No conversation forks as
+independent workers/reviewers. [1][2]
 
 Non-fork workers start in separate context windows without the conversation history or previously loaded skills. Native context may include CLAUDE.md files, a git snapshot, explicitly preloaded skills, and a conditional sibling roster; the brief must still be complete. If the discovered delegation schema exposes `name`, avoid using it merely as a label when agent teams are enabled: it can launch a teammate instead. Use ordinary subagent dispatch unless a different native mechanism has been explicitly agreed. [1][4]
 
 Foreground calls block; background calls notify the parent on completion. Availability and defaults vary with runtime version, fork mode, and background-task settings. Do useful independent work while waiting; do not poll, sleep-loop, or claim an unfinished result. There is no omp `wait` API here: use only the waiting/completion mechanism the current tool description exposes. `TaskOutput` is deprecated in current docs; if full output is needed, read the actual output path returned by the runtime, not a guessed path. `/tasks` exposes worker status/transcripts to the user, so do not claim workers are invisible. Relay the material result and evidence in the final report. [1][4]
 
-Dispatch verification to an actual separate `flow-review` instance (or an already-approved discovered equivalent) after implementation. Give it the acceptance criteria, actual changed surface, and permitted verification commands, not only the implementer's summary. Its Bash capability is not a read-only sandbox: prohibit modifying commands and unapproved external/irreversible effects in the brief. A missing/disabled reviewer or insufficient verification tools is a blocker to claiming independently verified completion, not permission to self-review. Return findings, exercised evidence, and limitations to the orchestrator for disposition.
+Dispatch a separate risk-appropriate review profile or approved equivalent after implementation,
+not automatically the highest default for every worker. One reviewer may cover compatible scopes.
+Give original acceptance, actual changed surface and permitted verification commands. Its Bash
+capability is not a sandbox: prohibit source/config changes and unapproved external effects.
+Missing reviewer/pair/tool capability is a blocker, not permission to self-review.
 
-Sharpen a failing brief first. Escalate only through a discovered, configured or user-approved native route; there is no fixed model-tier ladder. Optional Claude-to-Codex read-only CLI review follows `references/codex-review.md` only after opt-in and relevant data-sharing permission; a second opinion need not use another vendor.
+Sharpen the brief or isolate the hard part and reassess first. Stronger profiles must stay within
+the pre-authorized policy/plan; otherwise ask for the exact route/budget. No fixed ladder, blind
+retries, settings writes or paid fallback. Optional read-only Codex review remains explicit and
+supplemental under `references/codex-review.md`, not necessarily another vendor.
 
 ## Sources
 

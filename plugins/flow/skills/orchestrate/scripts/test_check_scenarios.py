@@ -51,8 +51,9 @@ class BehavioralTraceTests(unittest.TestCase):
 
     def test_read_only_mechanics_can_recon_but_cannot_mutate_before_approval(self):
         trace = fixture()
+        find(trace, "capabilities")["native_routes"]["mechanics"] = "sonic"
         mechanics = recorded("dispatch", worker="mechanics-1", category="mechanics",
-                             read_only=True, params={"tasks": [{"task": "Read checkout callers", "solutionSpace": "Read-only caller inventory; no design or implementation changes."}]})
+                             read_only=True, params={"tasks": [{"agent": "sonic", "task": "Read checkout callers", "solutionSpace": "Read-only caller inventory; no design or implementation changes."}]})
         insert_before(trace, find(trace, "phase", name="plan"), mechanics)
         self.assertEqual(CHECKER.check_trace(trace), [])
         insert_before(trace, find(trace, "phase", name="plan"),
@@ -109,6 +110,107 @@ class BehavioralTraceTests(unittest.TestCase):
         implementation = find(trace, "dispatch", category="implementation")
         implementation["params"]["model"] = "unapproved-model"
         self.assert_violation(trace, "dispatch-model")
+
+    def test_native_profile_allowlist_accepts_exact_flat_and_batch_selections(self):
+        for shape in ("batch", "flat", "eval"):
+            for profile in ("flow-worker-light", "flow-worker-standard", "flow-worker-strong"):
+                with self.subTest(shape=shape, profile=profile):
+                    trace = fixture()
+                    if shape in {"flat", "eval"}:
+                        for event in trace["events"]:
+                            if event["type"] == "dispatch":
+                                native_item = event["params"]["tasks"][0]
+                                if shape == "eval":
+                                    event["params"] = {"prompt": native_item["task"]}
+                                    if "agent" in native_item:
+                                        event["params"]["agent"] = native_item["agent"]
+                                else:
+                                    event["params"] = native_item
+                    params = find(trace, "dispatch", category="implementation")["params"]
+                    item = params["tasks"][0] if shape == "batch" else params
+                    item["agent"] = profile
+                    self.assertEqual(CHECKER.check_trace(trace), [])
+                    item["agent"] = "flow-worker-unlisted"
+                    self.assert_violation(trace, "undiscovered-agent")
+
+    def test_default_route_needs_explicit_allowed_match_not_profile_omission(self):
+        for shape in ("batch", "flat", "eval"):
+            with self.subTest(shape=shape):
+                trace = fixture()
+                dispatch = find(trace, "dispatch", category="implementation")
+                if shape == "flat":
+                    dispatch["params"] = dispatch["params"]["tasks"][0]
+                elif shape == "eval":
+                    dispatch["params"] = {"prompt": dispatch["params"]["tasks"][0]["task"],
+                                          "agent": "flow-worker-standard"}
+                item = dispatch["params"]["tasks"][0] if shape == "batch" else dispatch["params"]
+                item.pop("agent")
+                self.assert_violation(trace, "undiscovered-agent")
+                find(trace, "capabilities")["native_routes"]["implementation"].append(None)
+                find(trace, "plan")["text"] += " Default route is expressly allowed with a verified sufficient pair for this fixture; omission is justified."
+                self.assertEqual(CHECKER.check_trace(trace), [])
+                find(trace, "capabilities")["native_routes"]["implementation"] = ["flow-worker-*"]
+                item["agent"] = "flow-worker-standard"
+                self.assert_violation(trace, "undiscovered-agent")
+
+    def test_missing_profiles_can_report_prerequisite_but_not_dispatch_default(self):
+        trace = fixture()
+        find(trace, "capabilities")["native_routes"]["implementation"] = []
+        self.assert_violation(trace, "undiscovered-agent")
+        trace["events"] = trace["events"][:4]
+        trace["events"].append(recorded("report", status="blocked",
+                                       reason="no permitted editing profile is deployed",
+                                       text="Required profile/alias deployment is missing; no default-task fallback."))
+        self.assertEqual(CHECKER.check_trace(trace), [])
+        for invalid in ([True], [{"agent": "flow-worker-light"}], [""]):
+            with self.subTest(invalid=invalid):
+                find(trace, "capabilities")["native_routes"]["implementation"] = invalid
+                self.assert_violation(trace, "route-schema")
+
+    def test_internal_model_bridge_controls_are_not_public_task_arguments(self):
+        for field in ("modelOverride", "model_override", "modelRole", "agentModelOverrides"):
+            with self.subTest(field=field):
+                trace = fixture()
+                item = find(trace, "dispatch", category="implementation")["params"]["tasks"][0]
+                item["outputSchema"] = {"type": "object", "properties": {
+                    field: {"type": "string"}, "model": {"type": "string"},
+                }}
+                self.assertEqual(CHECKER.check_trace(trace), [])
+                item[field] = "forbidden-native-routing-override"
+                self.assert_violation(trace, "dispatch-model")
+
+    def test_relative_effort_requires_exposure_and_rejects_literal_medium(self):
+        trace = fixture()
+        item = find(trace, "dispatch", category="implementation")["params"]["tasks"][0]
+        item["effort"] = "med"
+        self.assert_violation(trace, "undiscovered-effort")
+        find(trace, "capabilities")["native_effort"] = True
+        self.assertEqual(CHECKER.check_trace(trace), [])
+        item["effort"] = "medium"
+        self.assert_violation(trace, "invalid-native-effort")
+        dispatch = find(trace, "dispatch", category="implementation")
+        dispatch["params"] = {"prompt": item["task"], "agent": item["agent"], "effort": "med"}
+        self.assert_violation(trace, "unsupported-effort-shape")
+
+    def test_pre_authorized_native_escalation_still_requires_sharpened_brief(self):
+        trace = fixture()
+        first = find(trace, "dispatch", category="implementation")
+        insert_before(trace, first, permission("escalation", "flow-worker-strong"))
+        work = find(trace, "work")
+        stronger = copy.deepcopy(first)
+        stronger["worker"] = "stronger-implementation"
+        stronger["params"]["tasks"][0]["agent"] = "flow-worker-strong"
+        insert_before(trace, work,
+                      recorded("failure", worker=first["worker"]),
+                      recorded("sharpen_brief", worker=first["worker"],
+                               text="Separate the uncertain decimal boundary; attach precise evidence and acceptance."),
+                      recorded("escalation", worker=first["worker"], target="flow-worker-strong",
+                               native=True, permission="G1"),
+                      stronger)
+        work["actor"] = stronger["worker"]
+        self.assertEqual(CHECKER.check_trace(trace), [])
+        trace["events"].remove(find(trace, "sharpen_brief"))
+        self.assert_violation(trace, "brief-first")
 
     def test_execution_before_user_approval_is_rejected(self):
         trace = fixture()
@@ -225,6 +327,16 @@ class BehavioralTraceTests(unittest.TestCase):
         self.assertEqual(CHECKER.check_trace(trace), [])
         switch["native"] = False
         self.assert_violation(trace, "non-native-model-change")
+
+    def test_same_model_reasoning_substitution_requires_exact_permission(self):
+        trace = fixture()
+        observation = recorded("model_observation", worker="implementer-1",
+                               expected="permitted-model:medium", actual="permitted-model:high")
+        insert_before(trace, find(trace, "work"), observation)
+        self.assert_violation(trace, "unexpected-model-route")
+        insert_before(trace, observation, permission("model_switch", observation["actual"]))
+        observation.update(permission="G1", target=observation["actual"])
+        self.assertEqual(CHECKER.check_trace(trace), [])
 
     def test_unexpected_observed_native_fallback_cannot_hide_model_change(self):
         trace = fixture()

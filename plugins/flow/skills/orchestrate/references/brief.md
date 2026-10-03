@@ -8,7 +8,10 @@ allowed to delegate. Write in English or the user's language as appropriate for 
 
 ```text
 Goal: <what must be true when done>
-Category and native route: <research/mechanics/implementation/review; discovered agent identity>
+Capability + requested native profile: <required tools/authority; discovered permitted profile>
+Complexity and reason: <remaining decisions, known pattern/API/paths, coupling, failure cost>
+Configured/requested model + reasoning: <accessible effective pair/source, or unknown; not actual>
+Routing allowance: <approved profile(s), escalation conditions/budget; no silent default fallback>
 
 Context:
 - <workspace, exact files/entry points, input artifact paths and relevant source locations>
@@ -22,6 +25,8 @@ Change/questions:
 Boundaries:
 - May touch: <exact file ownership; read-only for research/review>
 - Do not touch: <other owners' files, unrelated edits, external systems/configuration>
+- LSP only when already authorized and actually available. Review uses navigation/diagnostics only:
+  no mutating code actions, rename, formatting or LSP edits. Do not install servers or change settings.
 - Skip shared gates, model evals, smoke runs, and formatters during concurrent implementation.
   Verification owner: <coordinator or independent assigned checker>; commands: <central checks>.
 - No commits, push, installs, destructive deletion, tracker/forge writes, external messages,
@@ -34,18 +39,24 @@ Acceptance: <observable consumer behavior/boundaries, not just files present or 
 Return compactly:
 - Findings/changes with exact paths and source locations.
 - Evidence actually observed; commands suggested but not run must be identified as such.
-- Uncertainties, missing capabilities, model/effort only if exposed, and precise blockers.
+- Uncertainties, changed complexity/risk, missing capabilities and precise blockers.
+- Requested/configured pair versus exposed actual model/reasoning; never infer actual from a profile.
 ```
 
-On retry append the previous defect, its evidence, and the acceptance result that would resolve it.
-A worker that cannot finish within scope reports the gap; it does not widen permissions or switch
-models. Independent review must use a separate worker who did not implement the reviewed result.
+On failure, sharpen the brief or isolate the hard part with evidence and an observable acceptance
+result before reassessing the route. A worker whose uncertainty/risk no longer fits the approved
+profile reports the gap; it does not widen permissions or switch models/settings. Use stronger
+profiles only within the authorized policy/plan, otherwise ask. Independent review uses a separate
+worker; choose its profile by review risk rather than always inheriting the author's or highest pair.
 
 ## Example
 
 ```text
 Goal: Upload bodies over the approved 10 MiB limit get HTTP 413; smaller bodies still upload.
-Category: implementation; native route: the discovered implementation agent.
+Capability: implementation; requested profile: the discovered permitted strong editor.
+Complexity: high failure cost at an untrusted-input/public boundary; stream ownership must be preserved.
+Configured/requested pair: effective native strong profile; exact values only from available config.
+Routing allowance: this profile only; sharpen/split before any explicitly authorized stronger route.
 Context: internal/http/upload.go handler; internal/config/config.go follows existing timeout pattern.
 Change: use the service's current body-limit pattern and error helper; cover exact-limit and over-limit.
 May touch: internal/http/upload.go, internal/http/upload_test.go, internal/config/config.go.

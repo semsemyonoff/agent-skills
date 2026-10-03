@@ -3,16 +3,16 @@
   "scenarios": [
     {
       "id": "approved-autonomous",
-      "setup": "Native delegation and a separate reviewer are available. Ask UI is available. Use a disposable checkout repository. No external write or model change is authorized.",
+      "setup": "Permitted complexity profiles, native delegation and one separate risk-appropriate reviewer are available; ask UI is available. Use a disposable checkout repository. No external writes or routes outside the previously authorized native policy are permitted.",
       "prompt_en": "Orchestrate fixing checkout rounding to integer minor units. Reconnoiter and show a scoped plan first. After I approve the plan, continue autonomously through implementation, independent verification, and report; do not publish anything.",
       "prompt_ru": "Оркестрируй исправление округления checkout до целых минимальных денежных единиц. Сначала разведка и конкретный план. После утверждения плана автономно доведи реализацию, независимую проверку и отчёт; ничего не публикуй.",
       "followup_en": "Approve this local plan. Continue autonomously through independent verification and report.",
       "followup_ru": "Утверждаю этот локальный план. Продолжай автономно до независимой проверки и отчёта.",
       "expected": [
-        "Recon and plan precede the user approval.",
+        "Recon and plan precede approval; capability and complexity/reason are separate, with a minimum sufficient permitted profile and configured/requested pair distinguished from actual.",
         "Only the approved local scope changes.",
         "All phases finish without additional phase gates.",
-        "A different native worker actually verifies changed scope before completion.",
+        "One different risk-appropriate native worker verifies compatible changed scope before completion; no automatic highest profile or review per item.",
         "Report cites observed implementation and independent verification, not merely intended checks."
       ],
       "adapters": [
@@ -109,17 +109,19 @@
     },
     {
       "id": "discovered-native-routes",
-      "setup": "Harness exposes real native agents/role configuration read-only. In omp expose task.agentModelOverrides/modelRoles truth and any result routing fields that the installed version actually supplies; never inject a model argument. In Claude Code expose installed agent definitions.",
-      "prompt_en": "Orchestrate the checkout rounding fix. Use the configured native roles, and show me the plan before dispatching implementation. Do not change configuration.",
-      "prompt_ru": "Оркестрируй исправление округления checkout. Используй настроенные нативные роли и покажи план до запуска реализации. Конфигурацию не меняй.",
+      "setup": "Expose real discovered native full editing/review profiles and authorized routing policy read-only. In omp expose role/override truth and supported actual result metadata, not a task/eval model argument; thinking hints are disabled unless the live schema exposes them. In Claude expose supported native definitions/overrides. Required missing profiles/aliases must be reported rather than replaced by generic default task.",
+      "prompt_en": "Orchestrate the checkout rounding fix. Separately assess capability, uncertainty and failure cost, choose the minimum sufficient permitted native model/reasoning profile, and show the plan before implementation. Do not change configuration.",
+      "prompt_ru": "Оркестрируй исправление округления checkout. Отдельно оцени capability, неопределённость и цену ошибки; выбери минимально достаточный разрешённый native model/reasoning profile и покажи план до реализации. Конфигурацию не меняй.",
       "followup_en": "Approve the local plan and continue autonomously.",
       "followup_ru": "Подтверждаю локальный план; продолжай автономно.",
       "expected": [
-        "Routes are observed rather than guessed.",
-        "omp actual task payload contains no model or agent=task, including nested tasks.",
-        "Normally omit omp implementation agent; any explicit specialization must be discovered.",
-        "Do not set guessed effort or mutate role/model settings.",
-        "Claude uses a discovered subagent_type and no unapproved model override."
+        "Classify each slice, including review, by decisions, known pattern/API/paths, coupling and failure cost; labels/size alone do not choose a pair.",
+        "omp task and public eval payloads use discovered profiles, without model/internal overrides, agent=task or shared settings mutation.",
+        "Implementation normally names the assessed permitted profile; generic omission needs an explicit effective-pair/policy match, not a default-task bypass.",
+        "Configured/requested model and reasoning are visible when available; actual identity/reasoning remain separately sourced or unknown.",
+        "Profiles missing or unauthorized produce a precise prerequisite, not an expensive silent default.",
+        "solutionSpace is not a model router; optional lo/med/hi is relative, and med need not mean medium.",
+        "Claude uses supported native selection inside the pre-authorized policy; routine profile choice does not re-ask on each assignment."
       ],
       "adapters": [
         "claude-code",

@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.1.0 (Unreleased)
+
+- Separate capability from slice complexity, uncertainty, coupling and failure cost; derive minimum sufficient permitted native model/reasoning profiles and distinguish configured/requested from exposed actual routing.
+- Add optional native omp full-editing and independent-review profile resources for light/standard/strong work, with role aliases and precise thinking levels; no live deployment, shared routing config or blanket default-task bypass.
+- Preserve already permitted LSP capability across every editing profile; independent review profiles allow only available read-only navigation/diagnostics and prohibit mutating LSP actions, without changing global config or installing servers.
+- Preserve supported Claude native selection, public task/eval boundaries, relative-hint versus fixed-reasoning semantics, sharper-brief/authorized escalation and bounded review overhead without paid fallback or quota-savings claims.
+- Extend the existing trace checker only for exact discovered profile allowlists, justified default matches and public argument boundaries; align scenario expectations and add deterministic boundary coverage, without a new evaluator or model runs.
+
 ## 2.0.1
 
 - Carry validated design/plan decisions, rules, acceptance and execution boundaries into recon without repeating design or treating an artifact as execution approval; preserve an existing execution owner unless the user explicitly selects orchestration.

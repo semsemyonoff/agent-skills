@@ -59,13 +59,17 @@ def check_trace(trace):
             for key, item in value.items():
                 normalized = key.replace("_", "").lower()
                 if adapter == "omp":
-                    require(normalized not in {"model", "modelid", "modelname", "modeloverrides", "agentmodeloverrides", "modelroles"},
+                    require(normalized not in {"model", "modelid", "modelname", "modeloverride", "modeloverrides", "agentmodeloverride", "agentmodeloverrides", "modelrole", "modelroles"},
                             "dispatch-model", "omp dispatch cannot set model parameters or settings")
                     if key == "agent":
                         require(item != "task", "generic-task-agent", "omit agent=task")
                     if key == "effort":
                         require(capabilities is not None and capabilities.get("native_effort") is True,
                                 "undiscovered-effort", "effort is legal only when the native tool exposes it")
+                        require("task" in value,
+                                "unsupported-effort-shape", "effort is a task-item control, not public eval or batch-top-level input")
+                        require(isinstance(item, str) and item in {"lo", "med", "hi"},
+                                "invalid-native-effort", "effort must use the exposed relative lo/med/hi ladder")
                 elif key == "model":
                     require(permitted(event, "model_switch") and event.get("target") == item,
                             "model-permission", "Claude native model override requires exact explicit permission")
@@ -85,8 +89,11 @@ def check_trace(trace):
             require(isinstance(routes, dict), "route-schema", "native_routes must be a category-to-agent object")
             if isinstance(routes, dict):
                 for category, route in routes.items():
-                    require(category in CATEGORIES and (route is None or isinstance(route, str)),
-                            "route-schema", "only observed category-to-agent mappings are allowed")
+                    options = route if isinstance(route, list) else [route]
+                    require(category in CATEGORIES and all(
+                        option is None or (isinstance(option, str) and bool(option.strip()))
+                        for option in options),
+                        "route-schema", "routes must be exact discovered profile names, explicit default null, or their allowlist")
             capabilities = event
         elif kind == "user_request":
             require(event.get("actor") == "user" and event.get("mode") == "phase-by-phase",
@@ -162,10 +169,12 @@ def check_trace(trace):
                 if type(item_index) is not int or not 0 <= item_index < len(tasks) or not isinstance(tasks[item_index], dict):
                     raise TraceError(f"event {index + 1}: item_index must identify this worker's task in the preserved batch")
                 selected = tasks[item_index]
-            if adapter == "omp" and "agent" in selected:
+            if adapter == "omp" and (isinstance(params.get("tasks"), list) or "task" in selected or "prompt" in selected or "agent" in selected):
                 routes = capabilities.get("native_routes", {}) if capabilities else {}
-                require(isinstance(routes, dict) and selected["agent"] == routes.get(category),
-                        "undiscovered-agent", "this worker's agent must match its discovered category mapping")
+                route = routes.get(category, []) if isinstance(routes, dict) else []
+                options = route if isinstance(route, list) else [route]
+                require(isinstance(routes, dict) and category in routes and selected.get("agent") in options,
+                        "undiscovered-agent", "explicit and default selections must match the discovered permitted profile set")
             if category == "implementation" or (category == "mechanics" and event.get("read_only") is not True):
                 require(not pending_model_changes, "unexpected-model-route", "stop execution until observed native substitution is explicitly approved")
                 require(execution_allowed(event.get("scope")), "execution-approval", "dispatch is outside approved execution/scope")

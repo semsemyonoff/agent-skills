@@ -6,17 +6,30 @@ Use this adapter only in omp. Keep the process in the loaded `SKILL.md`; this fi
 
 Read the current `task`, `ask`, and `wait` descriptions/schemas and exposed agent roster. Inspect only relevant non-secret native routing information, as described in `references/native-setup.md`. Discovery is not availability: disabled agents, parent spawn policy, recursion depth, plan mode, tools, and extension hooks can block or alter execution. Execution-time discovery/settings reload can differ from the initial description. A missing agent error reports available alternatives; select one only within the approved category and permissions. Do not install agents, enable providers, or change configuration. [1][4]
 
-| Shared category | Native selection | Boundary |
+| Capability | Native selection after assessment | Boundary |
 | --- | --- | --- |
-| Research | `agent: "scout"` | Gather source-grounded facts, not unresolved design judgment |
-| Mechanics | `agent: "sonic"` | Exact specified transformations, not open-ended reasoning |
-| Implementation | Omit `agent` normally | Use the native default spawn policy; do not redundantly send `agent: "task"` |
-| Review | `agent: "reviewer"`; `security-reviewer` for security-focused scope | Actual separate reviewer with relevant tools |
-| Optional second opinion | Discovered, user-approved native reviewer | Additional perspective, not automatic Codex invocation |
+| Research | Discovered `scout` or approved research profile | Source-grounded facts, not an editing substitute |
+| Mechanics | Discovered `sonic` with a verified permitted exact-work pair | Exact known transformations only, not universal development |
+| Implementation | Discovered `flow-worker-light`, `flow-worker-standard`, `flow-worker-strong` or approved equivalent | Same full editing capability; choose by uncertainty/risk, not the category name |
+| Review | Separate discovered risk-appropriate `flow-review-*`, reviewer/security specialist or approved equivalent | Assess required pair independently; combine compatible coverage |
+| Optional second opinion | Explicitly selected discovered reviewer | Supplemental checkpoint, not automatic fallback |
 
-Confirm what omission resolves to: unrestricted parents normally default to `task`, while a restricted parent's default is its first permitted agent. If that agent cannot implement the approved work, surface the mismatch rather than silently dispatching it. Native agent definitions and `task.agentModelOverrides`/`modelRoles` own the model mapping; do not copy Claude defaults here or into shared routing. Claude-dialect plugin agent model fields are discarded by omp discovery, so imported Flow agents are not evidence of an omp model selection. [4]
+Read `references/routing.md` before choosing a profile. Native resources and their role contract are
+in `references/native-setup.md`; files being present here does not mean they are deployed or enabled.
+Missing profiles/aliases are prerequisites. Do not silently omit `agent` and obtain a default task.
+Omission is legal only if the authorized policy expressly includes that effective default pair and
+the plan gives a capability/complexity suitability reason. Discover omission's actual resolution:
+usually task for unrestricted parents, potentially another agent for restricted parents. [1][4]
 
-The `task` wire has **no `model` field**. Per-agent overrides resolve before frontmatter model selectors; role aliases expand through `modelRoles`, with native fallback/session policy after that. Settings, hooks, prewalk, and request fallbacks can affect the observed model. Record only exposed actual model/effort metadata, otherwise `unknown`; never infer them from agent names. Result metadata may include `resolvedModelIdentity`, `resolvedThinkingLevel`, `resolvedModelIsFallback`, and `resolvedModelRoute`. Do not dump private model profiles, credentials, or unrelated settings into briefs or reports. Reject an observed substitution outside approved routing/fallback permissions: stop affected dispatch and obtain exact permission or use an already-approved route. Do not try to disable native fallbacks or overwrite settings covertly. [1][4][5][6]
+The task wire has **no model field**. Public eval `agent()`/`workpool()` likewise select a discovered
+agent, not a public per-call model override. Do not advertise an internal bridge override as an API,
+use hidden arguments, or rewrite shared role/agent settings between parallel calls. Native
+`task.agentModelOverrides` precede profile model selectors; role aliases expand through `modelRoles`.
+Choose the profile by assessment and show the accessible effective configured/requested pair first.
+After spawn show actual identity/reasoning only from exposed fields such as `resolvedModelIdentity`,
+`resolvedThinkingLevel`, `resolvedModelIsFallback` and `resolvedModelRoute`; keep unavailable actual
+metadata unknown, not known configuration. Stop unexplained substitutions outside the selected
+authorized route. Never dump private profiles or credentials. [1][4][5][6]
 
 ## Native confirmation UI
 
@@ -44,7 +57,20 @@ Workers have no interactive approval UI; omp's child tool approval mode is headl
 
 ## Dispatch, completion, and review
 
-Use the live `task` schema, not a guessed wrapper. With the usual batch shape, send required shared `context` and `tasks[]`; each item has self-contained `task` and `solutionSpace` plus optional native `agent`/`name`. `solutionSpace` describes which causes/designs remain open, not task size. With flat schema, send one item and put shared context in a referenced `local://` artifact if needed. Never add top-level batch `agent`, `model`, or a made-up label. `effort` exists only when exposed by `task.enableEffort`; its supported coarse values are `lo`, `med`, `hi`, and omission keeps native policy. Do not turn that setting on. Do not request isolation without an approved, understood native policy: branch-mode isolation can create commits/cherry-picks and is outside ordinary local-edit permission. [1][4]
+Use the live task schema: batch requires shared `context` and `tasks[]`, each with self-contained
+`task`, `solutionSpace` and the selected discovered profile `agent`; flat uses the actual item shape.
+Never add top-level batch agent/model, a made-up label or hidden bridge fields. Omit generic agent
+only for the explicit justified policy match above. `solutionSpace` describes unresolved causes or
+design choices, not volume; it drives thinking classification only when the child's selector is
+`auto`. It does not route the model and does not change a fixed profile's reasoning. [1][4]
+
+Precise reasoning comes from the native profile selector/`thinking-level` and effective policy.
+`task.enableEffort` only exposes optional `lo`/`med`/`hi` hints; it does not choose a model. Those are
+relative lowest/middle/highest supported levels: `med` is not necessarily literal `medium`.
+Profiles here work with that option disabled; do not turn it on. If exposed hints are used, they
+override configured thinking and must be supported, assessed and already authorized, including
+clamping/fallback limits. Do not request isolation without exact permission; branch mode may
+commit/cherry-pick and is outside ordinary local editing. [1][4]
 
 Children have separate sessions, not parent conversation history. Carry-over includes workspace/skills/context files, shared `local://` root, and an approved-plan reference when present; supply a complete brief from `references/brief.md` nonetheless. Spawn depth/policy and explicit tools govern child spawning and messaging. Keep workers leaves by instruction; do not claim omp universally forbids nesting. Give disjoint file ownership to parallel editors. [1][4]
 
@@ -52,9 +78,17 @@ With `async.enabled`, ordinary spawns return job/agent identifiers and results a
 
 The user can inspect native Agent Hub (`Alt+A`), pinned subagent progress, and transcripts; do not assert that workers are invisible. Report the evidence and material findings in the main response regardless of UI visibility. [4]
 
-Dispatch independent verification to an actual separate `reviewer`/`security-reviewer` instance or an approved discovered equivalent, never the implementer. Include the acceptance criteria, actual changed surface, source paths, and permitted verification commands. Require executed evidence and limits, not an echo of the implementer's summary. Missing reviewer capability, insufficient tools, or a blocked spawn prevents a claim of independently verified completion; the orchestrator cannot substitute self-review.
+Use a separately instantiated risk-appropriate reviewer profile or approved security specialist,
+never the implementer. One reviewer may cover compatible changed scopes; do not multiply mandatory
+reviews per implementation item. Give acceptance, actual changes, source paths and explicitly
+permitted verification commands. Require observed evidence and limits, not a copied worker summary.
+Missing independent capability remains a blocker; author/coordinator self-checks do not replace it.
 
-Sharpen a failing brief first; use only configured or user-approved native escalation, not a fixed tier ladder, hidden eval override, or a model name in `task` parameters. Optional second opinion does not imply another vendor. Do not probe or automatically invoke Codex in omp; consult `references/codex-review.md` only when the user explicitly opts into that CLI path and permits the relevant data sharing.
+Sharpen the failing brief or isolate its genuinely hard part first, then reassess. A stronger profile
+within the already authorized policy/plan needs no redundant question; a new route/budget outside it
+needs exact permission. No blind retries, fixed ladder, hidden override, shared settings mutation or
+paid fallback. Optional second opinion remains explicit; do not probe/automatically invoke Codex.
+Consult `references/codex-review.md` only for an explicitly chosen CLI path with data-sharing permission.
 
 ## Authorized native sources
 
@@ -64,5 +98,6 @@ Sharpen a failing brief first; use only configured or user-approved native escal
 4. [Task agent discovery, precedence, native model overrides, Agent Hub](omp://task-agent-discovery.md).
 5. [Model/provider configuration, model roles, selectors, availability](omp://models.md).
 6. [Settings layers, read-only inspection, overlays, persistence](omp://settings.md).
+7. [Public eval agent/workpool API, without a model override parameter](xd://eval/agents).
 
 Documentation inspected on 2026-10-01. These authorized internal references describe the harness; use the current loaded schema and observed execution for the current session.

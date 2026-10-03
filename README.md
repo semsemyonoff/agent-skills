@@ -71,15 +71,21 @@ An absent independent reviewer remains a blocker, not a successful author self-r
 
 ### flow — `orchestrate`
 
-For tasks too big for one pass but small enough for one session. One shared workflow for Claude Code
-and omp: recon → plan → confirmation → execution → independent verification → report. Plan workers
-by category (research, mechanics, implementation, review), with models resolved by each harness's
-native configuration rather than a shared model ladder. Execute the approved plan autonomously;
-phase-by-phase only on request. Scope changes and external actions require explicit permission.
-Open design decisions lead to a brainstorm before planning. Missing reviewer or tool capabilities
-are reported, not replaced by a pretend successful check. Claude Code can optionally use a read-only
-Codex CLI second opinion; omp uses an available independent reviewer and only an explicitly
-approved second-opinion checkpoint.
+For tasks too big for one pass but small enough for one session. One shared Claude Code/omp process:
+recon → plan → confirmation → execution → independent verification → report. Choose **capability**
+and **complexity/risk** separately for every slice, including review: remaining decisions, known
+pattern/API/paths, coupling and failure cost. Then choose the minimum sufficient **permitted native
+model + reasoning profile**; implementation or docs is not a fixed expensive default-task route.
+Plans show complexity/reason, selected profile and accessible configured/requested pair; actual
+identity/reasoning is separately reported only when exposed. Missing profiles are prerequisites,
+not silent fallbacks. Native configuration owns selectors, not another orchestration.yml.
+
+Approved execution stays autonomous; phase-by-phase only on request. Sharpen the brief or isolate
+the hard part before escalating within an already authorized policy/plan; outside routes/budgets
+need explicit permission. Do not mutate shared settings between parallel calls. Trivial work may be
+inline; combine related simple work and use one risk-appropriate independent reviewer for compatible
+changes, not automatically highest reasoning or a review per worker. Explicit review requirements
+still apply. Optional second opinion remains chosen, read-only and supplemental, never paid fallback.
 
 `/flow:orchestrate <task>`; add "phase by phase" to stop after each phase.
 
@@ -88,6 +94,20 @@ invoke `/skill:orchestrate`. Add `plugins/retro/skills` for `/skill:reflection`;
 skills after changing that configuration. Each skill resolves bundled files relative to its loaded
 `SKILL.md`. Loading a skill does not install agent definitions, select models or change permissions.
 Keep routing in the native harness settings; no shared `orchestration.yml` is needed.
+
+Optional native omp resources are under `plugins/flow/skills/orchestrate/agents/omp/`:
+`flow-worker-{light,standard,strong}` have the same full editing tools including permitted LSP;
+separate `flow-review-{light,standard,strong}` have read/verification and read-only LSP navigation/
+diagnostics, never mutating code actions or rename. LSP still requires actual enabling/authorization
+and an available server; source resources neither install one nor promise availability. Native aliases:
+`@flow_light`, `@flow_standard`, `@flow_strong`, with fixed `thinking-level` medium/medium/high.
+An operator must expose those resources in native agent discovery and bind `modelRoles.flow_*` to
+permitted selectors; no profiles or role mappings are activated by these source changes. Existing
+scout/sonic remain research/exact-mechanics specialists. Generic default dispatch requires a verified
+allowed pair and explicit suitability reason. Task/public eval have no model-override argument;
+optional relative lo/med/hi hints do not select the model or guarantee literal medium. See the native
+setup reference below for deployment and override/ceiling boundaries. No quota-savings percentage
+is inferred from API prices.
 
 See [flow native setup](plugins/flow/skills/orchestrate/references/native-setup.md) for Claude
 Code's agent-definition/model-selection mechanism and omp's existing

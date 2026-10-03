@@ -9,7 +9,7 @@
       "ask_ui": true,
       "second_opinion": true,
       "native_routes": {
-        "implementation": null,
+        "implementation": "discovered-implementer",
         "review": "discovered-reviewer"
       }
     },
@@ -40,7 +40,7 @@
       "scopes": [
         "checkout"
       ],
-      "text": "Implement checkout rounding locally, then independent review; no publish or configuration changes."
+      "text": "Capability editing; standard complexity: known API/paths with a local exact-decimal boundary decision. Use the permitted discovered implementation profile and one separate risk-appropriate reviewer; configured/requested pair comes from native policy, actual identity is not spawned yet. No publish/configuration writes."
     },
     {
       "type": "ask",

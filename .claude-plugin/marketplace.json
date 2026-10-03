@@ -8,7 +8,7 @@
     {
       "name": "flow",
       "source": "./plugins/flow",
-      "description": "Orchestrate work in Claude Code or omp with native agent routing, plan approval and independent verification"
+      "description": "Orchestrate Claude Code/omp work by capability and complexity with permitted native model/reasoning profiles, plan approval and independent verification"
     },
     {
       "name": "gdocs",

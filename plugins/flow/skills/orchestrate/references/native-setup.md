@@ -2,7 +2,7 @@
 
 This reference explains existing native configuration; it is not an installer or permission to change settings. Keep one shared process in the loaded `SKILL.md`. `SKILL_ROOT` is the resolved directory of that loaded file. Load `references/claude-code.md` or `references/omp.md` for the active runtime, resolving these paths against `SKILL_ROOT`. The plugin's Claude agent files are at `../../agents/flow-research.md`, `../../agents/flow-mechanics.md`, `../../agents/flow-implementation.md`, and `../../agents/flow-review.md`, relative to `SKILL_ROOT`.
 
-Discover loaded capabilities before planning. Inspect relevant non-secret fields only; never open credential stores, print the environment, dump whole settings files, probe credentials, or publish private model-routing profiles. A readable definition/catalog entry is not proof of an available model, permitted spawn, resolved effort, or independent reviewer. Record model/effort as `unknown` unless actually exposed and allowed to be reported. An unknown identity cannot support a claim of exact-model execution.
+Discover capabilities and complexity-appropriate profiles before planning. Inspect relevant non-secret fields only; never read credentials, dump whole settings/environment or publish private routing profiles. Record accessible configured/requested model and reasoning separately from actual execution. A readable definition/catalog is not proof of deployment, allowed spawn or resolved actual identity; missing actual metadata stays unknown, but known configuration must not be hidden behind that label.
 
 ## Claude Code
 
@@ -22,11 +22,54 @@ Do not suggest `/model <name>` as a no-write override in an interactive session:
 
 ## omp
 
-**Bundled surface.** Use native `scout`, `sonic`, omitted default implementation `agent`, and `reviewer`/`security-reviewer`, after confirming discovery and spawn permission. Agent discovery is exact-name first-wins: native project, native user, enabled extension roots, enabled Claude-plugin roots, then bundled agents. Direct `.claude/agents/` is not a native omp agent root. Claude-dialect plugin `model` frontmatter is discarded; the Claude aliases in Flow definitions must never become omp model selectors. [O1][O2]
+**Capability and budget are separate.** Keep `scout` for source research and `sonic` for exact mechanics only when its effective pair matches the permitted policy. For implementation, select a discovered full editing profile by assessed complexity instead of automatically omitting agent. For review, select a separate risk-appropriate read/verification profile or approved security specialist. Agent discovery is exact-name first-wins: project, user, enabled extensions/plugins, bundled agents. Claude-dialect plugin model fields are discarded, so the Claude agent files are not native omp profile selectors. [O1][O2]
 
-**Native override mechanisms.** `task.agentModelOverrides[agentName]` overrides native agent frontmatter; role aliases in either source expand through `modelRoles`. Native role assignments belong in `config.yml`, not provider-definition `models.yml`. omp's native default/fallback resolution then supplies remaining selection. The `task` wire has no `model`; normally omit `agent` for implementation. The omitted default can differ under a restricted parent spawn policy. Do not use a hidden eval override to evade this contract. [O1][O2][O3]
+**Native model priority.** `task.agentModelOverrides[agentName]` precedes native agent model frontmatter; role aliases expand through `modelRoles` in native `config.yml`, not provider-definition `models.yml`. Task wire and public eval agent/workpool selection expose no per-call model override. Do not use internal bridge fields. Generic omission is exceptional: verify its effective default (possibly changed by parent spawn restrictions), authorized pair and explicit complexity suitability; it is not the implementation rule. [O1][O2][O3][O5]
 
-Existing configuration layers apply in this order, low to high: built-ins, global active-profile config, process-cwd project config, `--config` overlays, runtime overrides, registered setting environment overrides. `--config` loads an existing one-shot overlay without persisting it; subsequent task dispatch reloads persisted settings while preserving runtime overrides. A user may maintain native agent definitions, `task.agentModelOverrides`, and role mappings without touching `SKILL.md`; Flow only reads the current effective choice. No additional orchestration config or model profile is needed. [O2][O4]
+Configuration layers remain built-ins, active-profile global, cwd project, explicit overlays, runtime and registered setting environment overrides. Flow reads effective policy only; it never mutates role/agent overrides between parallel calls or changes live settings to make a route exist. Native definitions and role mappings provide profiles, without a second orchestration.yml. Separate shell inspection cannot recover session-only overrides. [O2][O4]
+
+### Optional native resource contract (deployment is separate)
+
+Resources are under `agents/omp/` relative to the **loaded orchestrate SKILL.md directory**, not the
+plugin's Claude `agents/` directory. An operator can expose those files through native omp agent
+discovery, for example native project/user agent links. Skills installation alone does not activate
+the resources, resolve aliases or authorize paid routes. This reference performs no installation.
+
+| Native resource basename / agent name | Model role alias | Fixed native thinking-level | Capability |
+| --- | --- | --- | --- |
+| flow-worker-light | @flow_light | medium | Full editing |
+| flow-worker-standard | @flow_standard | medium | Same full editing |
+| flow-worker-strong | @flow_strong | high | Same full editing |
+| flow-review-light | @flow_light | medium | Separate read/verification |
+| flow-review-standard | @flow_standard | medium | Same read/verification |
+| flow-review-strong | @flow_strong | high | Same read/verification |
+
+Each file is `<basename>.md`. Bind `modelRoles.flow_light`, `modelRoles.flow_standard` and
+`modelRoles.flow_strong` to the user's permitted native model selectors. No concrete selectors are
+distributed here. The three workers have identical read/grep/glob/edit/write/bash/lsp tools;
+reviewers have read/grep/glob/bash/lsp and prohibit source/config writes and mutating LSP actions.
+LSP requires actual authorization/enabling/server availability; no server or configuration is promised
+or installed by these resources. All profiles have no spawns.
+The model roles choose the permitted model; documented `thinking-level` supplies precise reasoning.
+Review independence is a different instance/ownership, not a fixed highest profile. A suitable
+native security specialist may replace a review profile only with its own assessed permitted pair.
+
+Avoid contradictory thinking suffixes/overrides in those bindings; confirm the effective pair rather
+than assuming an inherited default's high selector became medium merely from a profile label.
+
+Verify effective per-agent overrides, ceilings, model support, hooks and authorized fallback policy
+before promising a pair; a role entry alone is not paid/escalation permission. Overrides must preserve
+the assessed allowed pair or be disclosed and authorized. Keep existing main/default/task/scout/sonic
+routes unchanged unless the operator deliberately deploys an approved policy outside this workflow.
+Missing required resource/alias or incompatible reasoning support is a prerequisite, not a silent
+default-task fallback. Alternative discovered profiles with the same capabilities and permitted pairs
+are valid; names alone are not adequacy evidence.
+
+`task.enableEffort` does not select the model. Profiles work with it disabled. If enabled, lo/med/hi
+are relative model-supported ladder positions, not literal low/medium/high, and override configured
+thinking. Do not send them merely to imitate a precise medium profile. `solutionSpace` is the thinking
+classifier input only for auto selectors; it is not a model router or a fixed-profile effort control.
+Configured ceilings/fallbacks can clamp reasoning; actual values require exposed runtime metadata.
 
 Read-only inspection commands for a user/operator, using the same profile/cwd/overlays as the session:
 
@@ -36,12 +79,13 @@ omp config get task.agentModelOverrides --json
 omp config get modelRoles --json
 omp config get task.disabledAgents --json
 omp config get task.enableEffort --json
+omp config get task.maxEffort --json
 omp models --json
 ```
 
 Inspect these outputs locally and retain only the relevant allowed selection/capability facts. Do not paste the entire role/override records or model catalog into a plan. A separate shell command cannot recover session-only in-memory overrides; use the live roster/tool schema and exposed result metadata for the running session. Catalog availability is not an online credential check; do not run refresh/login/probes just to prepare Flow. Do not use `config set/reset`, role-picker save actions, model presets, provider enablement, or config-file edits. Even explicit single-key config reads can expose unmasked credentials, so never query credential keys. [O3][O4]
 
-**Observe instead of assuming.** Task result/progress metadata and Agent Hub can expose the actual model and thinking level. Hooks, retry fallbacks, and prewalk can change runtime selection. Only exposed model/effort belong in the shared plan/report; leave them unknown when absent. An observed route outside approval is a blocker until explicitly permitted or replaced by an already-approved native route. Effort hints exist only if the current schema exposes them; do not enable settings or invent params. Isolation is also conditional and can perform commits/cherry-picks under branch mode, so do not opt into it without exact permission. [O1][O2]
+**Expected versus actual.** Effective config gives the plan's expected/requested pair; exposed task metadata or Agent Hub can give actual model and reasoning after spawn. Keep these distinct and report unexpected model/effort/fallback substitutions against the selected policy. No hidden enabling of effort hints, providers, profiles, prewalk or settings. Isolation may create commits/cherry-picks and requires exact permission. [O1][O2]
 
 ## Sources
 
@@ -52,5 +96,6 @@ Inspect these outputs locally and retain only the relevant allowed selection/cap
 - O2: [Authorized omp task agent discovery](omp://task-agent-discovery.md): discovery/availability, native override priority, role aliases, Claude model-field removal.
 - O3: [Authorized omp models reference](omp://models.md): catalogs, role configuration, availability and runtime selection.
 - O4: [Authorized omp settings reference](omp://settings.md): layers, read-only CLI, overlays, persistence and credential-read caution.
+- O5: [Public eval agent/workpool contract](xd://eval/agents): discovered agent selection, without a public model-override argument.
 
-Sources inspected on 2026-10-01; loaded capabilities and observed results decide what is usable in a particular session. This reference installs nothing and changes no configuration.
+Source contracts are version-sensitive; loaded schemas and effective native policy decide what is usable. This reference installs nothing and changes no live settings.
