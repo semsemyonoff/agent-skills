@@ -43,6 +43,13 @@ Return compactly:
 - Requested/configured pair versus exposed actual model/reasoning; never infer actual from a profile.
 ```
 
+For bounded address/configuration replacements, specify the real runtime entrypoints and consumers
+(including fallback entrypoints), plus default/fallback/environment-override precedence, not merely
+literal strings or a file list. Ground that contract in source locations; keep the assigned ownership
+and permissions unchanged. Before marking done, use available reads to check the full agreed contract
+and report missing evidence as a gap, not success. These reads do not replace the verification owner's
+runtime checks or authorize worker shared gates; do not add source-text/incidental tests for them.
+
 On failure, sharpen the brief or isolate the hard part with evidence and an observable acceptance
 result before reassessing the route. A worker whose uncertainty/risk no longer fits the approved
 profile reports the gap; it does not widen permissions or switch models/settings. Use stronger

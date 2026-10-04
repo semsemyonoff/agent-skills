@@ -74,6 +74,10 @@ commit/cherry-pick and is outside ordinary local editing. [1][4]
 
 Children have separate sessions, not parent conversation history. Carry-over includes workspace/skills/context files, shared `local://` root, and an approved-plan reference when present; supply a complete brief from `references/brief.md` nonetheless. Spawn depth/policy and explicit tools govern child spawning and messaging. Keep workers leaves by instruction; do not claim omp universally forbids nesting. Give disjoint file ownership to parallel editors. [1][4]
 
+For editing slices, follow the native edit protocol: read the ranges to change and use small exact
+patches. After a tool rejection, re-read affected ranges and correct the rejected boundary/arguments;
+do not resend the same oversized or invalid payload. This sharpens execution, not the model route.
+
 With `async.enabled`, ordinary spawns return job/agent identifiers and results auto-deliver; blocking agent definitions can instead return inline results, including in mixed batches. Do useful work while waiting. Call `wait` only when blocked with nothing else to do; its native schema has no arguments and no job selector. Do not poll. On a partial/safety-cap return or steering interrupt, process the notice and keep waiting if dependent work is still outstanding. Never report a spawn receipt as a completed result. Full output is available at the returned `agent://<id>`; `history://<id>` exposes the transcript, and `write agent://<id>` can coordinate/resume an existing agent when available. [1][3]
 
 The user can inspect native Agent Hub (`Alt+A`), pinned subagent progress, and transcripts; do not assert that workers are invisible. Report the evidence and material findings in the main response regardless of UI visibility. [4]
@@ -83,6 +87,7 @@ never the implementer. One reviewer may cover compatible changed scopes; do not 
 reviews per implementation item. Give acceptance, actual changes, source paths and explicitly
 permitted verification commands. Require observed evidence and limits, not a copied worker summary.
 Missing independent capability remains a blocker; author/coordinator self-checks do not replace it.
+For fix batching and coordinator-only mechanical tails, follow `SKILL.md` §5; preserve review provenance.
 
 Sharpen the failing brief or isolate its genuinely hard part first, then reassess. A stronger profile
 within the already authorized policy/plan needs no redundant question; a new route/budget outside it

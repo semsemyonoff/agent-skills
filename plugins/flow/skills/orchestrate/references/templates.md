@@ -43,10 +43,11 @@ timeout/default, redirect or cancellation is not approval and cannot authorize a
 | - | ------------------------------------- | ------------------------ | ------------------------- | ------------------------------- | --------------------------- |
 | 1 | ... | ... | effective config/source or unknown | metadata value/source or unknown | ... |
 
-Verification: <commands/scenarios actually exercised and results, distinct from worker claims>
-Independent review: <separate identity/profile, risk rationale, findings accepted/rejected; exact limits>
+Verification: <exercised commands/scenarios; applicable browser, HTTP/API, WebSocket/transport, live-deployment subchecks and actual results, not worker claims>
+Independent review: <separate identity/profile, risk rationale, reviewed scope/version, findings/disposition; later nonbehavioral coordinator-only checks>
 Escalations: <new evidence, narrowed brief/split, authorized route and conditions; or explicit approval>
 Second opinion: <only when chosen, actual result/failure and disposition>
+Integration: <completed implementation/gates versus pending PR/CI/merge; push is not completion>
 Not verified/blocked: <exact acceptance or capability still unavailable>
 ```
 
@@ -54,3 +55,7 @@ Preserve known configured/requested facts even when actual metadata is unavailab
 unknown explicitly. Record actual substitutions, effort clamping and routing limits rather than
 claiming exact execution from an alias. No incomplete done claims, failed-review-as-clean verdicts,
 author self-review-as-independent claims or inferred subscription-savings percentages.
+
+Use only applicable subchecks, not a mandatory checklist. Keep required failed/unverified levels as
+concrete acceptance gaps; a neighboring pass is not proof. Report non-required failures as limits,
+not whole-product failure, and never roll false/error into an undifferentiated passed result.

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.1 (Unreleased)
+
+- Ground bounded replacement briefs in runtime consumers and default/fallback/environment precedence; check the agreed contract through source reads and use small native omp patches without escalating the model by default.
+- Batch review fixes; allow coordinator-only checks for obvious nonbehavioral tails while preserving independent review of substantive changes and scope/version provenance.
+- Separate browser, HTTP/API, WebSocket/transport and deployment smoke evidence, required gaps and optional limitations; distinguish completed implementation/gates from pending PR/CI/merge.
+
 ## 2.1.0 (Unreleased)
 
 - Separate capability from slice complexity, uncertainty, coupling and failure cost; derive minimum sufficient permitted native model/reasoning profiles and distinguish configured/requested from exposed actual routing.

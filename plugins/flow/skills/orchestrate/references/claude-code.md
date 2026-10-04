@@ -59,6 +59,7 @@ not automatically the highest default for every worker. One reviewer may cover c
 Give original acceptance, actual changed surface and permitted verification commands. Its Bash
 capability is not a sandbox: prohibit source/config changes and unapproved external effects.
 Missing reviewer/pair/tool capability is a blocker, not permission to self-review.
+For fix batching and coordinator-only mechanical tails, follow `SKILL.md` §5; preserve review provenance.
 
 Sharpen the brief or isolate the hard part and reassess first. Stronger profiles must stay within
 the pre-authorized policy/plan; otherwise ask for the exact route/budget. No fixed ladder, blind

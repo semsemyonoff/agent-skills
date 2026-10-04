@@ -87,6 +87,13 @@ inline; combine related simple work and use one risk-appropriate independent rev
 changes, not automatically highest reasoning or a review per worker. Explicit review requirements
 still apply. Optional second opinion remains chosen, read-only and supplemental, never paid fallback.
 
+Bounded replacement briefs cover runtime consumers and default/fallback/environment precedence,
+not just literals. Batch review fixes; coordinators may check obvious nonbehavioral tails locally,
+but substantive changes still need independent review. Report the reviewed scope/version and later
+coordinator-only changes separately. Smoke evidence distinguishes browser, HTTP/API, transport and
+deployment: a neighboring pass does not close a required gap. Non-required failures remain explicit
+limits; completed implementation/gates and pending PR/CI/merge are separate outcomes.
+
 `/flow:orchestrate <task>`; add "phase by phase" to stop after each phase.
 
 In omp, add this repository's `plugins/flow/skills` to native `skills.customDirectories`, then

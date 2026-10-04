@@ -128,6 +128,21 @@ A worker's passing-check claim is not evidence, and independence does not imply 
 - Boundaries: preserve pre-existing user changes; flag out-of-scope edits and unapproved external
   actions. Do not conceal them or destructively revert unrelated work.
 
+For layered smoke checks, record each applicable subcheck and its actual result: browser rendering/
+interaction, HTTP/API, WebSocket/transport and live deployment. HTTP 101 plus a connected protocol
+frame proves transport, not browser HMR when the browser reports false/error. A neighboring pass
+cannot close a required failed/unverified level: keep its concrete acceptance gap/blocker until
+proved. If that level is not required, report the limitation without declaring the whole product
+broken. Never hide false/error under an overall passed result.
+
+Batch fixes before the next independent review; functional/security fixes still need an adequate
+separate reviewer. Obvious nonbehavioral tails (comment wording or exact documentation relocation)
+may be checked by the coordinator against the diff, links and existing evidence without another
+mandatory review round. Behavior/security/contract changes, substantial new risks or an explicit
+user request for repeat independent review require a separate risk-appropriate reviewer; do not
+silently change its model. Record the reviewed scope/version and any later coordinator-only changes.
+A previous APPROVE is not approval of a version the reviewer has not seen.
+
 If independent review is unavailable, say that it is missing and request an approved reviewer route
 or a user decision. Self-checks may still be reported as self-checks, but cannot become independent
 verification. A failed/empty optional review is failure, not "no findings". Run an approved second
@@ -139,6 +154,8 @@ Use `references/templates.md`: outcome; capability, complexity/reason and select
 configured/requested pair versus exposed actual model/reasoning; checks actually exercised;
 reviewer findings/disposition; approved escalations; and exact blockers/unverified items. Keep it short
 and in the user's language. Do not promise subscription-quota savings from API price cards.
+Separate completed implementation/gates from ongoing integration; successful push does not complete
+pending PR, CI or merge work.
 Do not stop at a phase boundary unless phase-by-phase execution was requested or an actual blocker
 requires a decision.
 
