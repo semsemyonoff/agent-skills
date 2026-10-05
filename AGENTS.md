@@ -24,12 +24,13 @@ Plugins are grouped by theme (`planning`, `flow`, `vikunja`, `redmine`, `retro`,
 given Claude setup enables is up to whoever installs them; nothing in this repo assumes a particular
 setup, so keep machine- and account-specific details out of it.
 
-Claude gets the plugin workflows; omp can load harness-compatible skills from their plugin skill
-directories (currently `brainstorm`, `planning`, `plan-review`, `orchestrate`, `reflection`, and `vikunja`).
+Claude gets the plugin workflows. Harness-compatible plugin skills also reach native Codex and omp
+through skills.sh (`-a codex`), installed into `~/.agents/skills`, which both harnesses read.
+Ship is one shared skill with harness-specific confirmation and waiting instructions, not a separate
+native Codex adapter.
 A Codex model running inside omp uses omp's tools and session format, not native Codex CLI's.
-Native Codex CLI gets only `codex/`:
-skills for its role as a second opinion — code analysis, review, architecture — plus peer-chat.
-skills.sh reads `marketplace.json` and would expose plugin skills, so native Codex installs use:
+The `codex/` tree is only for Codex-only skills such as peer-chat; do not duplicate plugin skill names
+there, because they share the same installation directory. To install the Codex-only tree, use:
 `npx skills add semsemyonoff/agent-skills/codex -a codex -g`.
 
 ## Writing skills

@@ -23,6 +23,9 @@ shell cwd set to the user's workspace (or pass `--root`); from any other cwd roo
 
 `python3 <skill_dir>/scripts/ship.py <plan|push|wait|sync> [--root DIR] [--branch NAME] [--repos PATH...]`
 
+Retain `root` and `branch` from `plan`; pass `--root <root> --branch <branch>` explicitly to every
+later helper call, including retries. `sync` switches the current branch, so do not re-detect it.
+
 - JSON to stdout, diagnostics to stderr. Exit 0 = ran (per-repo statuses in JSON); exit 2 =
   usage/environment error (no git, root not found, branch undeterminable, branch is main/master/base).
   Network git calls have timeouts and run with `GIT_TERMINAL_PROMPT=0`.
@@ -39,8 +42,11 @@ shell cwd set to the user's workspace (or pass `--root`); from any other cwd roo
   includes porcelain `!` reject lines).
 - `wait [--repos] [--timeout 1800] [--interval 15]`: polls the remote branch with backoff; branch gone
   -> `merged`; still there at timeout -> `pending` (+`remote_sha`, and `error` if ls-remote kept
-  failing); undiscovered repos -> `failed`. Costs no tokens or model turns: run it in the background
-  (Claude Code: Bash `run_in_background`; omp: its background mechanism) and continue when notified.
+  failing); undiscovered repos -> `failed`. Run it in the background when supported: Claude Code
+  Bash `run_in_background`; omp's background mechanism; native Codex's yielded command session
+  (`exec_command` -> `session_id`, collect with `write_stdin`) if available. Otherwise run in the
+  foreground with an explicit `--timeout` within the tool's execution limit. Resume on completion;
+  do not assume the harness sends a notification.
 - `sync --repos PATH... [--confirmed-merged] [--head PATH=SHA ...]` (`--head`: full 40-hex sha,
   only for paths in `--repos`, else exit 2): dirty, base null or `is_base` -> `sync failed` (+`error`);
   fetch --prune; switch to base; `merge --ff-only origin/<base>` (failure -> `sync failed`, never
@@ -53,8 +59,10 @@ shell cwd set to the user's workspace (or pass `--root`); from any other cwd roo
 
 ## Forgejo MCP
 
-Match the names to what the server actually advertises (e.g. `mcp__forgejo__get_repo`; in Claude
-Code load deferred schemas with ToolSearch first). Use `host/owner/repo` from `plan`.
+Match names and schemas to what the Forgejo MCP server actually advertises in the current harness
+(e.g. `mcp__forgejo__get_repo` in native Codex, with the configured server's prefix). Load deferred
+schemas with Claude Code ToolSearch or the available discovery tool in omp/native Codex.
+Use `host/owner/repo` from `plan`.
 
 - `get_repo(owner, repo)` -> `default_merge_style`.
 - `list_repo_pull_requests(owner, repo, state, page, limit)`: no head filter. Find an existing open PR
@@ -82,8 +90,9 @@ substitute gh/glab/fj/REST and do not change MCP configuration.
    `is_base` -> `skipped: is base`.
    Find the existing open PR for the branch and its base. No CI = plan `has_ci` false.
 3. **Confirm once.** Show an action table: `repo | push? | PR new/#N | merge style | then`. Then ONE
-   structured-choice call: Claude Code `AskUserQuestion`; omp `ask`; plain text only when neither
-   exists, then wait for an explicit answer (silence/dismissal is not approval). Respect the limits
+   structured-choice call: Claude Code `AskUserQuestion`; omp `ask`; native Codex's ask tool only if
+   available for confirmations. Without a suitable ask tool, ask the same questions together in plain
+   text, end the turn and wait for explicit answers (silence/dismissal is not approval). Respect the limits
    (<=4 questions, 2-4 options each): one question per category listing the affected repos, never
    per repo. Only needed questions:
    - Always: "Merge into <base>?" - "Start (Recommended)" / "PRs only, no auto-merge" / "Stop"
@@ -112,8 +121,8 @@ substitute gh/glab/fj/REST and do not change MCP configuration.
    5. `merge_pull_request` with auto-merge. On error re-read `get_pull_request_by_index`:
       `mergeable=false` -> `conflict`; a transient "mergeability still being checked" (405/try again
       later; unverified) -> retry once after a short sleep; else `merge not scheduled` with the error.
-   6. `ship.py wait --repos ...` (only repos with a scheduled auto-merge) in the background; continue
-      when notified.
+   6. `ship.py wait --repos ...` (only repos with a scheduled auto-merge), using the harness's wait
+      mechanism or foreground `--timeout` described above; continue when it completes.
    7. Branch gone (`merged`): `get_pull_request_by_index`; `merged: true` -> `ship.py sync --repos
       <confirmed only> --confirmed-merged --head <path>=<PR head.sha> ...`;
       `merged: false` -> `PR closed`, no sync.

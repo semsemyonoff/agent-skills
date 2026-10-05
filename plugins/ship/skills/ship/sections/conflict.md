@@ -20,4 +20,4 @@ Applies when the PR has `mergeable=false` (status `conflict`) after the initial 
 3. Never resolve conflicts silently. Show how each conflict is resolved and get the user's decision
    when the resolution is not mechanical.
 4. After the push the auto-merge stays scheduled: re-check the PR and include the repo in a new
-   background `ship.py wait`, then continue the normal flow.
+   `ship.py wait` using the harness mechanism in `SKILL.md`, then continue the normal flow.
