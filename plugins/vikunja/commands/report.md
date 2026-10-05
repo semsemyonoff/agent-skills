@@ -3,5 +3,5 @@ description: Write a progress or completion report into linked Vikunja tasks (cl
 argument-hint: "[task ids] [close]"
 ---
 
-Use the vikunja skill, section `sections/report.md`, to report into: $ARGUMENTS
+Load the `vikunja:vikunja` skill with the Skill tool, then follow its `sections/report.md` to report into: $ARGUMENTS
 If no task is named, derive the linked tasks from the latest plan, commits and this conversation.

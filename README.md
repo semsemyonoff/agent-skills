@@ -123,12 +123,12 @@ checkpoint; a failed worker never authorizes a hidden provider or model switch.
 
 ### vikunja — `vikunja`
 
-Working with [Vikunja](https://vikunja.io) through its MCP server without the usual agent mistakes:
-markdown instead of HTML in descriptions, relations created in the wrong direction, duplicates,
-tasks closed without being asked. Three scenarios:
+Working with [Vikunja](https://vikunja.io) 2.7+ through its built-in MCP server without the usual
+agent mistakes: markdown sent without `format: "markdown"`, relations created in the wrong direction,
+duplicates, tasks closed without being asked. Three scenarios:
 
 - `/vikunja:backlog <idea>` — find the project, check for duplicates, create a task in the project's
-  style with a validated HTML description;
+  style with a markdown description;
 - `/vikunja:intake <id>` — read the task, its comments and related tasks, analyse; propose a
   brainstorm on open decisions, or a plan with delegation when the task already settles the solution;
 - `/vikunja:report <id>` — write progress or a completion report into linked tasks; close only when
@@ -140,9 +140,8 @@ The Vikunja skill also works in omp with any supported model provider. Point omp
 overrides older same-named installed copies. The namespaced commands above are Claude Code aliases.
 Connect the Vikunja MCP separately using the harness's configuration, then reload MCP or restart
 the session. The skill discovers actual tool names/schemas and supports omp's `xd://` devices;
-Claude Code's deferred ToolSearch remains supported. Bundled references and the offline Python 3
-HTML validator resolve relative to the loaded `SKILL.md`, with no required Claude environment
-variables. Set `VIKUNJA_URL` for clickable task links; no tokens belong in skill files.
+Claude Code's deferred ToolSearch remains supported. Bundled references resolve relative to the
+loaded `SKILL.md`, with no required Claude environment variables. Set `VIKUNJA_URL` for clickable task links; no tokens belong in skill files.
 
 ### redmine — `redmine`
 

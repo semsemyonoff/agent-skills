@@ -6,10 +6,10 @@ This scenario is read-only until the user confirms.
 
 ## Steps
 
-1. **Load the task.** `task_get` (parameter `id`), then `comments_list` for `taskId`. Comments often
-   carry the latest decision, so read them to the end.
-2. **Follow the links.** For every `#N` in the description or comments, and for related tasks in the
-   `task_get` output, `task_get` them (one level deep is usually enough). Note which are done and
+1. **Load the task.** `tasks_read` (parameter `task`), then `task_comments_list` for `task`, both with
+   `format: "markdown"`. Comments often carry the latest decision, so read them to the end (all pages).
+2. **Follow the links.** For every `#N` in the description or comments, and for tasks under
+   `related_tasks`, `tasks_read` them (one level deep is usually enough). Note which are done and
    what they decided. Also look at the parent and sibling tasks when the task is a slice of a bigger one.
 3. **Look at the code or docs** the task names, only as far as needed to make the plan realistic.
    Do not start implementing.

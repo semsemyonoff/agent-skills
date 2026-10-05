@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.1.0
+
+- Target Vikunja 2.7's built-in MCP server: new tool names, find_action/do_action for relations and task labels, verifiable relations via related_tasks, closing through tasks_update.
+- Descriptions and comments are written as markdown with format "markdown"; the HTML validator is removed.
+- Commands load the vikunja skill explicitly instead of looking for its section files.
+
 ## 1.0.6
 
 - Support omp and other MCP-capable harnesses alongside Claude Code: discover actual tool schemas and invocation interfaces, resolve bundled paths from SKILL.md, and use the available structured-choice tool for intake.

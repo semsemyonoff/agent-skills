@@ -3,4 +3,4 @@ description: Analyse a Vikunja task, then propose a brainstorm on open decisions
 argument-hint: "<task id or link>"
 ---
 
-Use the vikunja skill, section `sections/intake.md`, on this task: $ARGUMENTS
+Load the `vikunja:vikunja` skill with the Skill tool, then follow its `sections/intake.md` on this task: $ARGUMENTS
