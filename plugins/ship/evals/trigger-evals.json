@@ -1,0 +1,18 @@
+[
+  {"query":"Ship the plan branch: push it, open PRs in all repos of the workspace and merge when CI is green.","should_trigger":true},
+  {"query":"Доведи ветку плана до main во всех репо воркспейса: пуш, PR, мерж после зелёного CI.","should_trigger":true},
+  {"query":"ralphex finished the plan in branch feature/billing-v2 across api and web. Land this branch into main in both repos.","should_trigger":true},
+  {"query":"Смержи план во всех репо и почисти ветки, когда всё пройдёт.","should_trigger":true},
+  {"query":"/ship:ship","should_trigger":true},
+  {"query":"Open PRs for the plan branch and enable auto-merge after checks pass, then sync main locally and delete the branch.","should_trigger":true},
+  {"query":"Зашипь ветку, всё реализовано, нужно открыть PR и смержить после CI.","should_trigger":true},
+  {"query":"Merge the plan branch into main in all repos with squash style, then tell me what happened per repo.","should_trigger":true},
+  {"query":"Создай PR для этой ветки, мержить не надо.","should_trigger":false},
+  {"query":"Review PR 12 in the api repo and leave comments.","should_trigger":false},
+  {"query":"Закрой задачу 42 в викундже и напиши итог.","should_trigger":false},
+  {"query":"Open a PR on GitHub for this branch and merge it with gh once the Actions are green.","should_trigger":false},
+  {"query":"How does dwe deploy a stack to staging?","should_trigger":false},
+  {"query":"Write a short commit message for renaming Config.Load to Config.Read.","should_trigger":false},
+  {"query":"Составь план реализации миграции на новый API, пока ничего не меняй.","should_trigger":false},
+  {"query":"Why did the CI pipeline fail on my PR? Look at the logs and explain.","should_trigger":false}
+]

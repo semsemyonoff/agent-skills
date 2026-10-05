@@ -1,0 +1,8 @@
+{
+  "name": "ship",
+  "description": "Land a plan branch into the base branch in every repo of a workspace on Forgejo: push, PR, auto-merge when CI is green, sync, cleanup, report / Довести ветку плана до main во всех репо: push, PR, автомерж после CI, синхронизация, отчёт",
+  "version": "0.1.0",
+  "author": {
+    "name": "semsemyonoff"
+  }
+}

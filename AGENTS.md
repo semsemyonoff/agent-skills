@@ -20,7 +20,7 @@ codex/<skill>/                      # Codex-only skills, installed via skills.sh
 scripts/check.py                    # repo validation, run locally and in CI
 ```
 
-Plugins are grouped by theme (`planning`, `flow`, `vikunja`, `redmine`, `retro`, `gdocs`, `peer`). Which plugins a
+Plugins are grouped by theme (`planning`, `flow`, `vikunja`, `redmine`, `retro`, `gdocs`, `peer`, `ship`). Which plugins a
 given Claude setup enables is up to whoever installs them; nothing in this repo assumes a particular
 setup, so keep machine- and account-specific details out of it.
 

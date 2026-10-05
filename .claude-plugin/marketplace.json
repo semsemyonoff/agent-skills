@@ -1,6 +1,6 @@
 {
   "name": "semsemyonoff",
-  "description": "Personal workflow skills: planning, orchestration, Vikunja, Redmine, session reflection, docs import",
+  "description": "Personal workflow skills: planning, orchestration, Vikunja, Redmine, session reflection, docs import, branch shipping",
   "owner": {
     "name": "semsemyonoff"
   },
@@ -34,6 +34,11 @@
       "name": "retro",
       "source": "./plugins/retro",
       "description": "Retrospective over selected Claude Code and omp session transcripts: recurring requests, friction, tool errors, native model routing, token usage"
+    },
+    {
+      "name": "ship",
+      "source": "./plugins/ship",
+      "description": "Land a plan branch into main in every workspace repo on Forgejo: push, PR, auto-merge when CI is green, sync, cleanup, per-repo report"
     },
     {
       "name": "vikunja",
