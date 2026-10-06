@@ -19,5 +19,6 @@ Applies when the PR has `mergeable=false` (status `conflict`) after the initial 
    per repo (structured-choice tool or plain text). No confirmation -> leave the repo as `conflict`.
 3. Never resolve conflicts silently. Show how each conflict is resolved and get the user's decision
    when the resolution is not mechanical.
-4. After the push the auto-merge stays scheduled: re-check the PR and include the repo in a new
-   `ship.py wait` using the harness mechanism in `SKILL.md`, then continue the normal flow.
+4. After the push re-check the PR. `auto-merge` repos: the auto-merge stays scheduled; include the
+   repo in a new `ship.py wait` using the harness mechanism in `SKILL.md`. `gated` repos: run the CI
+   gate on the new `head.sha`. Then continue the normal flow.

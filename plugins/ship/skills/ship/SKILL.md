@@ -1,46 +1,52 @@
 ---
 name: ship
-description: 'Bring an implemented plan branch to the base branch (main) in every repo of a workspace on Forgejo - push, open PR, schedule server-side auto-merge when CI is green, wait, sync the base locally, delete branches, report per repo. Use after a plan was implemented (e.g. by ralphex) and the code sits in a plan branch. Triggers - /ship:ship, /skill:ship, "ship the plan branch", "merge the plan branch into main in all repos", "open PRs and merge when green", "land this branch", «доведи ветку до main», «смержи план во всех репо», «открой PR и смержи после CI», «зашипь ветку». Not for - just creating a PR without merging, reviewing a PR, closing tracker tasks, GitHub/GitLab repos, deploys.'
-argument-hint: "[branch]"
+description: 'Bring an implemented plan branch or the branch of a Vikunja task to the base branch (main, or a named integration branch) in every repo of a workspace on Forgejo - push, open PR, merge once CI is green, sync the base locally, delete branches, report per repo, then optionally report into the task and close it. Use after a plan or task was implemented (e.g. by ralphex) and the code sits in a branch. Triggers - /ship:ship, /skill:ship, "ship the plan branch", "merge the plan branch into main in all repos", "ship X into release-branch", "open PRs and merge when green", "land this branch", "ship task 587", «доведи ветку до main», «смержи план во всех репо», «открой PR и смержи после CI», «зашипь ветку», «влей ветку в общую ветку», «зашипь задачу 587», «доведи задачу 587 до main». Not for - just creating a PR without merging, reviewing a PR, reporting or closing a task without shipping, GitHub/GitLab repos, deploys.'
+argument-hint: "[branch | task] [into <base>]"
 ---
 
 # Ship
 
 Take a finished plan branch to the base branch in every repo of the workspace that has it:
-push -> PR -> auto-merge when CI is green -> wait -> sync base locally -> delete branches -> report.
+push -> PR -> merge when CI is green -> sync base locally -> delete branches -> report -> task.
+The entry is a branch or a Vikunja task (its `<id>-<slug>` branch); see `sections/task.md`.
+Base: the branch the user names as the target ("into X", «в X», «общая ветка X»), else each repo's
+default branch. A named target that is not an existing remote branch is a question, not a guess.
 Forgejo only, driven through the Forgejo MCP. Reply in the user's language. PR titles/bodies use the
 language of the plan/commits (default: short English title from the branch/commits, body summarises
 the commits). No personal data in PR bodies.
 
 Do not assume an install location or an environment variable for the script.
-Invoking the skill already means the user wants the branch
-pushed: never ask about pushing.
+Invoking the skill already means the user wants the branch pushed: never ask about pushing.
 
 ## Helper
 
 Run it by the absolute path of this skill's directory (resolved from the loaded `SKILL.md`) with the
 shell cwd set to the user's workspace (or pass `--root`); from any other cwd root/branch detection breaks.
 
-`python3 <skill_dir>/scripts/ship.py <plan|push|wait|sync> [--root DIR] [--branch NAME] [--repos PATH...]`
+`python3 <skill_dir>/scripts/ship.py <plan|push|wait|sync> [--root DIR] [--branch NAME | --task ID] [--repos PATH...]`
 
-Retain `root` and `branch` from `plan`; pass `--root <root> --branch <branch>` explicitly to every
-later helper call, including retries. `sync` switches the current branch, so do not re-detect it.
+`--base NAME` (all subcommands): the named target; must exist as `origin/NAME`, never replaced by
+the default. Retain `root` and `branch` from `plan`; pass `--root <root> --branch <branch>` (and
+`--base` when named) explicitly to every later helper call, including retries. `sync` switches the
+current branch, so do not re-detect it.
 
 - JSON to stdout, diagnostics to stderr. Exit 0 = ran (per-repo statuses in JSON); exit 2 =
   usage/environment error (no git, root not found, branch undeterminable, branch is main/master/base).
   Network git calls have timeouts and run with `GIT_TERMINAL_PROMPT=0`.
 - Root: `--root`, else nearest `workspace.yml` upward, else git toplevel. Branch: `--branch` (or the
-  skill argument), else current branch of the cwd repo. Discovery keeps repos that have the local
+  skill argument), else the single `<id>-...` branch for `--task`, else current branch of the cwd repo. Discovery keeps repos that have the local
   branch.
-- `plan` (read-only, no fetch): `{root, branch, repos:[{path, remote_url (userinfo redacted), host
+- `plan` (read-only, no fetch): `{root, branch, task (`--task`, else `<id>` of an `<id>-...` branch,
+  else null), repos:[{path, remote_url (userinfo redacted), host
   (ssh-config-resolved hostname; `host_alias` when the remote used an alias), owner, repo, base,
   is_base, has_ci, dirty, ahead, behind, pushed, remote_branch (origin/<branch> exists locally),
   head_sha, current_branch}]}`.
-  `base` resolves origin/HEAD -> origin/main -> origin/master and may be null; `ahead`/`behind` are
-  against `origin/<base>`; `has_ci` = a workflows dir (.forgejo/.gitea/.github) exists on the branch tree.
+  `base` is `--base` if `origin/<base>` exists, else origin/HEAD -> origin/main -> origin/master; it
+  may be null. `ahead`/`behind` are against `origin/<base>`. `has_ci` = a workflows dir
+  (.forgejo/.gitea/.github) exists on the branch tree - only a hint: workflows may not run on PRs.
 - `push [--repos]`: always pushes (idempotent); per repo `pushed | up-to-date | failed` (+`error`,
   includes porcelain `!` reject lines).
-- `wait [--repos] [--timeout 1800] [--interval 15]`: polls the remote branch with backoff; branch gone
+- `wait [--repos] [--timeout 1800] [--interval 15]` (auto-merge repos only): polls the remote branch with backoff; branch gone
   -> `merged`; still there at timeout -> `pending` (+`remote_sha`, and `error` if ls-remote kept
   failing); undiscovered repos -> `failed`. Run it in the background when supported: Claude Code
   Bash `run_in_background`; omp's background mechanism; native Codex's yielded command session
@@ -64,16 +70,22 @@ Match names and schemas to what the Forgejo MCP server actually advertises in th
 schemas with Claude Code ToolSearch or the available discovery tool in omp/native Codex.
 Use `host/owner/repo` from `plan`.
 
-- `get_repo(owner, repo)` -> `default_merge_style`.
+- `get_repo(owner, repo)` -> `default_merge_style`, `default_branch`.
+- `list_branches(owner, repo, page, limit)` -> per branch `protected`, `enable_status_check`,
+  `status_check_contexts` (readable without admin; branch-protection tools need admin). Page until
+  the base is found.
 - `list_repo_pull_requests(owner, repo, state, page, limit)`: no head filter. Find an existing open PR
-  by `head.ref == branch` client-side, paging through.
+  by `head.ref == branch` and `base.ref == base` client-side, paging through.
 - `create_pull_request(owner, repo, head, base, title, body)`.
 - `merge_pull_request(owner, repo, index, style, merge_when_checks_succeed, delete_branch_after_merge,
   force_merge, ...)`: `style` is required (`merge|rebase|rebase-merge|squash`); always
-  `merge_when_checks_succeed=true`, `delete_branch_after_merge=true`; NEVER `force_merge`.
+  `delete_branch_after_merge=true`; NEVER `force_merge`. `merge_when_checks_succeed=true` only in
+  auto-merge mode (below); a gated merge passes `false` after the CI gate.
 - `get_pull_request_by_index(owner, repo, index)` -> `merged`, `mergeable`.
-- `get_commit_statuses(owner, repo, sha)` (40-hex sha); `list_workflow_runs`, `list_action_run_jobs`,
-  `get_action_job_logs` for failures (see `sections/ci-failure.md`).
+- `get_commit_statuses(owner, repo, sha)` (40-hex sha); `list_workflow_runs(owner, repo, head_sha)`
+  -> one aggregate status per Actions run (covers jobs that have no commit status yet, e.g. a matrix
+  expanded later); `list_action_run_jobs`, `get_action_job_logs` for failures
+  (see `sections/ci-failure.md`).
 
 If the Forgejo MCP tools are absent, report the missing connection and stop before any write. Do not
 substitute gh/glab/fj/REST and do not change MCP configuration.
@@ -84,27 +96,37 @@ substitute gh/glab/fj/REST and do not change MCP configuration.
    -> say so and stop. Any environment failure stops before a write.
 2. **Forge facts (read-only).** Per repo: `get_repo` (merge style; a style named in the request
    overrides it). Forge identity: compare plan `host` (resolved) with the hosts of `html_url`, `ssh_url`
-   and `clone_url`; owner/repo null or no host matches -> `skipped: not forgejo`. Base: PR base =
-   `default_branch`; plan `base` null or
-   different -> `skipped: base mismatch` (hint `git remote set-head origin -a`);
-   `is_base` -> `skipped: is base`.
-   Find the existing open PR for the branch and its base. No CI = plan `has_ci` false.
-3. **Confirm once.** Show an action table: `repo | push? | PR new/#N | merge style | then`. Then ONE
+   and `clone_url`; owner/repo null or no host matches -> `skipped: not forgejo`. Base: the named
+   target, else `default_branch`. Named target: plan `base` null or not in `list_branches` ->
+   `skipped: base not found`. Default: plan `base` null or different from `default_branch` ->
+   `skipped: base mismatch` (hint `git remote set-head origin -a`). `is_base` -> `skipped: is base`.
+   Find the existing open PR whose `head.ref` is the branch AND `base.ref` is the base.
+   **Merge mode** from the base's `list_branches` entry:
+   - `auto-merge`: `enable_status_check` true with non-empty `status_check_contexts`. The server
+     enforces those checks; schedule the merge and `wait`.
+   - `gated`: anything else. Forgejo's auto-merge then fires on the first green status while other
+     jobs still run (seen live), so ship gates CI itself before a plain merge.
+   No CI = plan `has_ci` false; a hint for the confirmation only, the PR's checks decide.
+3. **Confirm once.** Show an action table: `repo | base | push? | PR new/#N | merge style | mode |
+   then`. Then ONE
    structured-choice call: Claude Code `AskUserQuestion`; omp `ask`; native Codex's ask tool only if
    available for confirmations. Without a suitable ask tool, ask the same questions together in plain
    text, end the turn and wait for explicit answers (silence/dismissal is not approval). Respect the limits
    (<=4 questions, 2-4 options each): one question per category listing the affected repos, never
    per repo. Only needed questions:
-   - Always: "Merge into <base>?" - "Start (Recommended)" / "PRs only, no auto-merge" / "Stop"
-     («Начать (рекомендуется)» / «Только PR, без автомержа» / «Стоп»).
+   - Always: "Merge into <base>?" - "Start (Recommended)" / "PRs only, no merge" / "Stop"
+     («Начать (рекомендуется)» / «Только PR, без мержа» / «Стоп»).
    - Dirty repos: "Skip (Recommended)" / "Stop everything".
    - `behind > 0`: "Merge as is (Recommended)" / "Rebase first". For repos whose branch is already on
      the remote (plan `remote_branch` true) the label is "Rebase first (force-with-lease
      push)"; plain "Rebase first" when it is false. Split into two options if both kinds occur.
-   - Repos without CI (auto-merge would merge at once): "Merge (Recommended)" / "PR only".
+   - Repos without CI (plan `has_ci` false, listed by name): "Merge (Recommended)" / "PR only".
    - Existing open PR with another base: "Skip" / "Create new PR".
-   If more than 3 conditional categories apply, fold the no-CI decision into the main question as the
-   option "Start; PR only for repos without CI". After the answer run to the end without questions.
+   - A task (plan `task` or a named one): the task question from `sections/task.md`.
+   Over 4 questions: fold no-CI into the main question ("Start; PR only for repos without CI"),
+   then dirty ("...; skip dirty repos"); the main question keeps three options, and a folded policy
+   applies to every option that proceeds, "PRs only" included. After the answer run to the end
+   without questions.
    "Rebase first" is part of this approval: rebase onto `origin/<base>` BEFORE the first push, in
    those repos only; for already-pushed repos this includes the force-with-lease push the label
    named (see `sections/conflict.md` for a failing rebase).
@@ -114,29 +136,41 @@ substitute gh/glab/fj/REST and do not change MCP configuration.
       From here on use the PR's `head.sha` (`get_pull_request_by_index`), never plan `head_sha`: it
       goes stale after an upfront rebase or a CI-fix push.
    3. "PRs only" (or PR-only repos): no merge, no `wait`/`sync`; status `PR open`.
-   4. Race guard for `has_ci` repos (UNVERIFIED Forgejo behaviour: auto-merge may fire before the
-      runner creates statuses): call `get_commit_statuses(<PR head.sha>)` before scheduling; if empty,
-      re-check a couple of times with a short sleep (<= ~1 min total); still empty -> schedule anyway
-      and note it in the report.
-   5. `merge_pull_request` with auto-merge. On error re-read `get_pull_request_by_index`:
-      `mergeable=false` -> `conflict`; a transient "mergeability still being checked" (405/try again
-      later; unverified) -> retry once after a short sleep; else `merge not scheduled` with the error.
-   6. `ship.py wait --repos ...` (only repos with a scheduled auto-merge), using the harness's wait
-      mechanism or foreground `--timeout` described above; continue when it completes.
-   7. Branch gone (`merged`): `get_pull_request_by_index`; `merged: true` -> `ship.py sync --repos
-      <confirmed only> --confirmed-merged --head <path>=<PR head.sha> ...`;
-      `merged: false` -> `PR closed`, no sync.
-   8. `pending`: `get_commit_statuses(<PR head.sha>)`. Any failure/error -> `CI failed`
+   4. Checks guard, every repo (external CI posts statuses without a workflows dir):
+      `get_commit_statuses` and `list_workflow_runs` on the PR `head.sha`; if both are empty,
+      re-check a couple of times with a short sleep (<= ~1 min total; Forgejo creates the run and
+      "Waiting to run" statuses when the run is queued). Still both empty -> no checks on this
+      PR, and an auto-merge would never fire. A repo approved for merging in the no-CI question ->
+      plain merge with `merge_when_checks_succeed=false` (in `auto-merge` mode instead:
+      `not merged: required checks never reported`). Any other repo -> `PR open: no checks`, no merge call: an
+      empty minute does not prove there is no CI, so merging it is the user's call afterwards.
+   5. Merge. Before every merge call and retry re-read the PR: it must be open with `base.ref` equal
+      to the base (retargeted -> `not merged: base changed`, no write). On a merge error re-read
+      `get_pull_request_by_index`: `mergeable=false` -> `conflict`; a transient "mergeability still
+      being checked" (405/try again later; unverified) -> retry once after a short sleep; else
+      `merge not scheduled` with the error.
+      a. `auto-merge`: `merge_pull_request` with `merge_when_checks_succeed=true`, then
+         `ship.py wait --repos <auto-merge repos>` using the harness's wait mechanism or foreground
+         `--timeout` described above; continue when it completes.
+      b. `gated`: run the CI gate from `sections/ci-gate.md` on the PR `head.sha`, all gated repos
+         per round; it ends in a plain merge, `CI failed`, `timeout` or `merged: ungated head`. Sync
+         each repo as soon as it merges; do not hold it for slower ones.
+   6. `wait` `pending` (auto-merge): `get_commit_statuses(<PR head.sha>)`. Any failure/error -> `CI failed`
       (`sections/ci-failure.md`). Still running -> `timeout`, offer ONE more wait. All success but not
       merged (approvals required, auto-merge cancelled) -> `not merged` with the reason from the PR;
       no endless re-wait offer. `mergeable=false` -> `conflict` (`sections/conflict.md`).
-5. **Report.** One table `repo | PR | status | next`. Statuses: `merged`, `PR open`, `PR failed`,
-   `merge not scheduled`, `PR closed`, `not merged`, `CI failed`, `conflict`, `timeout`,
-   `push failed`, `sync failed`, `kept` (branch kept), `skipped: dirty|not forgejo|base mismatch|is base`.
+   7. Before sync, per repo: `get_pull_request_by_index` must show `merged: true`, `base.ref` equal
+      to the base and the head that passed CI; then `ship.py sync --repos <confirmed only>
+      --confirmed-merged --head <path>=<sha that passed CI> ...` (plus `--base`). Closed unmerged ->
+      `PR closed`, no sync.
+5. **Report.** One table `repo | PR | status | next`. Statuses: `merged`, `PR open`,
+   `PR open: no checks`, `PR failed`, `merge not scheduled`, `PR closed`, `not merged`,
+   `merged: ungated head`, `CI failed`,
+   `conflict`, `timeout`, `push failed`, `sync failed`, `kept` (branch kept),
+   `skipped: dirty|not forgejo|base mismatch|base not found|is base`.
    Map script statuses: sync `synced` -> `merged`; `kept` -> `merged (branch kept: <reason>)`;
    `sync failed` -> `merged, sync failed: <error>`; wait `failed` -> `wait failed: <error>`.
-   Then exactly one offer: report the result into the linked Vikunja tasks through the vikunja skill
-   if available. Do not write to Vikunja yourself.
+   Then the task step from `sections/task.md` per the answer; with no task, nothing more.
 
 ## Rules
 
@@ -147,5 +181,7 @@ substitute gh/glab/fj/REST and do not change MCP configuration.
 
 ## Sections
 
+- `sections/task.md` - read when the run has a Vikunja task (named, or plan `task` not null).
+- `sections/ci-gate.md` - read when a repo is in `gated` mode.
 - `sections/ci-failure.md` - read when a PR's checks failed.
 - `sections/conflict.md` - read when a PR is not mergeable or an upfront "Rebase first" fails.

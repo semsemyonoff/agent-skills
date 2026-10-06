@@ -9,7 +9,8 @@ Applies to a repo whose commit statuses for the PR `head.sha` show failure/error
 4. Diagnose: quote the failing step and the decisive log lines, state the likely cause, propose a fix.
 5. Do not commit or push a fix unless the user asks. Other repos continue independently.
 
-After a fix is pushed, re-check the PR with `get_pull_request_by_index` (the auto-merge may still be
-scheduled) and include the repo in a new `ship.py wait` using the harness mechanism in `SKILL.md`, then continue the normal flow
-(confirm `merged: true`, then `sync --confirmed-merged --head <path>=<PR head.sha>`). If the auto-merge was dropped, report it and
-ask before scheduling it again.
+After a fix is pushed, re-check the PR with `get_pull_request_by_index`. `gated` repos: run the CI
+gate again on the new `head.sha`. `auto-merge` repos: the auto-merge may still be scheduled; include
+the repo in a new `ship.py wait` using the harness mechanism in `SKILL.md`. Then continue the normal
+flow (pre-sync check, then `sync --confirmed-merged --head <path>=<PR head.sha>`). If the auto-merge
+was dropped, report it and ask before scheduling it again.

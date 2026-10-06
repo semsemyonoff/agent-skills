@@ -215,6 +215,98 @@ class TestBase(Fixture):
         self.assertFalse(run_json("plan", "--root", str(self.ws), "--branch", "feat")["repos"][0]["is_base"])
 
 
+class TestExplicitBase(Fixture):
+    def with_dev(self):
+        a, bare = self.make_repo("a", branch=None)
+        g(a, "switch", "-q", "-c", "dev")
+        commit(a, "dev.txt")
+        g(a, "push", "-q", "-u", "origin", "dev")
+        g(a, "switch", "-q", "-c", "feat")
+        commit(a, "feature.txt")
+        return a, bare
+
+    def test_plan_against_base(self):
+        self.with_dev()
+        r = run_json("plan", "--root", str(self.ws), "--branch", "feat", "--base", "dev")["repos"][0]
+        self.assertEqual(r["base"], "dev")
+        self.assertEqual((r["ahead"], r["behind"]), (1, 0))
+        r = run_json("plan", "--root", str(self.ws), "--branch", "feat")["repos"][0]
+        self.assertEqual((r["base"], r["ahead"]), ("main", 2))
+
+    def test_missing_base(self):
+        self.with_dev()
+        r = run_json("plan", "--root", str(self.ws), "--branch", "feat", "--base", "nope")["repos"][0]
+        self.assertIsNone(r["base"])
+        out = run_json("push", "--root", str(self.ws), "--branch", "feat", "--base", "nope")["repos"][0]
+        self.assertEqual(out["error"], "base 'nope' not found as origin/nope")
+
+    def test_refuse_branch_equal_base(self):
+        self.with_dev()
+        self.assertEqual(run("plan", "--root", str(self.ws), "--branch", "feat", "--base", "feat").returncode, 2)
+
+    def test_sync_into_base(self):
+        a, bare = self.with_dev()
+        g(a, "push", "-q", "-u", "origin", "feat")
+        main_before = g(bare, "rev-parse", "main")
+        o = self.other_clone(bare)
+        g(o, "fetch", "-q", "origin")
+        g(o, "switch", "-q", "dev")
+        g(o, "merge", "-q", "--no-ff", "-m", "merge", "origin/feat")
+        g(o, "push", "-q", "origin", "dev")
+        g(o, "push", "-q", "origin", "--delete", "feat")
+        r = run_json("sync", "--root", str(self.ws), "--branch", "feat", "--base", "dev",
+                     "--repos", "a")["repos"][0]
+        self.assertEqual((r["status"], r.get("deleted"), r["base"]), ("synced", "merged", "dev"), r)
+        self.assertEqual(g(a, "branch", "--show-current"), "dev")
+        self.assertEqual(g(a, "rev-parse", "dev"), g(bare, "rev-parse", "dev"))
+        self.assertEqual(g(a, "rev-parse", "main"), main_before)
+
+
+class TestTask(Fixture):
+    def test_task_of(self):
+        self.assertEqual(ship.task_of("587-fandom-icons"), "587")
+        self.assertEqual(ship.task_of("587_x"), "587")
+        self.assertEqual(ship.task_of("587"), "587")
+        self.assertIsNone(ship.task_of("feat-587"))
+        self.assertIsNone(ship.task_of("5870x"))
+
+    def test_branch_from_task(self):
+        self.make_repo("a", branch="587-icons")
+        self.make_repo("b", branch="587-icons")
+        self.make_repo("c", branch="588-other")
+        out = run_json("plan", "--root", str(self.ws), "--task", "#587")
+        self.assertEqual((out["branch"], out["task"]), ("587-icons", "587"))
+        self.assertEqual([r["path"] for r in out["repos"]], ["a", "b"])
+
+    def test_task_derived_from_branch(self):
+        self.make_repo("a", branch="587-icons")
+        self.assertEqual(run_json("plan", "--root", str(self.ws), "--branch", "587-icons")["task"], "587")
+        self.make_repo("b", branch="feat")
+        self.assertIsNone(run_json("plan", "--root", str(self.ws), "--branch", "feat")["task"])
+
+    def test_task_unresolved(self):
+        self.make_repo("a", branch="587-icons")
+        self.make_repo("b", branch="587-other")
+        self.assertEqual(run("plan", "--root", str(self.ws), "--task", "587").returncode, 2)  # ambiguous
+        self.assertEqual(run("plan", "--root", str(self.ws), "--task", "999").returncode, 2)  # none
+        self.assertEqual(run("plan", "--root", str(self.ws), "--task", "abc").returncode, 2)  # not a number
+
+    def test_task_with_branch(self):
+        self.make_repo("a", branch="588-other")
+        self.make_repo("b", branch="public-x")
+        self.assertEqual(run("plan", "--root", str(self.ws), "--task", "587", "--branch", "588-other").returncode, 2)
+        out = run_json("plan", "--root", str(self.ws), "--task", "587", "--branch", "public-x")
+        self.assertEqual((out["branch"], out["task"]), ("public-x", "587"))
+
+    def test_task_scan_error(self):
+        self.make_repo("a", branch="587-icons")
+        b, _ = self.make_repo("b", branch="feat")
+        (b / ".git" / "HEAD").write_text("garbage\n")  # breaks git in b
+        r = run("plan", "--root", str(self.ws), "--task", "587")
+        self.assertEqual(r.returncode, 2, r.stdout)
+        self.assertIn("cannot list branches in b", r.stderr)
+
+
 class TestResolution(Fixture):
     def test_refuse(self):
         a, _ = self.make_repo("a")

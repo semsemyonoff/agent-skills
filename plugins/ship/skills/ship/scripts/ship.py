@@ -28,6 +28,7 @@ LS_REMOTE_TIMEOUT = 60.0
 CI_DIRS = (".forgejo/workflows", ".gitea/workflows", ".github/workflows")
 SSH_TIMEOUT = 5.0
 HEX40_RE = re.compile(r"^[0-9a-fA-F]{40}$")
+TASK_BRANCH_RE = re.compile(r"^(\d+)(?:[-_/]|$)")
 USERINFO_RE = re.compile(r"^([A-Za-z][A-Za-z0-9+.-]*://)[^@/]+@")
 
 SCP_RE = re.compile(r"^(?:[^@/\s]+@)?([^:/\s]+):(?!//)/?(.+)/([^/]+?)(?:\.git)?/?$")
@@ -129,8 +130,10 @@ def ref_sha(repo: Path, ref: str) -> Optional[str]:
     return r.stdout.strip() if r.returncode == 0 else None
 
 
-def base_of(repo: Path) -> Optional[str]:
-    """origin/HEAD, else existing origin/main, else origin/master, else None."""
+def base_of(repo: Path, override: Optional[str] = None) -> Optional[str]:
+    """--base if origin/<base> exists, else origin/HEAD, origin/main, origin/master, else None."""
+    if override:
+        return override if ref_sha(repo, f"refs/remotes/origin/{override}") else None
     r = git(["symbolic-ref", "--short", "refs/remotes/origin/HEAD"], repo)
     name = r.stdout.strip()
     if r.returncode == 0 and name:
@@ -141,10 +144,10 @@ def base_of(repo: Path) -> Optional[str]:
     return None
 
 
-def unprocessable(repo: Path, branch: str) -> Optional[str]:
-    base = base_of(repo)
+def unprocessable(repo: Path, branch: str, override: Optional[str] = None) -> Optional[str]:
+    base = base_of(repo, override)
     if base is None:
-        return "base unresolved"
+        return f"base '{override}' not found as origin/{override}" if override else "base unresolved"
     if base == branch:
         return "branch is the base branch"
     return None
@@ -171,7 +174,36 @@ def find_root(arg: Optional[str]) -> Path:
     raise UsageError("cannot determine root: no --root, workspace.yml or git repo")
 
 
-def find_branch(arg: Optional[str], root: Path) -> str:
+def task_of(branch: str) -> Optional[str]:
+    """Task id from a `<id>-<slug>` branch name, else None."""
+    m = TASK_BRANCH_RE.match(branch)
+    return m.group(1) if m else None
+
+
+def task_arg(value: str) -> str:
+    v = value.strip().lstrip("#")
+    if not v.isdigit():
+        raise argparse.ArgumentTypeError(f"task id must be a number, got '{value}'")
+    return v
+
+
+def branch_for_task(root: Path, task: str) -> str:
+    """The single local branch named `<task>-...` across the workspace repos."""
+    names = set()
+    for repo in discover_repos(root):
+        r = git(["for-each-ref", "--format=%(refname:short)", "refs/heads"], repo)
+        if r.returncode != 0:
+            raise UsageError(f"cannot list branches in {rel(root, repo)}: {tail(r.stderr)}")
+        names.update(n for n in r.stdout.split() if task_of(n) == task)
+    if not names:
+        raise UsageError(f"no local branch for task {task} (expected {task}-<slug>), pass --branch")
+    if len(names) > 1:
+        raise UsageError(f"task {task} matches several branches: {', '.join(sorted(names))}; pass --branch")
+    return names.pop()
+
+
+def find_branch(arg: Optional[str], root: Path, base: Optional[str] = None,
+                task: Optional[str] = None) -> str:
     cwd = Path.cwd().resolve()
     cwd_repo: Optional[Path] = None
     r = git(["rev-parse", "--show-toplevel"], cwd)
@@ -179,7 +211,9 @@ def find_branch(arg: Optional[str], root: Path) -> str:
         cwd_repo = Path(r.stdout.strip())
     elif is_git_dir(root):
         cwd_repo = root
-    branch = arg
+    if arg and task and task_of(arg) not in (None, task):
+        raise UsageError(f"branch '{arg}' belongs to task {task_of(arg)}, not {task}")
+    branch = arg or (branch_for_task(root, task) if task else None)
     if not branch:
         if cwd_repo is None:
             raise UsageError("branch not determinable: not in a git repo, pass --branch")
@@ -189,7 +223,7 @@ def find_branch(arg: Optional[str], root: Path) -> str:
         branch = s.stdout.strip()
     if branch in PROTECTED_BRANCHES:
         raise UsageError(f"refusing to ship protected branch '{branch}'")
-    if cwd_repo is not None and branch == base_of(cwd_repo):
+    if branch == base or (cwd_repo is not None and branch == base_of(cwd_repo, base)):
         raise UsageError(f"refusing to ship base branch '{branch}'")
     return branch
 
@@ -244,7 +278,7 @@ def cmd_plan(root: Path, branch: str, args) -> dict:
             continue
         r = git(["remote", "get-url", "origin"], repo)
         url = r.stdout.strip() if r.returncode == 0 else None
-        base = base_of(repo)
+        base = base_of(repo, args.base)
         base_ref = None
         for cand in (f"refs/remotes/origin/{base}", f"refs/heads/{base}") if base else ():
             if ref_sha(repo, cand):
@@ -272,7 +306,7 @@ def cmd_plan(root: Path, branch: str, args) -> dict:
             "head_sha": ref_sha(repo, f"refs/heads/{branch}"),
             "current_branch": cur.stdout.strip() if cur.returncode == 0 else None,
         })
-    return {"root": str(root), "branch": branch, "repos": repos}
+    return {"root": str(root), "branch": branch, "task": args.task or task_of(branch), "repos": repos}
 
 
 def missing_entries(missing: List[str], status: str) -> List[dict]:
@@ -284,7 +318,7 @@ def cmd_push(root: Path, branch: str, args) -> dict:
     out = []
     for repo in repos:
         entry = {"path": rel(root, repo)}
-        bad = unprocessable(repo, branch)
+        bad = unprocessable(repo, branch, args.base)
         if bad:
             entry.update(status="failed", error=bad)
             out.append(entry)
@@ -325,7 +359,7 @@ def cmd_wait(root: Path, branch: str, args) -> dict:
     by_path: Dict[str, Path] = {}
     for r in repos:
         p = rel(root, r)
-        bad = unprocessable(r, branch)
+        bad = unprocessable(r, branch, args.base)
         if bad:
             state[p] = {"path": p, "status": "failed", "error": bad}
         else:
@@ -358,10 +392,11 @@ def cmd_wait(root: Path, branch: str, args) -> dict:
     return {"branch": branch, "repos": out}
 
 
-def sync_repo(repo: Path, branch: str, confirmed: bool, expected_head: Optional[str] = None) -> dict:
-    base = base_of(repo)
+def sync_repo(repo: Path, branch: str, confirmed: bool, expected_head: Optional[str] = None,
+              base_override: Optional[str] = None) -> dict:
+    base = base_of(repo, base_override)
     entry: dict = {"base": base}
-    bad = unprocessable(repo, branch)
+    bad = unprocessable(repo, branch, base_override)
     if bad:
         return {**entry, "status": "sync failed", "error": bad}
     if is_dirty(repo):
@@ -416,7 +451,7 @@ def cmd_sync(root: Path, branch: str, args) -> dict:
     out = []
     for repo in repos:
         p = rel(root, repo)
-        out.append({"path": p, **sync_repo(repo, branch, args.confirmed_merged, heads.get(p))})
+        out.append({"path": p, **sync_repo(repo, branch, args.confirmed_merged, heads.get(p), args.base)})
     out += missing_entries(missing, "sync failed")
     return {"branch": branch, "repos": out}
 
@@ -428,6 +463,8 @@ def build_parser() -> argparse.ArgumentParser:
         p = sub.add_parser(name)
         p.add_argument("--root")
         p.add_argument("--branch")
+        p.add_argument("--base", help="target branch on origin; default: origin/HEAD, main, master")
+        p.add_argument("--task", type=task_arg, help="tracker task id; finds the `<id>-...` branch")
         if name != "plan":
             p.add_argument("--repos", nargs="+", metavar="PATH")
         if name == "wait":
@@ -449,7 +486,7 @@ def main(argv: Optional[List[str]] = None) -> int:
         if shutil.which("git") is None:
             raise UsageError("git not found in PATH")
         root = find_root(args.root)
-        branch = find_branch(args.branch, root)
+        branch = find_branch(args.branch, root, args.base, args.task)
         result = COMMANDS[args.cmd](root, branch, args)
     except UsageError as e:
         print(f"error: {e}", file=sys.stderr)

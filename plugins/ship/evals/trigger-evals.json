@@ -7,6 +7,8 @@
   {"query":"Open PRs for the plan branch and enable auto-merge after checks pass, then sync main locally and delete the branch.","should_trigger":true},
   {"query":"Зашипь ветку, всё реализовано, нужно открыть PR и смержить после CI.","should_trigger":true},
   {"query":"Merge the plan branch into main in all repos with squash style, then tell me what happened per repo.","should_trigger":true},
+  {"query":"Зашипь задачу 587: влей её ветку в main во всех репо, отпишись и закрой задачу.","should_trigger":true},
+  {"query":"Ship task 412 into the release-2 branch across the workspace once CI passes.","should_trigger":true},
   {"query":"Создай PR для этой ветки, мержить не надо.","should_trigger":false},
   {"query":"Review PR 12 in the api repo and leave comments.","should_trigger":false},
   {"query":"Закрой задачу 42 в викундже и напиши итог.","should_trigger":false},
