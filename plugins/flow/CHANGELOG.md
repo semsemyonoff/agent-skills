@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.2
+
+- Freeze the reviewed scope while an independent review runs; coordinator fixes wait until it returns.
+- Resume after an interruption by re-inventorying in-flight briefs against the tree, reporting done/obsolete/open items and answering explicit worker instructions instead of dropping them.
+- Require the full routing table in the report only when a route deviated; otherwise one line.
+
 ## 2.1.1 (Unreleased)
 
 - Ground bounded replacement briefs in runtime consumers and default/fallback/environment precedence; check the agreed contract through source reads and use small native omp patches without escalating the model by default.

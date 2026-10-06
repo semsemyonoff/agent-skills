@@ -114,6 +114,12 @@ paid fallback. Compare exposed actual identity/reasoning with the requested/conf
 an unexplained substitution stops affected work until resolved within policy or explicitly approved.
 If no permitted route meets the requirement, report its precise prerequisite, not incomplete success.
 
+Resuming after an interruption (stopped worker, restarted session, commits made meanwhile): before
+any re-dispatch, re-inventory branches, status and commits against every in-flight brief. Tell the
+user which items are already done, obsolete or still open, and re-dispatch only the open ones. An
+explicit user instruction about a worker ("restart it") is answered, not silently dropped: follow
+it, or say why it is unnecessary.
+
 ## 5. Independent verification
 
 The implementer cannot act as its own independent reviewer. Dispatch the planned risk-appropriate
@@ -135,6 +141,8 @@ cannot close a required failed/unverified level: keep its concrete acceptance ga
 proved. If that level is not required, report the limitation without declaring the whole product
 broken. Never hide false/error under an overall passed result.
 
+Freeze the reviewed scope while an independent review runs: queue coordinator edits, including
+small fixes found by your own checks, until the reviewer returns, so it never reviews a moving tree.
 Batch fixes before the next independent review; functional/security fixes still need an adequate
 separate reviewer. Obvious nonbehavioral tails (comment wording or exact documentation relocation)
 may be checked by the coordinator against the diff, links and existing evidence without another
@@ -151,7 +159,8 @@ opinion only at its agreed checkpoint, after the final tree is stable.
 ## 6. Report
 
 Use `references/templates.md`: outcome; capability, complexity/reason and selected native profile;
-configured/requested pair versus exposed actual model/reasoning; checks actually exercised;
+configured/requested pair versus exposed actual model/reasoning (a full table only when a route
+deviated); checks actually exercised;
 reviewer findings/disposition; approved escalations; and exact blockers/unverified items. Keep it short
 and in the user's language. Do not promise subscription-quota savings from API price cards.
 Separate completed implementation/gates from ongoing integration; successful push does not complete

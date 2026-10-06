@@ -51,8 +51,10 @@ Integration: <completed implementation/gates versus pending PR/CI/merge; push is
 Not verified/blocked: <exact acceptance or capability still unavailable>
 ```
 
-Preserve known configured/requested facts even when actual metadata is unavailable; mark actual
-unknown explicitly. Record actual substitutions, effort clamping and routing limits rather than
+The routing table is required when any route deviated: substitution, escalation, missing profile,
+or a worker the plan did not list. Otherwise replace it with one line naming the profiles used and
+where actual identity came from (or that it was not exposed). Preserve known configured/requested
+facts even when actual metadata is unavailable; mark actual unknown explicitly. Record actual substitutions, effort clamping and routing limits rather than
 claiming exact execution from an alias. No incomplete done claims, failed-review-as-clean verdicts,
 author self-review-as-independent claims or inferred subscription-savings percentages.
 
