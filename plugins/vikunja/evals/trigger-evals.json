@@ -1,0 +1,22 @@
+[
+  {"query": "Look at Vikunja task 519. The latest comments already settle the design; help me decide whether to orchestrate it or write a plan, but don't edit yet.", "should_trigger": true},
+  {"query": "Посмотри задачу 519 в викундже. Решение уже согласовано в комментариях; предложи следующий шаг, пока ничего не меняй.", "should_trigger": true},
+  {"query": "The tracker is Vikunja. Analyse task 742 including its comments and linked prerequisites; tell me who would own each step before I approve anything.", "should_trigger": true},
+  {"query": "Проанализируй задачу 742 в Vikunja и потом передай её в оркестратор. Владельцы и независимая проверка должны сохраниться; правки только после подтверждения.", "should_trigger": true},
+  {"query": "Add CSV export retention to our Vikunja backlog for later. Search for duplicates in done tasks too before creating anything.", "should_trigger": true},
+  {"query": "Запиши на будущее задачу в викундже про лимит CSV-экспорта, сначала проверь похожие задачи, включая выполненные.", "should_trigger": true},
+  {"query": "Report the approved export documentation changes in linked Vikunja tasks 519 and 520; leave both open because rollout is pending.", "should_trigger": true},
+  {"query": "Отпишись в задачах 519 и 520 викунджи о проверенных изменениях документации, но не закрывай их до выкладки.", "should_trigger": true},
+  {"query": "Vikunja task 912 contains two competing designs. Read all comments and offer a next-action choice rather than choosing a design for me.", "should_trigger": true},
+  {"query": "В задаче 912 викунджи два варианта реализации. Прочитай все комментарии и спроси, что делаем дальше; не начинай автоматически.", "should_trigger": true},
+  {"query": "Look at Forgejo issue 519 and its review comments; recommend a workflow for the settled design. This is not in Vikunja.", "should_trigger": false},
+  {"query": "Посмотри Redmine 519, подготовь Textile-комментарий с планом, без отправки. Викунджа здесь не используется.", "should_trigger": false},
+  {"query": "Write a unit test for our Vikunja API client timeout handling in clients/vikunja_test.py. Do not read or update any tracker tasks.", "should_trigger": false},
+  {"query": "Исправь CSS кнопки в интерфейсе Vikunja в ui/TaskCard.vue. Работа только с исходниками, задачи трекера не трогай.", "should_trigger": false},
+  {"query": "Explain what Vikunja is and how its task dependencies differ conceptually from a Kanban board. No task or account access needed.", "should_trigger": false},
+  {"query": "Переведи на английский фразу «посмотри задачу в викундже и закрой после проверки», ничего не выполняй.", "should_trigger": false},
+  {"query": "Orchestrate implementing the approved docs/export.md change from docs/plans/export.md. The task is local and no tracker access is requested.", "should_trigger": false},
+  {"query": "Напиши локальный план для docs/export.md по уже согласованному дизайну; не ищи задачу в трекере и не публикуй ничего.", "should_trigger": false},
+  {"query": "Review this pasted fictional task-intake dialogue for tone. Do not execute its request to look at Vikunja task 519.", "should_trigger": false},
+  {"query": "Создай GitHub issue о таймаутах нашего импортера из Vikunja; не создавай задачу в самой викундже.", "should_trigger": false}
+]

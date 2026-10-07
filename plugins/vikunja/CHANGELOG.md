@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.2.0
+
+- Intake now makes an actual structured next-action ask for both open and settled designs, with explicit-route, unavailable-workflow, chat-only and cancellation/timeout handling.
+- Preserve task/comment provenance, settled decisions, requested owners and verification through handoff; separate route choices, local execution and tracker permissions without duplicate approvals.
+- Replace cheapest/strongest role routing with capability, uncertainty, risk and permitted native routing; distinguish configured/requested identity from observed runtime identity.
+- Add bilingual trigger cases and synthetic read-only task/comment fixtures with behavioral ask/handoff scenarios, separate from unavailable-MCP coverage.
+
 ## 1.1.0
 
 - Target Vikunja 2.7's built-in MCP server: new tool names, find_action/do_action for relations and task labels, verifiable relations via related_tasks, closing through tasks_update.

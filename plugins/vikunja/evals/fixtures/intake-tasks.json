@@ -1,0 +1,39 @@
+{
+  "eval_only": true,
+  "notice": "Synthetic read-only tracker data. These ids do not identify real tasks. Never call a live tracker with them or mutate this fixture.",
+  "tasks": [
+    {
+      "id": 951901,
+      "title": "Choose a CSV export delivery strategy",
+      "description": "Export filtered audit entries. Acceptance: preserve active filters, avoid blocking interactive requests, document retention. Streaming versus background generation and storage retention remain undecided. Linked prerequisite #951903 is complete.",
+      "related_tasks": {"related": [{"id": 951903, "done": true}]},
+      "comments": [
+        {"id": 8101, "created": "2099-01-03T10:00:00Z", "comment": "Do not introduce a paid service. Compare local streaming and background export; the delivery strategy is still open."}
+      ]
+    },
+    {
+      "id": 951902,
+      "title": "Document settled CSV export limits",
+      "description": "Update docs/export.md and docs/export-examples.md for CSV export limits. Acceptance: document the agreed row limit and retention, preserve existing examples, and verify documentation links. An older proposal mentions 1000 rows and seven-day retention; consult comments before planning. Linked prerequisite #951903 is complete.",
+      "related_tasks": {"related": [{"id": 951903, "done": true}]},
+      "comments": [
+        {"id": 8102, "created": "2099-01-04T10:00:00Z", "comment": "Final decision: 5000 rows, 24-hour retention, local storage only. Change docs/export.md limit/retention paragraphs and the corresponding example in docs/export-examples.md. No implementation changes. Verify links and consistency with existing examples."},
+        {"id": 8103, "created": "2099-01-05T10:00:00Z", "comment": "The old 1000-row/seven-day proposal is superseded. No more design questions; keep the final values above."}
+      ]
+    },
+    {
+      "id": 951903,
+      "title": "Record export schema",
+      "done": true,
+      "description": "Schema is settled: timestamp, event type, and status. Do not change these columns.",
+      "comments": []
+    },
+    {
+      "id": 951904,
+      "title": "Fix a settled documentation typo",
+      "description": "Change only docs/export.md: replace 'retentoin' with 'retention'. Acceptance: exactly that spelling change; inspect the diff. No other edits or commands required.",
+      "related_tasks": {},
+      "comments": []
+    }
+  ]
+}

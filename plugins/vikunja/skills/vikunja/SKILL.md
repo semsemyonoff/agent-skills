@@ -1,6 +1,6 @@
 ---
 name: vikunja
-description: Work with Vikunja tasks through the available Vikunja MCP tools in Claude Code, omp, or another MCP-capable harness — creating backlog tasks, analysing a task before doing it, writing progress reports and closing tasks, linking tasks, editing descriptions and comments. Use for ANY Vikunja work, even when the user only says "task N", "the tracker" or "the backlog". Triggers - "create a task", "add to the backlog", "look at task N and plan", "report in the linked tasks", "close task N", "vikunja", «заведи задачу», «запиши в бэклог», «запиши на будущее», «посмотри задачу N викунджа, проанализируй», «отпишись в задачах», «закрой задачу», «пройдись по проекту и отпишись в выполненных». Not for Redmine or Forgejo issues.
+description: Work with Vikunja tasks through the available Vikunja MCP tools in Claude Code, omp, or another MCP-capable harness — creating backlog tasks, analysing a task and asking which next action to take even when its design is settled, writing progress reports and closing tasks, linking tasks, editing descriptions and comments. Use for ANY Vikunja work, even when the user only says "task N", "the tracker" or "the backlog". Triggers - "create a task", "add to the backlog", "look at task N", "look at task N and plan", "report in the linked tasks", "close task N", "vikunja", «заведи задачу», «запиши в бэклог», «запиши на будущее», «посмотри задачу N викунджа», «проанализируй задачу», «отпишись в задачах», «закрой задачу», «пройдись по проекту и отпишись в выполненных». Not for Redmine or Forgejo issues.
 ---
 
 # Vikunja
@@ -45,7 +45,7 @@ the harness, not through a replacement REST client or scripts.
 | The user wants | Read |
 | --- | --- |
 | a new task recorded (backlog, "for later", a spin-off, a follow-up) | `sections/backlog.md` |
-| to understand or start a task ("look at task N"): analysis, then brainstorm, or a plan if the solution is settled | `sections/intake.md` |
+| to understand or start a task ("look at task N"): read-only analysis, then an actual next-action choice for open or settled designs | `sections/intake.md` |
 | progress written into tasks, tasks closed, a sweep over a project | `sections/report.md` |
 | anything else (edit a description, add a label, link tasks) | rules below, details in `references/conventions.md` |
 
@@ -75,7 +75,7 @@ the harness, not through a replacement REST client or scripts.
    with "auto mode classifier gave no verdict", retry once.
 9. **Writes need a mandate.** Creating a task or comment is fine when the user asked for it. Closing a
    task, deleting, or touching tasks the user did not mention needs an explicit request or confirmation.
-   In an intake, change nothing until the user confirms.
+   In an intake, route selection alone grants no writes; preserve exact execution and tracker permissions.
 
 ## References
 

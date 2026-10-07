@@ -1,5 +1,5 @@
 ---
-description: Analyse a Vikunja task, then propose a brainstorm on open decisions, or a plan with delegation if the task already settles the solution
+description: Analyse a Vikunja task and ask which available next action to take, preserving settled decisions, delegation and execution permissions
 argument-hint: "<task id or link>"
 ---
 
