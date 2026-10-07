@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.2.0
+
+- Offer supplemental review at plan confirmation: Codex CLI in Claude Code or the discovered `second-opinion` agent in omp, with a separate explicit decision, stable-final checkpoint and no replacement of mandatory independent review.
+- Honor schema-exposed task-item and public eval model selectors, authorized ordered candidates and native routing precedence without treating requested preferences as a closed runtime fallback allowlist.
+- Extend behavioral traces for scoped repair/re-review rounds, stale-review invalidation, supported selector permissions and supplemental-review choice, completion and failure boundaries.
+
 ## 2.1.2
 
 - Freeze the reviewed scope while an independent review runs; coordinator fixes wait until it returns.

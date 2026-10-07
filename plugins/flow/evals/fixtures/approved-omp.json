@@ -1,5 +1,7 @@
 {
   "adapter": "omp",
+  "schema_version": 2,
+  "synthetic": true,
   "events": [
     {
       "type": "capabilities",
@@ -8,6 +10,9 @@
       "reviewer": true,
       "ask_ui": true,
       "second_opinion": true,
+      "second_opinion_route": "second-opinion",
+      "native_model": {"task_item": ["string", "ordered"]},
+      "native_models": ["fixture-model-standard", "fixture-model-strong"],
       "native_routes": {
         "research": "scout",
         "implementation": ["flow-worker-light", "flow-worker-standard", "flow-worker-strong"],
@@ -53,7 +58,9 @@
       "type": "ask",
       "source": "fixture:synthetic-observation",
       "channel": "ui",
-      "text": "Approve P1 autonomous execution through independent verification and report?"
+      "supplemental_review": true,
+      "opinion_options": ["second-opinion", "decline"],
+      "text": "Approve P1 autonomous execution through independent verification and report? Separately, supplemental read-only second-opinion review, or decline?"
     },
     {
       "type": "approval",

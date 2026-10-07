@@ -1,0 +1,25 @@
+{
+  "adapter": "omp",
+  "schema_version": 2,
+  "synthetic": true,
+  "scenario": "native-item-ordered-model-policy",
+  "events": [
+    {"type": "capabilities", "source": "fixture:synthetic-schema", "delegation": true, "reviewer": true, "ask_ui": true, "second_opinion": false, "native_routes": {"implementation": "flow-worker-standard", "review": "flow-review-standard"}, "native_model": {"task_item": ["string", "ordered"]}, "native_models": ["fixture-model-A", "fixture-model-B"]},
+    {"type": "permission", "source": "fixture:synthetic-user-policy", "actor": "user", "id": "model-A", "kind": "model_switch", "target": "fixture-model-A", "text": "Prior exact policy authorizes fixture-model-A for this local editing scope."},
+    {"type": "permission", "source": "fixture:synthetic-user-policy", "actor": "user", "id": "model-B", "kind": "model_switch", "target": "fixture-model-B", "text": "Prior exact policy authorizes fixture-model-B for this local editing scope."},
+    {"type": "phase", "source": "fixture:synthetic-action", "name": "recon"},
+    {"type": "phase", "source": "fixture:synthetic-action", "name": "plan"},
+    {"type": "plan", "source": "fixture:synthetic-output", "id": "P1", "scopes": ["checkout"], "text": "Standard editing: known local Decimal boundary; authorized task-item preferences A then B. Independent standard-risk review; no settings writes. Actual routing remains separately observed."},
+    {"type": "ask", "source": "fixture:synthetic-question", "channel": "ui", "text": "Start P1, start phase by phase, or change plan? Supplemental route is unavailable."},
+    {"type": "approval", "source": "fixture:synthetic-user", "actor": "user", "plan": "P1", "phases": ["execution", "verification", "report"], "text": "Start this exact local plan autonomously under the existing A/B policy."},
+    {"type": "phase", "source": "fixture:synthetic-action", "name": "execution"},
+    {"type": "dispatch", "source": "fixture:synthetic-tool", "worker": "implementer-1", "category": "implementation", "scope": "checkout", "model_permissions": {"fixture-model-A": "model-A", "fixture-model-B": "model-B"}, "params": {"context": "Approved local checkout rounding plan P1; no external actions.", "tasks": [{"agent": "flow-worker-standard", "model": ["fixture-model-A", "fixture-model-B"], "task": "Fix approved checkout rounding", "solutionSpace": "Exact Decimal rounding only; no other changes."}]}},
+    {"type": "model_observation", "source": "fixture:synthetic-native-result", "worker": "implementer-1", "expected": "fixture-model-A", "actual": "fixture-model-B", "permission": "model-B", "target": "fixture-model-B"},
+    {"type": "work", "source": "fixture:synthetic-diff", "actor": "implementer-1", "scope": "checkout", "kind": "local_write", "target": "checkout/rounding.py"},
+    {"type": "phase", "source": "fixture:synthetic-action", "name": "verification"},
+    {"type": "dispatch", "source": "fixture:synthetic-tool", "worker": "reviewer-1", "category": "review", "params": {"context": "Independently verify the stable checkout result against P1.", "tasks": [{"agent": "flow-review-standard", "task": "Independently inspect current checkout and rounding cases", "solutionSpace": "Verify exact rounding boundaries and unchanged scope; no edits."}]}},
+    {"type": "review", "source": "fixture:synthetic-result", "actor": "reviewer-1", "scopes": ["checkout"], "result": "pass", "text": "Synthetic independent snapshot review and exact positive/negative rounding gates passed."},
+    {"type": "phase", "source": "fixture:synthetic-action", "name": "report"},
+    {"type": "report", "source": "fixture:synthetic-output", "status": "completed", "independent_verified": true, "text": "Synthetic trace only: authorized ordered task-item selectors and exact observed B fallback; current checkout reviewed independently. No live dispatch occurred."}
+  ]
+}

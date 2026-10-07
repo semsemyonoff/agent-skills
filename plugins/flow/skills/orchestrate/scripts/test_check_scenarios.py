@@ -39,6 +39,60 @@ def permission(kind, target, identifier="G1"):
                     text=f"I explicitly permit {kind}: {target}.")
 
 
+def authorize_models(trace, dispatch, selectors, surface="task_item"):
+    capabilities = find(trace, "capabilities")
+    capabilities.setdefault("native_model", {})[surface] = ["string", "ordered"]
+    capabilities.setdefault("native_models", []).extend(selectors)
+    dispatch["model_permissions"] = {}
+    for number, selector in enumerate(selectors):
+        identifier = f"model-{number}"
+        insert_before(trace, dispatch, permission("model_switch", selector, identifier))
+        dispatch["model_permissions"][selector] = identifier
+
+
+def repair_cycle(trace, phase_by_phase=False):
+    first_review = find(trace, "review")
+    first_review["result"] = "fail"
+    final_phase = find(trace, "phase", name="report")
+    reviewer = copy.deepcopy(find(trace, "dispatch", category="review"))
+    reviewer["worker"] = "reviewer-repair"
+    events = [
+        recorded("phase", name="execution"),
+        recorded("work", actor="implementer-1", scope="checkout",
+                 kind="local_write", target="checkout/rounding.py"),
+        recorded("phase", name="verification"),
+        reviewer,
+        recorded("review", actor="reviewer-repair", scopes=["checkout"], result="pass",
+                 text="Independently checked the repaired negative half-cent boundary."),
+    ]
+    insert_before(trace, final_phase, *events)
+    if phase_by_phase:
+        trace["events"].insert(1, recorded("user_request", actor="user", mode="phase-by-phase"))
+        trace["events"].remove(find(trace, "approval"))
+        for event in list(trace["events"]):
+            if event["type"] == "phase" and event["name"] in {"execution", "verification", "report"}:
+                insert_before(trace, event, recorded("approval", actor="user", plan="P1",
+                              phases=[event["name"]], text=f"Approve this {event['name']} phase now."))
+    return trace
+
+
+def supplemental(trace):
+    route = find(trace, "capabilities")["second_opinion_route"]
+    insert_before(trace, find(trace, "approval"),
+                  recorded("opinion_choice", actor="user", decision="accept", id="opinion-grant",
+                           target=route, text=f"Yes, one read-only {route} review after required verification."))
+    dispatch = recorded("dispatch", worker="opinion-1", category="second_opinion",
+                        params={"command": "synthetic read-only review"} if trace["adapter"] == "claude-code"
+                        else {"tasks": [{"agent": route, "task": "Read-only final diff review"}]},
+                        target=route, permission="opinion-grant", read_only=True)
+    if trace["adapter"] == "omp":
+        find(trace, "capabilities")["native_routes"]["second_opinion"] = route
+    insert_before(trace, find(trace, "phase", name="report"), dispatch,
+                  recorded("opinion_result", actor="opinion-1", result="completed",
+                           text="Actual synthetic result: no additional findings."))
+    return trace
+
+
 class BehavioralTraceTests(unittest.TestCase):
     def assert_violation(self, trace, code):
         errors = CHECKER.check_trace(trace)
@@ -62,7 +116,7 @@ class BehavioralTraceTests(unittest.TestCase):
         self.assert_violation(trace, "execution-approval")
 
     def test_nested_omp_model_and_generic_task_agent_are_rejected(self):
-        for key, value, violation in (("model", "unapproved-model", "dispatch-model"),
+        for key, value, violation in (("model", "unapproved-model", "undiscovered-model"),
                                       ("agent", "task", "generic-task-agent"),
                                       ("agent", "invented-reviewer", "undiscovered-agent"),
                                       ("effort", "invented-effort", "undiscovered-effort")):
@@ -72,7 +126,7 @@ class BehavioralTraceTests(unittest.TestCase):
                 self.assert_violation(trace, violation)
 
     def test_omp_output_schema_fields_are_not_route_controls(self):
-        for shape in ("batch", "flat"):
+        for shape in ("batch", "flat", "eval"):
             with self.subTest(shape=shape):
                 trace = fixture()
                 if shape == "flat":
@@ -81,8 +135,13 @@ class BehavioralTraceTests(unittest.TestCase):
                             event["params"] = event["params"]["tasks"][0]
                 dispatch = find(trace, "dispatch", category="implementation")
                 params = dispatch["params"]
+                if shape == "eval":
+                    dispatch["surface"] = "eval_agent"
+                    dispatch["params"] = {"prompt": params["tasks"][0]["task"],
+                                          "agent": params["tasks"][0]["agent"]}
+                    params = dispatch["params"]
                 item = params["tasks"][0] if shape == "batch" else params
-                item["outputSchema"] = {
+                item["schema" if shape == "eval" else "outputSchema"] = {
                     "type": "object",
                     "properties": {
                         "model": {"type": "string"},
@@ -95,7 +154,7 @@ class BehavioralTraceTests(unittest.TestCase):
                 }
                 self.assertEqual(CHECKER.check_trace(trace), [])
                 item["model"] = "unapproved-model"
-                self.assert_violation(trace, "dispatch-model")
+                self.assert_violation(trace, "undiscovered-model" if shape == "batch" else "dispatch-model")
 
     def test_flat_omp_dispatch_uses_discovered_category_routes(self):
         trace = fixture()
@@ -307,15 +366,13 @@ class BehavioralTraceTests(unittest.TestCase):
     def test_second_opinion_is_opt_in_read_only_not_independent_review(self):
         for adapter in ("omp", "claude-code"):
             with self.subTest(adapter=adapter):
-                trace = fixture(adapter)
-                opinion = recorded("dispatch", worker="opinion-1", category="second_opinion", params={"command": "explicitly chosen read-only CLI"}, target="codex", read_only=True)
-                insert_before(trace, find(trace, "phase", name="report"), opinion)
-                self.assert_violation(trace, "opinion-permission")
-                insert_before(trace, opinion, permission("second_opinion", "codex"))
-                opinion["permission"] = "G1"
+                trace = supplemental(fixture(adapter))
                 self.assertEqual(CHECKER.check_trace(trace), [])
                 find(trace, "review")["actor"] = "opinion-1"
                 self.assert_violation(trace, "self-review")
+                trace = supplemental(fixture(adapter))
+                find(trace, "dispatch", category="second_opinion")["read_only"] = False
+                self.assert_violation(trace, "opinion-write")
 
     def test_native_model_switch_needs_exact_permission(self):
         trace = fixture()
@@ -384,7 +441,7 @@ class BehavioralTraceTests(unittest.TestCase):
         wrong_role = copy.deepcopy(trace)
         find(wrong_role, "dispatch", worker="mechanics-batch-1")["item_index"] = 0
         self.assert_violation(wrong_role, "undiscovered-agent")
-        for key, value, violation in (("model", "unapproved-model", "dispatch-model"),
+        for key, value, violation in (("model", "unapproved-model", "undiscovered-model"),
                                       ("agent", "task", "generic-task-agent")):
             with self.subTest(parameter=key):
                 unsafe = copy.deepcopy(trace)
@@ -418,6 +475,414 @@ class BehavioralTraceTests(unittest.TestCase):
         trace = fixture()
         find(trace, "review")["scopes"] = ["other-component"]
         self.assert_violation(trace, "unverified-completion")
+
+    def test_authorized_native_selectors_match_exact_exposed_surface(self):
+        for surface in ("task_item", "task_flat", "eval_agent", "eval_workpool"):
+            with self.subTest(surface=surface):
+                trace = fixture()
+                dispatch = find(trace, "dispatch", category="implementation")
+                item = dispatch["params"]["tasks"][0]
+                if surface != "task_item":
+                    dispatch["params"] = item if surface == "task_flat" else {"agent": item["agent"], "prompt": item["task"]}
+                    dispatch["surface"] = surface
+                    item = dispatch["params"]
+                item["model"] = "fixture-model-standard"
+                authorize_models(trace, dispatch, [item["model"]], surface)
+                self.assertEqual(CHECKER.check_trace(trace), [])
+                find(trace, "capabilities")["native_model"].pop(surface)
+                self.assert_violation(trace, "dispatch-model")
+
+    def test_model_selection_needs_prior_permission_and_never_batch_container(self):
+        trace = fixture()
+        dispatch = find(trace, "dispatch", category="implementation")
+        item = dispatch["params"]["tasks"][0]
+        item["model"] = "fixture-model-standard"
+        self.assert_violation(trace, "model-permission")
+        authorize_models(trace, dispatch, [item["model"]])
+        self.assertEqual(CHECKER.check_trace(trace), [])
+        dispatch["params"]["model"] = item.pop("model")
+        self.assert_violation(trace, "dispatch-model")
+
+    def test_ordered_model_candidates_all_need_discovery_and_exact_permission(self):
+        trace = fixture()
+        dispatch = find(trace, "dispatch", category="implementation")
+        candidates = ["fixture-model-standard", "fixture-model-strong"]
+        dispatch["params"]["tasks"][0]["model"] = candidates
+        authorize_models(trace, dispatch, candidates)
+        self.assertEqual(CHECKER.check_trace(trace), [])
+        dispatch["model_permissions"].pop(candidates[1])
+        self.assert_violation(trace, "model-permission")
+        dispatch["params"]["tasks"][0]["model"].append("unknown-paid-fallback")
+        self.assert_violation(trace, "undiscovered-model")
+
+    def test_selector_array_is_not_permission_for_unobserved_runtime_fallback(self):
+        trace = fixture()
+        dispatch = find(trace, "dispatch", category="implementation")
+        dispatch["params"]["tasks"][0]["model"] = ["fixture-model-standard"]
+        authorize_models(trace, dispatch, ["fixture-model-standard"])
+        insert_before(trace, find(trace, "work"), recorded(
+            "model_observation", worker=dispatch["worker"], expected="fixture-model-standard",
+            actual="runtime-outside-policy-fallback"))
+        self.assert_violation(trace, "unexpected-model-route")
+
+    def test_all_batch_item_models_require_permission_not_just_selected_worker(self):
+        trace = fixture()
+        dispatch = find(trace, "dispatch", category="implementation")
+        dispatch["item_index"] = 0
+        dispatch["params"]["tasks"].append({"agent": "flow-worker-standard", "task": "Other item",
+                                          "model": "fixture-model-strong"})
+        self.assert_violation(trace, "model-permission")
+        authorize_models(trace, dispatch, ["fixture-model-strong"])
+        self.assertEqual(CHECKER.check_trace(trace), [])
+        dispatch["item_index"] = 1
+        dispatch["params"]["tasks"][1]["agent"] = "scout"
+        self.assert_violation(trace, "undiscovered-agent")
+
+    def test_failed_review_repair_and_independent_rereview_can_complete(self):
+        for adapter in ("omp", "claude-code"):
+            for phase_by_phase in (False, True):
+                with self.subTest(adapter=adapter, phase_by_phase=phase_by_phase):
+                    self.assertEqual(CHECKER.check_trace(repair_cycle(fixture(adapter), phase_by_phase)), [])
+
+    def test_phase_by_phase_repairs_need_new_execution_and_verification_approval(self):
+        for name in ("execution", "verification"):
+            with self.subTest(phase=name):
+                trace = repair_cycle(fixture(), True)
+                approvals = [event for event in trace["events"] if event["type"] == "approval" and event["phases"] == [name]]
+                trace["events"].remove(approvals[-1])
+                self.assert_violation(trace, "phase-approval")
+
+    def test_repairs_do_not_expand_authorized_scope(self):
+        trace = repair_cycle(fixture())
+        works = [event for event in trace["events"] if event["type"] == "work"]
+        works[-1]["scope"] = "billing"
+        self.assert_violation(trace, "execution-approval")
+
+    def test_old_passing_review_is_invalid_after_new_work(self):
+        trace = repair_cycle(fixture())
+        find(trace, "review", actor="reviewer-1")["result"] = "pass"
+        trace["events"].remove(find(trace, "review", actor="reviewer-repair"))
+        self.assert_violation(trace, "unverified-completion")
+
+    def test_inflight_review_cannot_approve_a_later_revision(self):
+        trace = fixture()
+        dispatch = find(trace, "dispatch", category="review")
+        review = find(trace, "review")
+        insert_before(trace, review, recorded("phase", name="execution"),
+                      recorded("work", actor="implementer-1", scope="checkout", kind="local_write",
+                               target="checkout/rounding.py"),
+                      recorded("phase", name="verification"))
+        self.assert_violation(trace, "stale-review")
+        duplicate = copy.deepcopy(dispatch)
+        insert_before(trace, review, duplicate)
+        self.assert_violation(trace, "worker-identity")
+
+    def test_reviewer_instance_cannot_return_two_rounds(self):
+        trace = fixture()
+        insert_before(trace, find(trace, "phase", name="report"), copy.deepcopy(find(trace, "review")))
+        self.assert_violation(trace, "review-round")
+
+    def test_supplemental_offered_separately_and_decline_makes_no_call(self):
+        for adapter in ("omp", "claude-code"):
+            with self.subTest(adapter=adapter):
+                trace = fixture(adapter)
+                insert_before(trace, find(trace, "approval"),
+                              recorded("opinion_choice", actor="user", decision="decline",
+                                       text="Decline supplemental review; retain required independent review."))
+                self.assertEqual(CHECKER.check_trace(trace), [])
+                find(trace, "ask").pop("supplemental_review")
+                trace["events"].remove(find(trace, "opinion_choice"))
+                self.assert_violation(trace, "missing-opinion-offer")
+
+    def test_start_does_not_authorize_supplemental_call(self):
+        trace = supplemental(fixture())
+        trace["events"].remove(find(trace, "opinion_choice"))
+        self.assert_violation(trace, "opinion-permission")
+
+    def test_supplied_decision_skips_duplicate_offer_not_plan_approval(self):
+        for decision in ("accept", "decline"):
+            with self.subTest(decision=decision):
+                trace = supplemental(fixture()) if decision == "accept" else fixture()
+                if decision == "decline":
+                    insert_before(trace, find(trace, "ask"), recorded(
+                        "opinion_choice", actor="user", decision="decline", text="No supplemental review."))
+                else:
+                    choice = find(trace, "opinion_choice")
+                    trace["events"].remove(choice)
+                    insert_before(trace, find(trace, "ask"), choice)
+                self.assert_violation(trace, "opinion-offer")
+                find(trace, "ask").pop("supplemental_review")
+                find(trace, "ask")["text"] = "Approve this exact local plan through mandatory independent review and report?"
+                self.assertEqual(CHECKER.check_trace(trace), [])
+                trace["events"].remove(find(trace, "approval"))
+                self.assert_violation(trace, "execution-approval")
+
+    def test_selected_supplemental_needs_one_actual_successful_result(self):
+        for result in (None, "timeout", "empty", "cancelled", "failed"):
+            with self.subTest(result=result):
+                trace = supplemental(fixture())
+                event = find(trace, "opinion_result")
+                if result is None:
+                    trace["events"].remove(event)
+                else:
+                    event["result"] = result
+                self.assert_violation(trace, "opinion-incomplete")
+        trace = supplemental(fixture())
+        extra = copy.deepcopy(find(trace, "dispatch", category="second_opinion"))
+        extra["worker"] = "opinion-extra"
+        insert_before(trace, find(trace, "phase", name="report"), extra)
+        self.assert_violation(trace, "opinion-count")
+
+    def test_supplemental_requires_final_mandatory_review_and_stable_tree(self):
+        trace = supplemental(fixture())
+        dispatch = find(trace, "dispatch", category="second_opinion")
+        trace["events"].remove(dispatch)
+        insert_before(trace, find(trace, "review"), dispatch)
+        self.assert_violation(trace, "opinion-checkpoint")
+        trace = supplemental(repair_cycle(fixture()))
+        dispatch = find(trace, "dispatch", category="second_opinion")
+        first_review = find(trace, "review", actor="reviewer-1")
+        first_review["result"] = "pass"
+        self.assertEqual(CHECKER.check_trace(trace), [])
+        trace["events"].remove(dispatch)
+        insert_before(trace, next(event for event in trace["events"] if event["type"] == "phase"
+                      and event["name"] == "execution" and trace["events"].index(event) > trace["events"].index(first_review)), dispatch)
+        self.assert_violation(trace, "opinion-stability")
+
+    def test_supplemental_findings_can_be_fixed_with_mandatory_rereview_only(self):
+        trace = supplemental(repair_cycle(fixture()))
+        first_review = find(trace, "review", actor="reviewer-1")
+        first_review["result"] = "pass"
+        dispatch = find(trace, "dispatch", category="second_opinion")
+        result = find(trace, "opinion_result")
+        result["text"] = "Completed supplemental review: found the negative half-cent bug; coordinator accepts and fixes it."
+        trace["events"].remove(dispatch)
+        trace["events"].remove(result)
+        repair_phase = next(event for event in trace["events"] if event["type"] == "phase"
+                            and event["name"] == "execution" and trace["events"].index(event) > trace["events"].index(first_review))
+        insert_before(trace, repair_phase, dispatch, result)
+        self.assertEqual(CHECKER.check_trace(trace), [])
+        trace["events"].remove(find(trace, "review", actor="reviewer-repair"))
+        self.assert_violation(trace, "unverified-completion")
+
+    def test_new_supplemental_round_requires_new_exact_grant(self):
+        trace = supplemental(fixture())
+        extra = copy.deepcopy(find(trace, "dispatch", category="second_opinion"))
+        extra["worker"] = "opinion-extra"
+        extra["permission"] = "opinion-new"
+        route = extra["target"]
+        insert_before(trace, find(trace, "phase", name="report"),
+                      permission("second_opinion", route, "opinion-new"), extra,
+                      recorded("opinion_result", actor="opinion-extra", result="completed",
+                               text="Second explicitly authorized synthetic round completed."))
+        self.assertEqual(CHECKER.check_trace(trace), [])
+        trace["events"].remove(find(trace, "permission", id="opinion-new"))
+        self.assert_violation(trace, "opinion-permission")
+
+    def test_decline_cannot_authorize_call_or_replace_required_review(self):
+        trace = supplemental(fixture())
+        choice = find(trace, "opinion_choice")
+        choice["decision"] = "decline"
+        self.assert_violation(trace, "opinion-permission")
+        trace["events"].remove(find(trace, "review"))
+        self.assert_violation(trace, "unverified-completion")
+
+    def test_malformed_ordered_model_selectors_are_rejected(self):
+        for selector in ([], [None], ["fixture-model-standard", False], {"role": "standard"}):
+            with self.subTest(selector=selector):
+                trace = fixture()
+                find(trace, "dispatch", category="implementation")["params"]["tasks"][0]["model"] = selector
+                self.assert_violation(trace, "model-selector")
+
+    def test_public_eval_discovery_is_not_inferred_from_task_model_support(self):
+        for surface in ("eval_agent", "eval_workpool"):
+            with self.subTest(surface=surface):
+                trace = fixture()
+                dispatch = find(trace, "dispatch", category="implementation")
+                dispatch["surface"] = surface
+                dispatch["params"] = {"prompt": "Implement approved checkout only", "agent": "flow-worker-standard",
+                                      "model": "fixture-model-standard"}
+                authorize_models(trace, dispatch, ["fixture-model-standard"])
+                self.assert_violation(trace, "dispatch-model")
+
+    def test_hidden_nested_settings_are_not_native_model_selectors(self):
+        trace = fixture()
+        item = find(trace, "dispatch", category="implementation")["params"]["tasks"][0]
+        item["routing"] = {"modelOverride": "fixture-model-standard"}
+        self.assert_violation(trace, "dispatch-model")
+
+    def test_flat_payload_cannot_claim_batch_item_schema(self):
+        trace = fixture()
+        dispatch = find(trace, "dispatch", category="implementation")
+        dispatch["params"] = dispatch["params"]["tasks"][0]
+        dispatch["params"]["model"] = "fixture-model-standard"
+        dispatch["surface"] = "task_item"
+        authorize_models(trace, dispatch, ["fixture-model-standard"])
+        self.assert_violation(trace, "dispatch-surface")
+        self.assert_violation(trace, "dispatch-model")
+
+    def test_new_synthetic_schema_fixtures_are_safe(self):
+        for filename in ("approved-native-model-omp.json", "approved-repair-omp.json",
+                         "approved-supplemental-claude-code.json", "approved-supplemental-omp.json"):
+            with self.subTest(filename=filename):
+                trace = json.loads((FIXTURES / filename).read_text(encoding="utf-8"))
+                self.assertIs(trace["synthetic"], True)
+                self.assertEqual(CHECKER.check_trace(trace), [])
+
+    def test_exact_prior_selector_grant_can_be_reused_by_matching_workers(self):
+        trace = fixture()
+        dispatch = find(trace, "dispatch", category="implementation")
+        dispatch["params"]["tasks"][0]["model"] = "fixture-model-standard"
+        authorize_models(trace, dispatch, ["fixture-model-standard"])
+        another = copy.deepcopy(dispatch)
+        another["worker"] = "implementer-2"
+        insert_before(trace, find(trace, "work"), another)
+        self.assertEqual(CHECKER.check_trace(trace), [])
+        grant = find(trace, "permission", id="model-0")
+        trace["events"].remove(grant)
+        insert_before(trace, find(trace, "work"), grant)
+        self.assert_violation(trace, "model-permission")
+
+    def test_ordered_public_eval_selectors_use_their_own_schema_and_permissions(self):
+        for surface in ("eval_agent", "eval_workpool"):
+            with self.subTest(surface=surface):
+                trace = fixture()
+                dispatch = find(trace, "dispatch", category="implementation")
+                dispatch["surface"] = surface
+                candidates = ["fixture-model-standard", "fixture-model-strong"]
+                dispatch["params"] = {"agent": "flow-worker-standard", "prompt": "Fix approved checkout",
+                                      "model": candidates}
+                authorize_models(trace, dispatch, candidates, surface)
+                self.assertEqual(CHECKER.check_trace(trace), [])
+                dispatch["model_permissions"].pop(candidates[1])
+                self.assert_violation(trace, "model-permission")
+
+    def test_failed_supplemental_can_be_explicitly_waived_without_faking_success(self):
+        for result in ("failed", "timeout", "empty", "cancelled"):
+            with self.subTest(result=result):
+                trace = supplemental(fixture())
+                find(trace, "opinion_result")["result"] = result
+                insert_before(trace, find(trace, "phase", name="report"), recorded(
+                    "opinion_choice", actor="user", decision="waive", target="opinion-grant",
+                    text=f"I explicitly waive the supplemental requirement after its observed {result}; required review remains."))
+                report = find(trace, "report")
+                report["supplemental_status"] = "waived"
+                report["text"] = f"Required independent review passed. Supplemental review {result}; user explicitly waived that failed requirement, not completed review."
+                self.assertEqual(CHECKER.check_trace(trace), [])
+                report["supplemental_status"] = "completed"
+                self.assert_violation(trace, "opinion-waiver-report")
+
+    def test_waiver_cannot_cover_missing_result_wrong_grant_or_mandatory_review(self):
+        for variant in ("missing-result", "wrong-grant", "missing-independent-review"):
+            with self.subTest(variant=variant):
+                trace = supplemental(fixture())
+                find(trace, "opinion_result")["result"] = "timeout"
+                waiver = recorded("opinion_choice", actor="user", decision="waive",
+                                  target="opinion-grant", text="Waive this actual failed supplemental grant only.")
+                insert_before(trace, find(trace, "phase", name="report"), waiver)
+                find(trace, "report")["supplemental_status"] = "waived"
+                if variant == "missing-result":
+                    trace["events"].remove(find(trace, "opinion_result"))
+                elif variant == "wrong-grant":
+                    waiver["target"] = "another-grant"
+                else:
+                    trace["events"].remove(find(trace, "review"))
+                self.assert_violation(trace, "unverified-completion" if variant == "missing-independent-review" else "opinion-waiver")
+
+    def test_supplemental_and_report_wait_for_all_mandatory_reviewer_results(self):
+        trace = supplemental(fixture())
+        extra = copy.deepcopy(find(trace, "dispatch", category="review"))
+        extra["worker"] = "reviewer-extra"
+        insert_before(trace, find(trace, "dispatch", category="second_opinion"), extra)
+        self.assert_violation(trace, "opinion-checkpoint")
+        self.assert_violation(trace, "review-incomplete")
+
+    def test_malformed_model_discovery_cannot_bypass_selector_safety(self):
+        for surfaces, inventory in (([], None), ({"task_item": True}, "fixture-model-standard")):
+            with self.subTest(surfaces=surfaces):
+                trace = fixture()
+                capabilities = find(trace, "capabilities")
+                capabilities["native_model"] = surfaces
+                capabilities["native_models"] = inventory
+                find(trace, "dispatch", category="implementation")["params"]["tasks"][0]["model"] = "fixture-model-standard"
+                self.assert_violation(trace, "model-capability-schema")
+                self.assert_violation(trace, "dispatch-model")
+
+    def test_omp_supplemental_cannot_replace_native_agent_with_claude_cli(self):
+        trace = supplemental(fixture())
+        dispatch = find(trace, "dispatch", category="second_opinion")
+        dispatch["params"] = {"command": "substitute Claude Codex helper"}
+        self.assert_violation(trace, "opinion-route")
+
+    def test_supplemental_absent_route_cannot_substitute(self):
+        trace = supplemental(fixture())
+        find(trace, "capabilities").pop("second_opinion_route")
+        find(trace, "ask").pop("supplemental_review")
+        self.assert_violation(trace, "opinion-route")
+
+    def test_supplemental_timeout_or_dismissal_never_grants_approval(self):
+        for field in ("timed_out", "dismissed"):
+            with self.subTest(field=field):
+                trace = supplemental(fixture())
+                find(trace, "opinion_choice")[field] = True
+                self.assert_violation(trace, "permission-origin")
+                self.assert_violation(trace, "opinion-permission")
+
+    def test_replacement_plan_discards_unconsumed_phase_approval(self):
+        trace = fixture()
+        trace["events"].insert(1, recorded("user_request", actor="user", mode="phase-by-phase"))
+        find(trace, "approval")["phases"] = ["execution"]
+        replacement = copy.deepcopy(find(trace, "plan"))
+        replacement["id"] = "P2"
+        approval = recorded("approval", actor="user", plan="P2", phases=["execution"],
+                            text="Approve execution of replacement P2.")
+        insert_before(trace, find(trace, "phase", name="execution"), replacement, approval)
+        for phase in ("verification", "report"):
+            insert_before(trace, find(trace, "phase", name=phase), recorded(
+                "approval", actor="user", plan="P2", phases=[phase],
+                text=f"Approve current {phase} phase under P2."))
+        self.assertEqual(CHECKER.check_trace(trace), [])
+        trace["events"].remove(approval)
+        self.assert_violation(trace, "phase-approval")
+
+    def test_terminal_reviewer_failure_allows_fresh_review_without_coverage(self):
+        for repair in (False, True):
+            with self.subTest(repair=repair):
+                trace = repair_cycle(fixture()) if repair else fixture()
+                first_review = find(trace, "review", actor="reviewer-1")
+                insert_before(trace, first_review,
+                              recorded("failure", worker="reviewer-1"),
+                              recorded("sharpen_brief", worker="reviewer-1",
+                                       text="Review invocation failed; retry a bounded current-tree brief."))
+                if not repair:
+                    replacement = copy.deepcopy(find(trace, "dispatch", category="review"))
+                    replacement["worker"] = "reviewer-replacement"
+                    verdict = copy.deepcopy(first_review)
+                    verdict["actor"] = "reviewer-replacement"
+                    insert_before(trace, first_review, replacement, verdict)
+                else:
+                    verdict = find(trace, "review", actor="reviewer-repair")
+                trace["events"].remove(first_review)
+                self.assertEqual(CHECKER.check_trace(trace), [])
+                stale = copy.deepcopy(trace)
+                insert_before(stale, find(stale, "phase", name="report"), first_review)
+                self.assert_violation(stale, "review-round")
+                trace["events"].remove(verdict)
+                self.assert_violation(trace, "unverified-completion")
+
+    def test_second_opinion_round_cannot_hide_unsettled_first_round(self):
+        trace = supplemental(fixture())
+        first_result = find(trace, "opinion_result")
+        trace["events"].remove(first_result)
+        second = copy.deepcopy(find(trace, "dispatch", category="second_opinion"))
+        second.update(worker="opinion-2", permission="opinion-grant-2")
+        insert_before(trace, find(trace, "phase", name="report"),
+                      permission("second_opinion", "second-opinion", "opinion-grant-2"),
+                      second, recorded("opinion_result", actor="opinion-2",
+                                       result="completed", text="Second authorized round completed."))
+        self.assert_violation(trace, "opinion-incomplete")
+        insert_before(trace, find(trace, "phase", name="report"), first_result)
+        self.assertEqual(CHECKER.check_trace(trace), [])
 
     def test_cli_returns_nonzero_for_unsafe_trace_and_reports_both_inputs(self):
         safe = fixture()

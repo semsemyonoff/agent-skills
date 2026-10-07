@@ -88,9 +88,18 @@ explicitly chooses that mode («по фазам», «пофазно», "phase by
 approve each phase). Do not interpret a task broken into numbered steps as phase-by-phase permission.
 Apply substantive plan changes before execution and obtain approval for changed scope or routes.
 
-If offering a second opinion, distinguish it from the required independent reviewer. Ask separately
-whether the available native/CLI route is wanted and obtain permission for its external model call.
-Do not assume a different vendor. `references/codex-review.md` describes the optional CLI route.
+At this checkpoint, offer an additional read-only second opinion when its route is available:
+**Claude Code — Codex CLI; omp — the discovered `second-opinion` agent**. Ask a separate question,
+in the same approval form when possible: "Additional review via <route> after implementation? /
+No additional review". Explain that the required independent reviewer still runs either way.
+Choosing Start does not answer this question or authorize the extra model call. Record the chosen
+route, exact reviewed scope and checkpoint; honor an explicit earlier yes/no without asking again.
+The default checkpoint is the stable final result after mandatory independent review and checks.
+Use the active adapter's discovery and invocation instructions; do not assume a different vendor.
+If the route is unavailable, say so once and omit its offer, never substitute another agent/CLI.
+An explicitly requested unavailable review is a blocker until the user changes that requirement.
+Timeout, dismissal, redirect and silence are not consent; use a text question only when ask UI
+is absent. `references/codex-review.md` describes the Claude CLI route.
 
 ## 4. Execution
 
@@ -153,8 +162,15 @@ A previous APPROVE is not approval of a version the reviewer has not seen.
 
 If independent review is unavailable, say that it is missing and request an approved reviewer route
 or a user decision. Self-checks may still be reported as self-checks, but cannot become independent
-verification. A failed/empty optional review is failure, not "no findings". Run an approved second
-opinion only at its agreed checkpoint, after the final tree is stable.
+verification. A failed/empty optional review is failure, not "no findings". Run the selected extra
+review once at its agreed checkpoint on a frozen result, using a different instance from the
+implementer and required reviewer. Supply original acceptance, changed scope/version, pre-existing
+edits and observed checks. Assess every finding; accepted in-scope behavioral fixes return through
+implementation and mandatory independent verification. A second supplemental round needs new
+permission. Report its actual outcome and any later changes it did not review; never label a failed
+or unavailable chosen review as completed.
+After an observed supplemental failure, the user may explicitly waive that extra requirement;
+record the failure and waiver, never a passing review. Mandatory independent verification remains.
 
 ## 6. Report
 

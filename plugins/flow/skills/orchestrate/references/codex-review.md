@@ -11,7 +11,7 @@ shell/background tools. The Claude-only adapter may substitute its skill-directo
 
 ## Availability and approval
 
-When the user is interested in this route (or the Claude adapter offers the optional route), check:
+In Claude Code, check locally before plan confirmation unless the user already declined this route:
 
 ```sh
 python3 "$SKILL_ROOT/scripts/codex_review.py" check
@@ -19,20 +19,23 @@ python3 "$SKILL_ROOT/scripts/codex_review.py" check
 
 - `available` / exit 0: CLI found and the user's configured guard allowed it; authentication/model
   availability are not proved by this local check.
-- `unavailable: skip: ...`: CLI absent or `CODEX_REVIEW=off`; omit an unsolicited offer, or explain
-  unavailability if the user requested it.
-- `unavailable: guard: ...`: quote the refusal. Do not bypass the guard or modify settings.
+- `unavailable: skip: ...`: CLI absent or `CODEX_REVIEW=off`; say so once and omit the offer.
+- `unavailable: guard: ...`: quote the refusal and omit the offer. Do not bypass the guard or
+  modify settings. If this review was explicitly required, either absence is a blocker until the
+  user changes that requirement; do not silently finish without it.
 
 `CODEX_REVIEW`, `CODEX_REVIEW_GUARD`, `CODEX_MODEL`, and `CODEX_REASONING_EFFORT` are user environment
 choices, not skill settings. The guard is a user-supplied shell command; do not manufacture one.
 In omp do not automatically run this check/guard or offer/execute a CLI call as native review.
 
-Ask "Codex CLI second opinion at the end? / No"
-(«Дополнительное ревью через Codex CLI в конце? / Нет»). Record explicit permission for the external
-model call and its observed/permitted route. Do not guess model/effort. Offer `--xhigh` only if that
-effort is known supported by the configured route and the user explicitly chooses it.
-Record the start commit and pre-existing `git status --short` at approval so unrelated edits are
-not attributed to this run. Keep an actual changed-file/artifact inventory for accurate findings.
+In a separate question within plan confirmation, offer "Additional review via Codex CLI /
+No additional review" («Дополнительное ревью через Codex CLI / Без дополнительного ревью»).
+Reuse an explicit earlier yes/no; do not ask twice. Start alone grants no supplemental permission.
+Record permission for one external model call on the final stable scope and its observed/permitted
+route. Do not guess model/effort. Offer `--xhigh` only if that effort is known supported by the
+configured route and the user explicitly chooses it. Record the start commit and pre-existing
+`git status --short` at approval so unrelated edits are not attributed to this run. Keep an actual
+changed-file/artifact inventory for accurate findings.
 
 ## Run on the stable final tree
 

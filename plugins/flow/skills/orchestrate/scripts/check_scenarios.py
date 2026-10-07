@@ -35,6 +35,10 @@ def check_trace(trace):
     approved = set()
     phase = None
     seen_phases = []
+    transitions = {None: {"recon"}, "recon": {"plan"}, "plan": {"execution"},
+                   "execution": {"verification"}, "verification": {"execution", "report"},
+                   "report": set()}
+    next_approval = None
     permissions = {}
     dispatches = {}
     implementers = {"main"}
@@ -44,6 +48,14 @@ def check_trace(trace):
     sharpened = {}
     pending_model_changes = {}
     report_seen = False
+    review_results = set()  # Terminal attempts; only actual verdicts grant scope coverage.
+    revision = 0
+    review_revisions = {}
+    opinion_choice = None
+    opinion_offer = False
+    opinion_workers = {}
+    opinion_results = {}
+    waived_opinion = None
 
     def execution_allowed(scope):
         return (plan is not None and "execution" in approved
@@ -54,25 +66,50 @@ def check_trace(trace):
         return bool(grant and grant["kind"] == kind
                     and grant["target"] == event.get("target"))
 
-    def inspect_params(value):
-        if isinstance(value, dict):
-            for key, item in value.items():
-                normalized = key.replace("_", "").lower()
-                if adapter == "omp":
-                    require(normalized not in {"model", "modelid", "modelname", "modeloverride", "modeloverrides", "agentmodeloverride", "agentmodeloverrides", "modelrole", "modelroles"},
-                            "dispatch-model", "omp dispatch cannot set model parameters or settings")
-                    if key == "agent":
-                        require(item != "task", "generic-task-agent", "omit agent=task")
-                    if key == "effort":
-                        require(capabilities is not None and capabilities.get("native_effort") is True,
-                                "undiscovered-effort", "effort is legal only when the native tool exposes it")
-                        require("task" in value,
-                                "unsupported-effort-shape", "effort is a task-item control, not public eval or batch-top-level input")
-                        require(isinstance(item, str) and item in {"lo", "med", "hi"},
-                                "invalid-native-effort", "effort must use the exposed relative lo/med/hi ladder")
-                elif key == "model":
-                    require(permitted(event, "model_switch") and event.get("target") == item,
-                            "model-permission", "Claude native model override requires exact explicit permission")
+    def inspect_params(value, surface):
+        if not isinstance(value, dict):
+            return
+        for key, item in value.items():
+            normalized = key.replace("_", "").lower()
+            if adapter == "omp":
+                if normalized == "model":
+                    model_surfaces = capabilities.get("native_model", {}) if capabilities else {}
+                    forms = model_surfaces.get(surface, []) if isinstance(model_surfaces, dict) else []
+                    forms = forms if isinstance(forms, list) else []
+                    candidates = item if isinstance(item, list) else [item]
+                    shape = "ordered" if isinstance(item, list) else "string"
+                    require(key == "model" and shape in forms,
+                            "dispatch-model", "model selector must be exposed on this exact native surface")
+                    valid = bool(candidates) and all(isinstance(candidate, str) and candidate for candidate in candidates)
+                    require(valid, "model-selector", "model must be a nonempty string or ordered nonempty string list")
+                    if valid:
+                        inventory = capabilities.get("native_models", []) if capabilities else []
+                        inventory = inventory if isinstance(inventory, list) else []
+                        grants = event.get("model_permissions", {})
+                        for candidate in candidates:
+                            require(candidate in inventory, "undiscovered-model", "every selector must be exactly discovered/resolvable")
+                            grant = permissions.get(grants.get(candidate)) if isinstance(grants, dict) else None
+                            require(bool(grant and grant["kind"] == "model_switch" and grant["target"] == candidate),
+                                    "model-permission", "every candidate needs exact prior authorized policy/permission")
+                elif normalized in {"modelid", "modelname", "modeloverride", "modeloverrides",
+                                    "agentmodeloverride", "agentmodeloverrides", "modelrole", "modelroles",
+                                    "settings", "configuration"}:
+                    require(False, "dispatch-model", "hidden model overrides and settings are not public selectors")
+                if key == "agent":
+                    require(item != "task", "generic-task-agent", "omit agent=task")
+                if key == "effort":
+                    require(capabilities is not None and capabilities.get("native_effort") is True,
+                            "undiscovered-effort", "effort is legal only when the native tool exposes it")
+                    require(surface in {"task_item", "task_flat"},
+                            "unsupported-effort-shape", "effort is a task-item control, not public eval or batch-top-level input")
+                    require(isinstance(item, str) and item in {"lo", "med", "hi"},
+                            "invalid-native-effort", "effort must use the exposed relative lo/med/hi ladder")
+                if (isinstance(item, dict) and key not in {"outputSchema", "output_schema"}
+                        and not (surface == "eval_agent" and key == "schema")):
+                    inspect_params(item, "unsupported")
+            elif key == "model":
+                require(permitted(event, "model_switch") and event.get("target") == item,
+                        "model-permission", "Claude native model override requires exact explicit permission")
 
     for index, event in enumerate(events):
         if not isinstance(event, dict):
@@ -94,6 +131,19 @@ def check_trace(trace):
                         option is None or (isinstance(option, str) and bool(option.strip()))
                         for option in options),
                         "route-schema", "routes must be exact discovered profile names, explicit default null, or their allowlist")
+            model_surfaces = event.get("native_model", {})
+            require(isinstance(model_surfaces, dict) and all(
+                surface in {"task_item", "task_flat", "eval_agent", "eval_workpool"}
+                and isinstance(forms, list) and bool(forms)
+                and all(form in {"string", "ordered"} for form in forms)
+                for surface, forms in model_surfaces.items()),
+                "model-capability-schema", "record exact exposed model selector surfaces and forms")
+            inventory = event.get("native_models", [])
+            require(isinstance(inventory, list) and all(isinstance(model, str) and model for model in inventory),
+                    "model-capability-schema", "native_models must list exact discovered resolvable selectors")
+            route = event.get("second_opinion_route")
+            require(route is None or (isinstance(route, str) and bool(route)),
+                    "opinion-route-schema", "record the exact discovered supplemental route")
             capabilities = event
         elif kind == "user_request":
             require(event.get("actor") == "user" and event.get("mode") == "phase-by-phase",
@@ -102,10 +152,11 @@ def check_trace(trace):
             mode = "phase-by-phase"
         elif kind == "phase":
             name = event.get("name")
-            expected = PHASES[len(seen_phases)] if len(seen_phases) < len(PHASES) else None
-            require(name == expected, "phase-order", f"expected {expected}, observed {name}")
+            require(name in transitions.get(phase, set()), "phase-order", f"illegal transition {phase} -> {name}")
             if name in {"execution", "verification", "report"}:
-                require(name in approved, "phase-approval", f"{name} has no explicit approval")
+                require(name in approved and (mode != "phase-by-phase" or next_approval == name),
+                        "phase-approval", f"{name} has no fresh explicit approval")
+                next_approval = None
             phase = name
             seen_phases.append(name)
         elif kind == "plan":
@@ -116,14 +167,24 @@ def check_trace(trace):
             require(bool(event.get("text")), "plan-output", "capture the actual plan output")
             plan = event
             approved.clear()
+            next_approval = None
         elif kind == "ask":
             require(event.get("channel") in {"ui", "text"}, "ask-channel", "use UI or text")
             if capabilities and not capabilities.get("ask_ui"):
                 require(event.get("channel") == "text", "ask-fallback", "missing ask UI requires a text question")
             require(bool(event.get("text")), "ask-output", "capture the question shown to the user")
+            if event.get("supplemental_review") is True:
+                route = capabilities.get("second_opinion_route") if capabilities else None
+                require(phase == "plan" and opinion_choice is None and not opinion_offer,
+                        "opinion-offer", "offer once at plan approval, not after a supplied decision")
+                require(bool(route) and capabilities.get("second_opinion") is True
+                        and event.get("opinion_options") == [route, "decline"],
+                        "opinion-offer", "offer only the actual available route and decline")
+                opinion_offer = True
         elif kind == "approval":
+            valid_approval = event.get("actor") == "user" and event.get("timed_out", False) is False and event.get("dismissed", False) is False and bool(event.get("text"))
             require(event.get("actor") == "user", "inferred-approval", "only an observed user response grants approval")
-            require(event.get("timed_out", False) is False and bool(event.get("text")),
+            require(valid_approval,
                     "inferred-approval", "a timeout or auto-selection is not a user approval")
             require(plan is not None and event.get("plan") == plan["id"], "approval-plan", "approval must identify the current plan")
             phases = event.get("phases")
@@ -131,23 +192,55 @@ def check_trace(trace):
                 raise TraceError(f"event {index + 1}: approval phases must be a nonempty execution/verification/report list")
             if mode == "phase-by-phase":
                 require(len(phases) == 1, "phase-by-phase", "approve only one phase at a time")
-                next_phase = PHASES[len(seen_phases)] if len(seen_phases) < len(PHASES) else None
-                require(phases == [next_phase], "phase-by-phase", "wait for approval immediately before each next phase")
+                require(len(phases) == 1 and phases[0] in transitions.get(phase, set()) and next_approval is None,
+                        "phase-by-phase", "wait for fresh approval immediately before each next phase, including repairs")
+                if valid_approval and len(phases) == 1 and phases[0] in transitions.get(phase, set()):
+                    next_approval = phases[0]
             else:
                 require(set(phases) == set(PHASES[2:]), "autonomous-approval", "approve autonomous execution through report together")
-            approved.update(phases)
-        elif kind == "permission":
+            if capabilities and capabilities.get("second_opinion_route") and capabilities.get("second_opinion"):
+                require(opinion_offer or opinion_choice is not None, "missing-opinion-offer",
+                        "ask separately about supplemental review at approval unless already decided")
+            if valid_approval and plan is not None and event.get("plan") == plan["id"]:
+                approved.update(phases)
+        elif kind in {"permission", "opinion_choice"}:
+            is_choice = kind == "opinion_choice"
+            valid_grant = event.get("actor") == "user" and event.get("timed_out", False) is False and event.get("dismissed", False) is False and bool(event.get("text"))
             require(event.get("actor") == "user", "permission-origin", "permission must come from the user")
-            require(event.get("timed_out", False) is False and bool(event.get("text")),
-                    "permission-origin", "capture exact user permission, not a timeout/default")
+            require(valid_grant, "permission-origin", "capture exact user permission, not timeout/dismissal/default")
+            if is_choice:
+                require(event.get("decision") in {"accept", "decline", "waive"}, "opinion-choice", "record actual accept, decline, or exact after-failure waiver")
+                if event.get("decision") == "waive":
+                    workers = [worker for worker, grant in opinion_workers.items() if grant == opinion_choice]
+                    valid_waiver = (valid_grant and phase == "verification"
+                                    and opinion_choice not in {None, "decline"}
+                                    and event.get("target") == opinion_choice and len(workers) == 1
+                                    and opinion_results.get(workers[0]) in {"failed", "timeout", "empty", "cancelled"})
+                    require(valid_waiver, "opinion-waiver",
+                            "waive only the exact selected failed grant after its actual failure result")
+                    if valid_waiver:
+                        waived_opinion = opinion_choice
+                        opinion_choice = "decline"
+                    continue
+                require(opinion_choice is None, "opinion-choice", "do not duplicate an already supplied decision")
+                if valid_grant and event.get("decision") == "decline":
+                    opinion_choice = "decline"
+                    continue
+                event = dict(event, kind="second_opinion")
             require(event.get("kind") in {"external_write", "model_switch", "escalation", "second_opinion"},
                     "permission-kind", "record exact separate permission")
             permission_id = event.get("id")
             if not isinstance(permission_id, str) or not isinstance(event.get("target"), str) or not event["target"]:
                 raise TraceError(f"event {index + 1}: permission requires id and exact target")
             require(permission_id not in permissions, "permission-duplicate", "permission IDs must be unique")
-            permissions[permission_id] = event
-            if event.get("kind") == "model_switch":
+            if valid_grant:
+                permissions[permission_id] = event
+                if event.get("kind") == "second_opinion":
+                    require(is_choice or opinion_choice is None or phase == "verification",
+                            "opinion-choice", "additional supplemental rounds require a new explicit grant at verification")
+                    opinion_choice = permission_id
+                    waived_opinion = None
+            if valid_grant and event.get("kind") == "model_switch":
                 pending_model_changes = {worker: target for worker, target in pending_model_changes.items()
                                          if target != event["target"]}
         elif kind == "dispatch":
@@ -159,12 +252,20 @@ def check_trace(trace):
             if not isinstance(worker, str) or not isinstance(params, dict) or category not in CATEGORIES:
                 raise TraceError(f"event {index + 1}: dispatch requires worker, category, and raw params object")
             require(worker != "main" and worker not in dispatches, "worker-identity", "dispatch needs a unique independent worker identity")
-            inspect_params(params)
+            surface = event.get("surface", "task_flat" if "task" in params else "unsupported")
+            if adapter == "omp" and not isinstance(params.get("tasks"), list):
+                valid_surface = surface in {"task_flat", "eval_agent", "eval_workpool", "unsupported"}
+                require(valid_surface and ("task" not in params or surface == "task_flat")
+                        and (surface != "task_flat" or "task" in params),
+                        "dispatch-surface", "task-item exposure cannot be borrowed by a flat or public eval call")
+                if not valid_surface:
+                    surface = "unsupported"
+            inspect_params(params, "batch" if isinstance(params.get("tasks"), list) else surface)
             selected = params
             if adapter == "omp" and isinstance(params.get("tasks"), list):
                 tasks = params["tasks"]
                 for item in tasks:
-                    inspect_params(item)
+                    inspect_params(item, "task_item")
                 item_index = event.get("item_index", 0 if len(tasks) == 1 else None)
                 if type(item_index) is not int or not 0 <= item_index < len(tasks) or not isinstance(tasks[item_index], dict):
                     raise TraceError(f"event {index + 1}: item_index must identify this worker's task in the preserved batch")
@@ -185,11 +286,28 @@ def check_trace(trace):
                         "no-reviewer", "independent reviewer capability is unavailable")
                 require(phase == "verification" and "verification" in approved,
                         "review-phase", "review requires approved verification")
+                review_revisions[worker] = revision
             if category == "second_opinion":
+                require(not pending_model_changes, "unexpected-model-route",
+                        "stop supplemental review until exposed native substitution is resolved")
                 require(capabilities is not None and capabilities.get("second_opinion") is True,
                         "no-second-opinion", "optional second opinion capability is unavailable")
                 require(permitted(event, "second_opinion"), "opinion-permission", "second opinion must be explicitly chosen, never automatic")
                 require(event.get("read_only") is True, "opinion-write", "second opinion must be read-only")
+                route = capabilities.get("second_opinion_route") if capabilities else None
+                require(bool(route) and event.get("target") == route, "opinion-route", "absent route cannot be substituted")
+                if adapter == "omp":
+                    require(bool(route) and selected.get("agent") == route, "opinion-route",
+                            "omp must select the exact discovered second-opinion agent, not a CLI substitute")
+                require(opinion_choice == event.get("permission") and opinion_choice != "decline",
+                        "opinion-permission", "Start is not supplemental approval; a decline never permits a call")
+                require(phase == "verification" and bool(reviewed_scopes)
+                        and changed_scopes.issubset(reviewed_scopes)
+                        and all(worker in review_results for worker in review_revisions),
+                        "opinion-checkpoint", "supplemental review follows finished final required independent passing review")
+                require(event.get("permission") not in opinion_workers.values(), "opinion-count",
+                        "each explicit grant authorizes exactly one supplemental call")
+                opinion_workers[worker] = event.get("permission")
             dispatches[worker] = event
         elif kind == "work":
             require(capabilities is not None and capabilities.get("delegation") is True,
@@ -204,6 +322,12 @@ def check_trace(trace):
             if event.get("kind") == "external_write":
                 require(permitted(event, "external_write"), "external-permission", "plan approval is not exact permission for an external/irreversible action")
             if isinstance(scope, str):
+                require(all(worker in opinion_results for worker in opinion_workers),
+                        "opinion-stability", "do not change the tree while supplemental review is running")
+                require(all(worker in review_results for worker in review_revisions),
+                        "review-stability", "do not change the tree while independent review is running")
+                reviewed_scopes.clear()
+                revision += 1
                 changed_scopes.add(scope)
             if isinstance(actor, str):
                 implementers.add(actor)
@@ -219,10 +343,20 @@ def check_trace(trace):
             if not isinstance(scopes, list) or not all(isinstance(s, str) for s in scopes):
                 raise TraceError(f"event {index + 1}: review scopes must be strings")
             require(bool(event.get("text")) and event.get("result") in {"pass", "fail"}, "review-output", "capture actual review findings")
+            require(actor not in review_results, "review-round", "each unique reviewer instance returns only one round")
+            require(review_revisions.get(actor) == revision, "stale-review", "new work invalidates an in-flight review snapshot")
+            review_results.add(actor)
             if event.get("result") == "pass":
                 reviewed_scopes.update(scopes)
             else:
                 reviewed_scopes.difference_update(scopes)
+        elif kind == "opinion_result":
+            actor = event.get("actor")
+            require(actor in opinion_workers and actor not in opinion_results,
+                    "opinion-result", "result must identify the single dispatched supplemental worker once")
+            require(event.get("result") in {"completed", "failed", "timeout", "empty", "cancelled"} and bool(event.get("text")),
+                    "opinion-result", "completed means actual nonempty output, not a clean verdict; failures remain explicit")
+            opinion_results[actor] = event.get("result")
         elif kind == "model_observation":
             worker = event.get("worker")
             require(worker in dispatches, "model-worker", "routing observations must identify an actual dispatch")
@@ -239,6 +373,10 @@ def check_trace(trace):
             require(worker in dispatches, "failure-worker", "failure must identify an existing dispatch")
             if isinstance(worker, str):
                 failures[worker] = index
+                if worker in review_revisions:
+                    require(worker not in review_results, "review-round",
+                            "a reviewer attempt has only one terminal outcome")
+                    review_results.add(worker)
         elif kind == "sharpen_brief":
             worker = event.get("worker")
             require(worker in failures and bool(event.get("text")), "brief-first", "sharpen the brief after an observed failure")
@@ -257,7 +395,19 @@ def check_trace(trace):
             require(bool(event.get("text")), "report-output", "capture the actual final response")
             if status == "completed":
                 require(not pending_model_changes, "unexpected-model-route", "cannot complete with an unresolved observed native substitution")
-                require(seen_phases == PHASES, "incomplete-phases", "completion requires all five phases")
+                require(phase == "report" and set(PHASES).issubset(seen_phases),
+                        "incomplete-phases", "completion requires all phases and final report after current verification")
+                require(all(worker in opinion_results for worker in opinion_workers),
+                        "opinion-incomplete", "completion must wait for every dispatched supplemental result")
+                if opinion_choice not in {None, "decline"}:
+                    selected_workers = [worker for worker, grant in opinion_workers.items() if grant == opinion_choice]
+                    require(len(selected_workers) == 1 and opinion_results.get(selected_workers[0]) == "completed",
+                            "opinion-incomplete", "selected supplemental review needs an actual nonempty completed result before completion")
+                if waived_opinion is not None:
+                    require(event.get("supplemental_status") == "waived", "opinion-waiver-report",
+                            "report the failed supplemental requirement as waived, never completed")
+                require(all(worker in review_results for worker in review_revisions),
+                        "review-incomplete", "completion cannot precede an active mandatory reviewer result")
                 require(capabilities is not None and capabilities.get("delegation") is True and capabilities.get("reviewer") is True,
                         "capability-completion", "missing delegation/reviewer blocks completion")
                 require(bool(reviewed_scopes) and changed_scopes.issubset(reviewed_scopes),

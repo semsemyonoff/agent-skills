@@ -12,7 +12,7 @@ Discover the exposed native delegation tool: some Claude Code surfaces call it `
 | Mechanics | `flow-mechanics` | `haiku` | Exact known transformations |
 | Full editing | `flow-implementation` | `sonnet` | Same implementation capability across permitted complexity profiles |
 | Independent review | `flow-review` | `opus` | Separate read/verification; assess budget by risk, not this default |
-| Optional opinion | Discovered user-selected reviewer/CLI route | No fixed default | Supplemental only |
+| Optional opinion | Available Codex CLI, explicitly selected by the user | Native CLI configuration, not a fixed model | Supplemental after required review |
 
 These native templates establish capabilities, not a blanket implementation→sonnet or review→opus
 budget rule. Apply `references/routing.md` first. Native user/project/session definitions can provide
@@ -39,6 +39,22 @@ Use main-session `AskUserQuestion` when available. Follow its live schema: Claud
 - Russian: **Запустить согласованный план**, **Запустить по фазам**, **Изменить план**, **Не запускать**.
 
 A request for phase-by-phase execution is an explicit user choice, not the default. Interpret custom text/notes literally, including requests to wait. Subagents cannot use `AskUserQuestion`; workers report blockers to the orchestrator. If the tool is absent, present the same question in chat and wait for an explicit answer. Never treat a missing answer, cancellation, or question auto-continue timeout as permission. Exact external/irreversible actions require their own explicit authorization even when local execution is approved. Native permission dialogs remain additional safeguards; they do not replace the shared approval contract. [1][4]
+
+## Supplemental Codex review
+
+Before confirmation, use the local availability check in `references/codex-review.md`. When
+available, ask "Additional review via Codex CLI / No additional review"
+(«Дополнительное ревью через Codex CLI / Без дополнительного ревью») separately in the same
+`AskUserQuestion` form as plan approval. Explain its final stable-tree scope and external model call;
+Start alone does not authorize it. Honor an explicit earlier yes/no instead of asking again.
+If unavailable, say so once and omit its offer, without installing or substituting another route.
+An explicitly required unavailable review is a blocker until the user changes that requirement.
+
+Acceptance authorizes one read-only CLI review after implementation, required independent review
+and checks, not instead of them. Capture scope/baseline at approval, invoke the existing helper and
+consume its completed artifacts as described in `references/codex-review.md`. No model call before
+acceptance; no automatic extra round. Keep the reviewed tree stable and apply the shared rules for
+findings, mandatory re-verification, failure reporting and later unreviewed changes.
 
 ## Dispatch, completion, and review
 

@@ -1,0 +1,25 @@
+{
+  "adapter": "claude-code",
+  "schema_version": 2,
+  "synthetic": true,
+  "scenario": "supplemental-review-accept",
+  "events": [
+    {"type": "capabilities", "source": "fixture:synthetic-schema", "delegation": true, "reviewer": true, "ask_ui": true, "second_opinion": true, "second_opinion_route": "codex-cli"},
+    {"type": "phase", "source": "fixture:synthetic-action", "name": "recon"},
+    {"type": "phase", "source": "fixture:synthetic-action", "name": "plan"},
+    {"type": "plan", "source": "fixture:synthetic-output", "id": "P1", "scopes": ["checkout"], "text": "Known local Decimal boundary: standard permitted implementation and separate adequate review; offer existing Codex CLI separately without changing configuration."},
+    {"type": "ask", "source": "fixture:synthetic-question", "channel": "ui", "supplemental_review": true, "opinion_options": ["codex-cli", "decline"], "text": "Start P1, phase by phase, or change plan? Separately: one read-only Codex CLI round, or decline?"},
+    {"type": "opinion_choice", "source": "fixture:synthetic-user", "actor": "user", "decision": "accept", "id": "opinion-grant", "target": "codex-cli", "text": "Yes, exactly one read-only Codex CLI round after required final review and gates."},
+    {"type": "approval", "source": "fixture:synthetic-user", "actor": "user", "plan": "P1", "phases": ["execution", "verification", "report"], "text": "Start this exact local checkout plan autonomously."},
+    {"type": "phase", "source": "fixture:synthetic-action", "name": "execution"},
+    {"type": "dispatch", "source": "fixture:synthetic-tool", "worker": "implementer-1", "category": "implementation", "scope": "checkout", "params": {"subagent_type": "discovered-implementer", "prompt": "Fix checkout rounding only"}},
+    {"type": "work", "source": "fixture:synthetic-diff", "actor": "implementer-1", "scope": "checkout", "kind": "local_write", "target": "checkout/rounding.py"},
+    {"type": "phase", "source": "fixture:synthetic-action", "name": "verification"},
+    {"type": "dispatch", "source": "fixture:synthetic-tool", "worker": "reviewer-1", "category": "review", "params": {"subagent_type": "discovered-reviewer", "prompt": "Independently review current checkout diff and rounding gates"}},
+    {"type": "review", "source": "fixture:synthetic-result", "actor": "reviewer-1", "scopes": ["checkout"], "result": "pass", "text": "Required current-tree independent review and rounding gates passed."},
+    {"type": "dispatch", "source": "fixture:synthetic-cli", "worker": "opinion-1", "category": "second_opinion", "target": "codex-cli", "permission": "opinion-grant", "read_only": true, "params": {"command": "synthetic representation of existing read-only Codex CLI route; not executed"}},
+    {"type": "opinion_result", "source": "fixture:synthetic-cli-result", "actor": "opinion-1", "result": "completed", "text": "Nonempty synthetic Codex review output: no additional findings."},
+    {"type": "phase", "source": "fixture:synthetic-action", "name": "report"},
+    {"type": "report", "source": "fixture:synthetic-output", "status": "completed", "independent_verified": true, "text": "Synthetic trace only: required independent review plus one explicitly authorized completed supplemental Codex round on unchanged reviewed tree. No real external model calls."}
+  ]
+}

@@ -19,20 +19,26 @@ State the settled approach and authorized routing/budget policy, then a compact 
 ```
 
 These are examples, not a mandatory five-row decomposition or model benchmark. Inline trivial work
-and combine related simple slices first. A native profile is the requested selection; list any actual
-permitted invocation override separately (none on omp task/public eval model routing). Actual identity
-is **not spawned yet**, never a model-name guess. Missing required profiles/aliases are prerequisites,
-not silently replaced by generic/default task. A justified generic choice must name its verified
-effective pair, explicit policy permission and why it is sufficient for the assessed class.
+and combine related simple slices first. List the requested native profile and any permitted
+schema-exposed invocation selector separately, including ordered candidates when used. Current omp
+task items and public eval support `model`; discover the live surface rather than copying fields.
+Actual identity is **not spawned yet**, never a model-name guess. Missing required profiles/aliases
+are prerequisites, not silently replaced by generic/default task. A justified generic choice must
+name its verified effective pair, explicit policy permission and suitability for the assessed class.
 
 Add exact ownership/contracts and dependencies, reviewer independence, and verification owner.
 List permitted escalation profile(s), their conditions and budget within the authorized plan; stronger
 routes outside that allowance require a question. Ordinary matching-profile assignment does not.
-Name exact external actions separately. Optional second opinion stays explicit and supplemental.
+Name exact external actions separately. Discover the supplemental route before confirmation:
+Codex CLI in Claude Code, `second-opinion` in omp. It never replaces the required independent review.
 
 Confirm using the real ask UI or text when unavailable: Start / Start phase by phase / Change plan.
-A prior explicit approval of this exact plan suffices. Autonomous execution is default; silence,
-timeout/default, redirect or cancellation is not approval and cannot authorize a new route.
+In the same form, ask separately: Additional review via <route> after implementation / No additional
+review. Show its scope, stable-final checkpoint and extra model call; do not embed consent in Start.
+Honor prior explicit decisions for this exact plan and supplemental review independently. If only
+one decision remains, ask only that question. An unavailable unsolicited route gets a brief notice,
+not a substitute offer; an explicitly required unavailable review is a blocker.
+Autonomous execution is default; silence, timeout/default, redirect or cancellation is not approval.
 
 ## Final report
 
@@ -46,7 +52,7 @@ timeout/default, redirect or cancellation is not approval and cannot authorize a
 Verification: <exercised commands/scenarios; applicable browser, HTTP/API, WebSocket/transport, live-deployment subchecks and actual results, not worker claims>
 Independent review: <separate identity/profile, risk rationale, reviewed scope/version, findings/disposition; later nonbehavioral coordinator-only checks>
 Escalations: <new evidence, narrowed brief/split, authorized route and conditions; or explicit approval>
-Second opinion: <only when chosen, actual result/failure and disposition>
+Second opinion: <selected route; completed/failed/unavailable, findings/disposition, scope/version and later unreviewed changes; or declined>
 Integration: <completed implementation/gates versus pending PR/CI/merge; push is not completion>
 Not verified/blocked: <exact acceptance or capability still unavailable>
 ```

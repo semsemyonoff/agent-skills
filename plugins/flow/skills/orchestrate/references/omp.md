@@ -12,7 +12,7 @@ Read the current `task`, `ask`, and `wait` descriptions/schemas and exposed agen
 | Mechanics | Discovered `sonic` with a verified permitted exact-work pair | Exact known transformations only, not universal development |
 | Implementation | Discovered `flow-worker-light`, `flow-worker-standard`, `flow-worker-strong` or approved equivalent | Same full editing capability; choose by uncertainty/risk, not the category name |
 | Review | Separate discovered risk-appropriate `flow-review-*`, reviewer/security specialist or approved equivalent | Assess required pair independently; combine compatible coverage |
-| Optional second opinion | Explicitly selected discovered reviewer | Supplemental checkpoint, not automatic fallback |
+| Optional second opinion | Discovered `second-opinion` agent, explicitly selected by the user | Separate supplemental instance after required review, not its replacement |
 
 Read `references/routing.md` before choosing a profile. Native resources and their role contract are
 in `references/native-setup.md`; files being present here does not mean they are deployed or enabled.
@@ -21,10 +21,16 @@ Omission is legal only if the authorized policy expressly includes that effectiv
 the plan gives a capability/complexity suitability reason. Discover omission's actual resolution:
 usually task for unrestricted parents, potentially another agent for restricted parents. [1][4]
 
-The task wire has **no model field**. Public eval `agent()`/`workpool()` likewise select a discovered
-agent, not a public per-call model override. Do not advertise an internal bridge override as an API,
-use hidden arguments, or rewrite shared role/agent settings between parallel calls. Native
-`task.agentModelOverrides` precede profile model selectors; role aliases expand through `modelRoles`.
+The current task wire exposes per-item `model` (string or ordered nonempty array); never put it
+on the batch container. Use it only when the live schema exposes it and every candidate/known role
+expansion fits the assessed authorized policy. Explicit selection precedes native
+`task.agentModelOverrides`, profile model selectors and configured task/session fallback; role aliases
+expand through `modelRoles`. Use `@default`, not ambiguous literal `default`/`inherit`, for the live
+parent model; reasoning still follows native precedence. Ordered candidates are preferences, not
+a closed allowlist: configured runtime fallback behavior can alter the actual route.
+Current public eval `agent()`/`workpool()` also expose `model`; discover that API independently.
+Older surfaces may not: use an appropriate discovered profile instead, never hidden bridge arguments
+or shared role/agent settings mutations between parallel calls. [1][4][7]
 Choose the profile by assessment and show the accessible effective configured/requested pair first.
 After spawn show actual identity/reasoning only from exposed fields such as `resolvedModelIdentity`,
 `resolvedThinkingLevel`, `resolvedModelIsFallback` and `resolvedModelRoute`; keep unavailable actual
@@ -54,6 +60,25 @@ Use main-session `ask` when available. It takes `questions`, each with unique `i
 Local rich UI may show a multi-question form, notes/custom answers, previews, images, or a chat redirect; fallback UI is a selector/editor. Both are native omp surfaces, not Claude buttons. Inspect the actual selected/custom answer and notes. A `chatRedirect` is not consent. Configured timeouts can auto-select a recommended or first option: any `timedOut` result or auto-selected-after-timeout notice is **not authorization**, even if its label says Start. Cancellation and absent UI also do not authorize. If `ask` is absent/headless, ask in chat and wait for an explicit user answer; do not enable it or change the timeout. Phase-by-phase execution requires an explicit request. External/irreversible actions need exact explicit permission separate from ordinary local-plan approval. [2]
 
 Workers have no interactive approval UI; omp's child tool approval mode is headless. Give every worker the approved-action boundary and require it to return blockers instead of performing an unapproved effect. Do not rely on a worker permission dialog to stop it. [1]
+
+## Supplemental second opinion
+
+At plan confirmation, offer "Additional review via second-opinion / No additional review"
+(«Дополнительное ревью через second-opinion / Без дополнительного ревью») as a separate question
+in the same `ask` form when available. Discover the exact `second-opinion` agent, its read-only
+capability and permitted native route; do not inspect credentials or launch a probe model call.
+This is a separate context, not a promise of another provider/model. Honor an earlier explicit
+decision. If the agent is missing or blocked, disclose that and omit its offer; do not substitute
+Codex CLI, a default worker or the required reviewer. An explicitly required unavailable opinion
+remains a blocker until the user chooses otherwise.
+
+After explicit acceptance, launch one new `second-opinion` instance at the agreed stable-final
+checkpoint through the actual task/eval schema. Supply goal, acceptance, final changed-file/artifact
+inventory, scope/version, pre-existing edits, observed verification evidence and a read-only brief.
+It must neither edit nor delegate; request material findings with source locations and remaining
+verification gaps, not a token APPROVE. Do not demand shell/tests from a read-only profile without
+those capabilities. Freeze its scope until the result arrives. Apply the shared finding-disposition,
+mandatory re-verification and no-automatic-second-round rules. No approval, no supplemental call.
 
 ## Dispatch, completion, and review
 
@@ -92,8 +117,9 @@ For fix batching and coordinator-only mechanical tails, follow `SKILL.md` §5; p
 Sharpen the failing brief or isolate its genuinely hard part first, then reassess. A stronger profile
 within the already authorized policy/plan needs no redundant question; a new route/budget outside it
 needs exact permission. No blind retries, fixed ladder, hidden override, shared settings mutation or
-paid fallback. Optional second opinion remains explicit; do not probe/automatically invoke Codex.
-Consult `references/codex-review.md` only for an explicitly chosen CLI path with data-sharing permission.
+paid fallback. Supplemental review uses the explicit `second-opinion` choice above; do not
+probe or automatically invoke Codex. Read `references/codex-review.md` only if the user explicitly
+requests that different CLI route and grants its data-sharing permission.
 
 ## Authorized native sources
 
@@ -103,6 +129,7 @@ Consult `references/codex-review.md` only for an explicitly chosen CLI path with
 4. [Task agent discovery, precedence, native model overrides, Agent Hub](omp://task-agent-discovery.md).
 5. [Model/provider configuration, model roles, selectors, availability](omp://models.md).
 6. [Settings layers, read-only inspection, overlays, persistence](omp://settings.md).
-7. [Public eval agent/workpool API, without a model override parameter](xd://eval/agents).
+7. [Public eval agent/workpool API and its schema-exposed model selector](xd://eval/agents).
 
-Documentation inspected on 2026-10-01. These authorized internal references describe the harness; use the current loaded schema and observed execution for the current session.
+Task/eval model-selection contracts rechecked on 2026-10-07; other native references inspected on
+2026-10-01. The current loaded schema and observed execution remain authoritative.

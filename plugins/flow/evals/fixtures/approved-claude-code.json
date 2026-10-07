@@ -1,5 +1,7 @@
 {
   "adapter": "claude-code",
+  "schema_version": 2,
+  "synthetic": true,
   "events": [
     {
       "type": "capabilities",
@@ -8,6 +10,7 @@
       "reviewer": true,
       "ask_ui": true,
       "second_opinion": true,
+      "second_opinion_route": "codex-cli",
       "native_routes": {
         "implementation": "discovered-implementer",
         "review": "discovered-reviewer"
@@ -46,7 +49,9 @@
       "type": "ask",
       "source": "fixture:synthetic-observation",
       "channel": "ui",
-      "text": "Approve P1 autonomous execution through independent verification and report?"
+      "supplemental_review": true,
+      "opinion_options": ["codex-cli", "decline"],
+      "text": "Approve P1 autonomous execution through independent verification and report? Separately, supplemental read-only Codex CLI review, or decline?"
     },
     {
       "type": "approval",

@@ -24,7 +24,18 @@ Do not suggest `/model <name>` as a no-write override in an interactive session:
 
 **Capability and budget are separate.** Keep `scout` for source research and `sonic` for exact mechanics only when its effective pair matches the permitted policy. For implementation, select a discovered full editing profile by assessed complexity instead of automatically omitting agent. For review, select a separate risk-appropriate read/verification profile or approved security specialist. Agent discovery is exact-name first-wins: project, user, enabled extensions/plugins, bundled agents. Claude-dialect plugin model fields are discarded, so the Claude agent files are not native omp profile selectors. [O1][O2]
 
-**Native model priority.** `task.agentModelOverrides[agentName]` precedes native agent model frontmatter; role aliases expand through `modelRoles` in native `config.yml`, not provider-definition `models.yml`. Task wire and public eval agent/workpool selection expose no per-call model override. Do not use internal bridge fields. Generic omission is exceptional: verify its effective default (possibly changed by parent spawn restrictions), authorized pair and explicit complexity suitability; it is not the implementation rule. [O1][O2][O3][O5]
+**Native model priority.** When exposed by the live schema, an explicit task-item `model` selector
+precedes `task.agentModelOverrides[agentName]`, native agent model frontmatter and the configured
+task/session fallback. Role aliases expand through `modelRoles` in native `config.yml`, not
+provider-definition `models.yml`. Batch `model` belongs on each `tasks[]` item, never the container.
+Current public eval `agent()` and `workpool()` also expose `model`; inspect their own API rather
+than copying task fields. A selector may be a string or ordered nonempty array. Every candidate and
+known role expansion must be within the assessed authorized policy. Ordered candidates are
+preferences, not a closed execution allowlist: native runtime fallbacks can still alter the actual
+route, which must be observed and checked. Use `@default` for the live parent model, not ambiguous
+`default`/`inherit`; a parent model does not guarantee inherited reasoning. Do not use internal
+bridge fields. Generic agent omission remains exceptional: verify its effective default (possibly
+changed by parent spawn restrictions), authorized pair and explicit complexity suitability. [O1][O2][O3][O5]
 
 Configuration layers remain built-ins, active-profile global, cwd project, explicit overlays, runtime and registered setting environment overrides. Flow reads effective policy only; it never mutates role/agent overrides between parallel calls or changes live settings to make a route exist. Native definitions and role mappings provide profiles, without a second orchestration.yml. Separate shell inspection cannot recover session-only overrides. [O2][O4]
 
@@ -96,6 +107,6 @@ Inspect these outputs locally and retain only the relevant allowed selection/cap
 - O2: [Authorized omp task agent discovery](omp://task-agent-discovery.md): discovery/availability, native override priority, role aliases, Claude model-field removal.
 - O3: [Authorized omp models reference](omp://models.md): catalogs, role configuration, availability and runtime selection.
 - O4: [Authorized omp settings reference](omp://settings.md): layers, read-only CLI, overlays, persistence and credential-read caution.
-- O5: [Public eval agent/workpool contract](xd://eval/agents): discovered agent selection, without a public model-override argument.
+- O5: [Public eval agent/workpool contract](xd://eval/agents): discovered agent and schema-exposed per-call model selection.
 
 Source contracts are version-sensitive; loaded schemas and effective native policy decide what is usable. This reference installs nothing and changes no live settings.

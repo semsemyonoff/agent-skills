@@ -1,0 +1,27 @@
+{
+  "adapter": "omp",
+  "schema_version": 2,
+  "synthetic": true,
+  "scenario": "independent-review-repair-cycle",
+  "events": [
+    {"type": "capabilities", "source": "fixture:synthetic-schema", "delegation": true, "reviewer": true, "ask_ui": true, "second_opinion": false, "native_routes": {"implementation": "flow-worker-standard", "review": "flow-review-standard"}},
+    {"type": "phase", "source": "fixture:synthetic-action", "name": "recon"},
+    {"type": "phase", "source": "fixture:synthetic-action", "name": "plan"},
+    {"type": "plan", "source": "fixture:synthetic-output", "id": "P1", "scopes": ["checkout"], "text": "Standard editing of known exact Decimal rounding boundary. Separate standard-risk snapshot review; in-scope repairs remain autonomous. No external writes."},
+    {"type": "ask", "source": "fixture:synthetic-question", "channel": "ui", "text": "Start P1, phase by phase, or change plan?"},
+    {"type": "approval", "source": "fixture:synthetic-user", "actor": "user", "plan": "P1", "phases": ["execution", "verification", "report"], "text": "Start approved checkout scope autonomously, including in-scope fixes and review."},
+    {"type": "phase", "source": "fixture:synthetic-action", "name": "execution"},
+    {"type": "dispatch", "source": "fixture:synthetic-tool", "worker": "implementer-1", "category": "implementation", "scope": "checkout", "params": {"context": "Approved checkout rounding plan P1; local changes only.", "tasks": [{"agent": "flow-worker-standard", "task": "Fix exact checkout rounding", "solutionSpace": "Known exact Decimal boundary; choose the smallest local fix."}]}},
+    {"type": "work", "source": "fixture:synthetic-diff", "actor": "implementer-1", "scope": "checkout", "kind": "local_write", "target": "checkout/rounding.py"},
+    {"type": "phase", "source": "fixture:synthetic-action", "name": "verification"},
+    {"type": "dispatch", "source": "fixture:synthetic-tool", "worker": "reviewer-round-1", "category": "review", "params": {"context": "Stable first checkout revision for independent P1 acceptance review.", "tasks": [{"agent": "flow-review-standard", "task": "Independently review checkout revision one", "solutionSpace": "Verify positive and negative half-cent boundaries; no edits."}]}},
+    {"type": "review", "source": "fixture:synthetic-result", "actor": "reviewer-round-1", "scopes": ["checkout"], "result": "fail", "text": "Negative half-cent rounds toward zero, violating ties-away-from-zero acceptance."},
+    {"type": "phase", "source": "fixture:synthetic-action", "name": "execution"},
+    {"type": "work", "source": "fixture:synthetic-repair-diff", "actor": "implementer-1", "scope": "checkout", "kind": "local_write", "target": "checkout/rounding.py"},
+    {"type": "phase", "source": "fixture:synthetic-action", "name": "verification"},
+    {"type": "dispatch", "source": "fixture:synthetic-tool", "worker": "reviewer-round-2", "category": "review", "params": {"context": "Stable repaired checkout revision; previous negative-boundary finding fixed.", "tasks": [{"agent": "flow-review-standard", "task": "Independently review repaired checkout revision two", "solutionSpace": "Recheck the repaired negative boundary and full P1 scope; no edits."}]}},
+    {"type": "review", "source": "fixture:synthetic-result", "actor": "reviewer-round-2", "scopes": ["checkout"], "result": "pass", "text": "Repaired current tree passed positive/negative boundary cases and scope inspection."},
+    {"type": "phase", "source": "fixture:synthetic-action", "name": "report"},
+    {"type": "report", "source": "fixture:synthetic-output", "status": "completed", "independent_verified": true, "text": "Synthetic trace only: independent failure repaired in approved scope and independently re-reviewed by a new instance. No live dispatch occurred."}
+  ]
+}
