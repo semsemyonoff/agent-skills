@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0
+
+- Resolve task destinations explicitly instead of falling back to the repository default: unresolved task plans expose a null base, and task push/wait/sync require `--base`.
+- Check reported task commits against fresh remote target history before proposing a merge; fully verified delivery preserves shared branches and permits only separately approved tracker reporting.
+- Treat shared-source or extra-repository shipping as a scope change, with explicit whole-branch source-to-target approval rather than a recommended generic Start.
+- Add isolated Git regression coverage and bilingual evaluation scenarios for already-delivered work, incomplete evidence, ambiguous targets, and scope expansion.
+
 ## 0.4.0
 
 - Read and validate task/inline handoffs before confirmation, resolve branch ambiguity and candidate targets with provenance, and carry historical verification into new PRs and task reports without granting merge or CI authority.

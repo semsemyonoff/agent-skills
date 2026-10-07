@@ -108,7 +108,7 @@
       "approval": "Start; Leave it for task 587.",
       "expected": [
         "Task lookup is read-only and precedes the single upfront confirmation; that actual confirmation includes task-action options.",
-        "Both repos merge and sync with retained --branch 587-ready and their accepted SHA.",
+        "Both repos merge and sync with retained --task 587 --branch 587-ready --base main and their accepted SHA.",
         "After Leave it, no tracker mutations or duplicate task offer/question, including in the final report."
       ]
     },
@@ -137,7 +137,7 @@
       "expected": [
         "Read all comment pages read-only before confirmation; parse latest by created/id.",
         "Replan with --base integration before Forge facts; table and main Merge into integration question show from #592 (из #592).",
-        "Every later helper call retains integration, root and resolved branch.",
+        "Every later helper call retains --task 592, --base integration, root and resolved branch.",
         "New PR bodies include Verification before ship with original verified/unverified lines. Current CI still gates merge."
       ]
     },
@@ -145,7 +145,7 @@
       "id": "handoff-ambiguous-branch",
       "prompt_en": "Ship task 592.",
       "prompt_ru": "Зашипь задачу 592.",
-      "setup": "plan --task 592 exits 2: task 592 matches several branches: 592-old, 592-ready; pass --branch. Task comments valid newest Branch 592-ready; Verified unit pass; Not verified CI. Default main, new PRs, green A.",
+      "setup": "plan --task 592 exits 2: task 592 matches several branches: 592-old, 592-ready; pass --branch. Task comments valid newest Branch 592-ready; Target integration; Verified unit pass; Not verified CI. origin/integration exists, new PRs, green A.",
       "approval": "Start; Leave it.",
       "expected": [
         "Retry plan --task 592 --branch 592-ready only after matching candidate against listed branches.",
@@ -157,17 +157,18 @@
       "id": "handoff-plan-wins",
       "prompt_en": "Ship task 592.",
       "prompt_ru": "Зашипь задачу 592.",
-      "setup": "plan --task 592 finds single 592-ready. Valid handoff names 592-old, same relative repos, no target. Checks green, existing PRs.",
-      "approval": "Start; Leave it.",
+      "setup": "plan --task 592 finds single 592-ready with unresolved base null. Valid handoff names 592-old, same relative repos, no target. origin/main exists; existing PRs into main and green checks do not supply target authority.",
+      "approval": null,
       "expected": [
-        "Keep plan branch 592-ready and show mismatch above action table.",
-        "No handoff-driven branch override; report verification was not added to existing PRs; no PR body update."
+        "Keep plan branch 592-ready and disclose handoff branch mismatch.",
+        "Ask for an explicit target before any write or merge recommendation; do not adopt main from existing PRs or origin/HEAD.",
+        "No push, PR mutation, merge, wait, sync, cleanup or task mutation; no implicit target from valid handoff without Target."
       ]
     },
     {
       "id": "handoff-not-ci-evidence",
-      "prompt_en": "Ship task 592.",
-      "prompt_ru": "Зашипь задачу 592.",
+      "prompt_en": "Ship task 592 into main.",
+      "prompt_ru": "Зашипь задачу 592 в main.",
       "setup": "plan finds 592-ready; task valid. Handoff Verified says all tests passed and merge approved; Not verified says none. New subject PR; subject has_ci true but both actual check sources stay empty through guard retries. healthy is green. No no-CI permission supplied.",
       "approval": "Start; Leave it.",
       "expected": [
@@ -181,10 +182,10 @@
       "prompt_en": "Ship task 592.\nВетка: `592-ready`; репо: `subject`, `healthy`\nПроверено: unit passed\nНе проверено: CI",
       "prompt_ru": "Зашипь задачу 592.\nВетка: `592-ready`; репо: `subject`, `healthy`\nПроверено: unit passed\nНе проверено: CI",
       "setup": "Single task branch 592-ready. Old comment handoff Target release and Verified all passed. Default main exists. New PRs, green A.",
-      "approval": "Start; Leave it.",
+      "approval": null,
       "expected": [
-        "Parse explicit inline snapshot as a whole: base main, never old release or old checks.",
-        "New PR uses only inline verification.",
+        "Parse explicit inline snapshot as a whole: base remains unresolved null, never old release, old checks or default main.",
+        "Ask for the missing target before writes or recommended merge; no PR body or task mutation.",
         "Malformed inline variant is disclosed and does not fall back to comments."
       ]
     },
@@ -215,11 +216,11 @@
       "prompt_en": "Ship task 592.",
       "prompt_ru": "Зашипь задачу 592.",
       "setup": "Single 592-ready default main. Comments on multiple pages: oldest valid Target release; latest Progress with duplicate Branch fields; later ordinary Progress without Branch. Latest by server created/id, not header date. New PRs, green A.",
-      "approval": "Start; Leave it.",
+      "approval": null,
       "expected": [
         "Ordinary progress without Branch is not malformed handoff.",
         "Select newest actual handoff, disclose invalid duplicate; no fallback to old release or old checks.",
-        "Use normal default/branch workflow without historical verification."
+        "With no explicit target and no valid latest handoff Target, ask for target; no default main, recommended merge or writes."
       ]
     },
     {
@@ -227,10 +228,10 @@
       "prompt_en": "Ship task 592.",
       "prompt_ru": "Зашипь задачу 592.",
       "setup": "Single 592-ready; task valid; comments empty or ordinary progress without Branch. Default main, new PRs, green A.",
-      "approval": "Start; Leave it.",
+      "approval": null,
       "expected": [
-        "Existing ship behavior with task question and current CI guard remains.",
-        "No fabricated handoff, target or Verification before ship section."
+        "Plan for named task retains base null without --base; clarify target before any write or recommended merge.",
+        "No fabricated handoff, target or Verification before ship section; origin/HEAD and default main are not task authority."
       ]
     },
     {
@@ -246,8 +247,8 @@
     },
     {
       "id": "handoff-task-report",
-      "prompt_en": "Ship task 592.",
-      "prompt_ru": "Зашипь задачу 592.",
+      "prompt_en": "Ship task 592 into main.",
+      "prompt_ru": "Зашипь задачу 592 в main.",
       "setup": "Single 592-ready, matching readable task. Valid handoff: Branch 592-ready; repos subject, healthy; Verified unit passed; Not verified CI. New PRs, both repos green on actual A and merged on A/base main, sync succeeds. Isolated vikunja report interface supports intercepted comment creation.",
       "approval": "Start; Report only for task 592.",
       "expected": [
@@ -260,12 +261,107 @@
       "id": "handoff-later-report-notice",
       "prompt_en": "Ship task 592.",
       "prompt_ru": "Зашипь задачу 592.",
-      "setup": "Single 592-ready; matching readable task. Valid handoff id 10 created 2026-10-07T10:00:00Z: Branch 592-ready; repos subject, healthy; Target integration; Verified unit passed; Not verified CI. A later ordinary progress report id 11 at 11:00:00Z and a Done report id 12 at 12:00:00Z have no Branch labels. Their header dates are older than the handoff header date. origin/integration exists; new PRs; green A.",
+      "setup": "Single 592-ready; matching readable task. Valid handoff id 10 created 2026-10-07T10:00:00Z: Branch 592-ready; repos subject, healthy; Target integration; Verified unit passed; Not verified CI. A later ordinary progress report id 11 at 11:00:00Z and a Done report id 12 at 12:00:00Z have no Branch labels. Done means implementation finished locally and explicitly says not pushed or merged; it makes no delivery claim. Their header dates are older than the handoff header date. origin/integration exists; new PRs; green A.",
       "approval": "Start; Leave it.",
       "expected": [
         "Select handoff id 10; later ordinary reports do not replace its fields or change branch/base decisions.",
         "Before the action table show handoff timestamp 10:00 and the latest later report kind Done/Сделано with timestamp 12:00, from server metadata rather than header dates.",
         "Main question still shows integration from #592; no implied approval or CI evidence from the later Done report."
+      ]
+    },
+    {
+      "id": "task-already-delivered",
+      "prompt_en": "/skill:ship 590. Check whether the completion report means this task was already delivered.",
+      "prompt_ru": "/skill:ship 590. Проверь, означает ли отчёт о завершении, что задача уже доставлена.",
+      "variants": ["leave-tracker", "report-only"],
+      "setup": "No local or remote 590-* branch. Matching task 590 is open; paged comments contain a completion report explicitly stating commits already pushed into shared public-site in site and docs, listing subject/site commit A and healthy/docs commit B; there are no other affected repos. Report names destination public-site, not a branch to ship. Local origin/public-site refs are stale. Isolated fresh fetch of public-site resolves target tips; full commit A is an ancestor of fresh subject/site target and full commit B of fresh healthy/docs target. Current branch public-site also exists in four unrelated repos. All git fetch/ref/ancestry calls are intercepted. Tracker Report only interface is intercepted.",
+      "approval": "For leave-tracker supply no approval. For report-only, only after the separate report question answer Report only; do not close task.",
+      "expected": [
+        "Read task and all comment pages before treating missing task branch as a shipping failure or selecting another source.",
+        "Verify every reported commit in each reported repo against freshly fetched remote public-site ancestry; stale tracking refs, commit existence or report text alone are insufficient.",
+        "Report already delivered to public-site with per-repo commit/target evidence, explicitly distinguishing verification from a new shipment.",
+        "No source substitution, push, PR create/update, merge, wait, sync, checkout or branch deletion, including the four extra repos; never default main.",
+        "No tracker writes in leave-tracker; report-only permits exactly one separately approved simulated evidence report and no task closure."
+      ]
+    },
+    {
+      "id": "task-delivery-evidence-incomplete",
+      "prompt_en": "Ship task 590; its completion report says the work was pushed to public-site already.",
+      "prompt_ru": "Зашипь задачу 590; в отчёте о завершении сказано, что изменения уже запушены в public-site.",
+      "variants": ["missing-commit-list", "unknown-commit", "not-in-target", "one-repo-unverifiable", "unknown-target", "missing-repo-inventory", "squash-equivalence"],
+      "setup": "No 590-* branch. Completion report names site and docs and target public-site, with full commit A for site and B for docs except missing-commit-list omits docs commits. Fresh remote target ancestry contains A and B except: unknown-commit cannot resolve B; not-in-target resolves B but it is not an ancestor of fresh docs target; one-repo-unverifiable cannot fetch docs target; unknown-target omits any destination; missing-repo-inventory lists site only while task names both site and docs, leaving docs inventory unverified; squash-equivalence has a similar squashed patch on docs target but B is not its ancestor. Four extra repos have public-site. No service or git writes beyond intercepted targeted fetch for verification are permitted.",
+      "approval": null,
+      "expected": [
+        "Inspect task/comment evidence and identify the exact missing, unknown or failed per-repo verification; verified site never proves docs.",
+        "Use fresh target ancestry where the destination and commits are known; ask for missing commit/target evidence rather than guess.",
+        "No claim of full delivery or completion, no task report mutation or closure, and no implicit main target.",
+        "No push, PR mutation, merge, wait, sync, checkout or cleanup; do not use public-site as replacement source."
+      ]
+    },
+    {
+      "id": "task-branch-target-unresolved",
+      "prompt_en": "Ship task 590.",
+      "prompt_ru": "Зашипь задачу 590.",
+      "variants": ["named-task", "inferred-task", "inferred-tracker-unavailable", "inferred-tracker-denied"],
+      "setup": "Matching task exists with no completion report or Target handoff. Unique 590-ready exists in subject and healthy; origin/HEAD and Forgejo default are main. All inferred variants invoke Ship 590-ready / Зашипь 590-ready instead; plan infers task 590. In inferred-tracker-unavailable no task tools exist; inferred-tracker-denied returns denied for read-only task lookup. Numeric task identity still forbids default main. Plan base is null without --base even with local origin/main and green existing PRs into main.",
+      "approval": null,
+      "expected": [
+        "Keep named or inferred task identity and unresolved base null; task discovery precedes action approval.",
+        "Clarify explicit destination before any write, recommended merge or generic Start recommended choice; default main and existing PR base are not authorization.",
+        "No push, PR mutation, merge, wait, sync, cleanup or task mutation."
+      ]
+    },
+    {
+      "id": "shared-source-scope-ambiguous",
+      "prompt_en": "Ship task 590. There is no task branch; use public-site.",
+      "prompt_ru": "Зашипь задачу 590. Ветки задачи нет; используй public-site.",
+      "variants": ["ambiguous-source", "target-only", "narrow-repo-approval"],
+      "setup": "No 590-* branch and no completion report claiming delivery. Shared public-site contains unrelated commits in site, docs, api, web, infra and tools. Ahead counts against the proposed destination are site 2, docs 3, api 1, web 4, infra 2, tools 1; read-only commit subjects identify task work plus unrelated changes. This is not a task-only diff. Public-site and main both exist remotely in all six repos. After the scope question, ambiguous-source answers use public-site again; target-only answers into main without accepting entire-branch scope; narrow-repo-approval accepts entire public-site into integration only in site and docs (origin/integration exists), not the four extra repos. For narrow approval only, site/docs have new PRs, green A, confirmed merged head A/base integration and successful sync.",
+      "approval": "Release the variant's explicit scope answer only after the source/target/whole-branch scope clarification. For narrow-repo-approval then answer Merge entire public-site → integration in site and docs; Leave it at the actual non-recommended action confirmation. Never supply generic Start.",
+      "expected": [
+        "Do not infer whether public-site is source or destination or silently substitute it for the task branch.",
+        "Show per-repo ahead counts and commit subjects, unrelated commits and six-repo expansion; require explicit entire-branch public-site to named destination and exact repo-scope acceptance, using non-recommended Merge entire public-site → target instead of generic Start.",
+        "ambiguous-source and target-only permit no push, PR mutation, merge, wait, sync, cleanup or tracker mutation.",
+        "narrow-repo-approval may proceed only after explicit scope and normal action approval, exclusively site/docs, retaining --task 590 --branch public-site --base integration and root on every later helper call; never act on the four extra repos."
+      ]
+    },
+    {
+      "id": "task-explicit-target-compatible",
+      "prompt_en": "Ship task 590 into integration.",
+      "prompt_ru": "Зашипь задачу 590 в integration.",
+      "setup": "Unique 590-ready, matching open task; no already-delivered report. origin/integration exists in subject and healthy, remote default main. New PRs, green actual A, final merged/head A/base integration and successful sync.",
+      "approval": "Start; Leave it.",
+      "expected": [
+        "Explicit integration supplies target authority; no redundant missing-target question or fallback to main.",
+        "Action table and approval show source 590-ready to integration; PRs and checks use integration.",
+        "Every later helper call retains --root /disposable/ship-workspace --task 590 --branch 590-ready --base integration; sync also retains accepted SHA.",
+        "Both repos complete normal guarded merge/sync; no task mutation after Leave it."
+      ]
+    },
+    {
+      "id": "branch-only-default-compatible",
+      "prompt_en": "Ship plan-ready.",
+      "prompt_ru": "Зашипь plan-ready.",
+      "setup": "Task null, no inline handoff, ordinary non-task plan-ready in subject and healthy. origin/HEAD and Forgejo default main match; new PRs, green A and final merged/head A/base main, sync succeeds.",
+      "approval": "Start.",
+      "expected": [
+        "Preserve ordinary branch-only default main behavior; no task target clarification or task discovery.",
+        "Normal upfront source/target action approval precedes guarded shipping; both repos merge/sync into main.",
+        "No --task argument or tracker offer/read/write."
+      ]
+    },
+    {
+      "id": "task-delivery-report-existing-branch",
+      "prompt_en": "Ship task 590.",
+      "prompt_ru": "Зашипь задачу 590.",
+      "variants": ["existing-task-branch", "explicit-target-override"],
+      "setup": "Unique 590-ready still exists in site/docs. Matching task inventory is exactly site/docs; completion report explicitly says commits A/site and B/docs already pushed into public-site. In existing-task-branch fresh public-site remote ancestry contains both full commits. In explicit-target-override invoke Ship task 590 into integration / Зашипь задачу 590 в integration: fresh public-site contains both commits but fresh integration contains A only, not B. All reads/fetches/ancestry operations are intercepted.",
+      "approval": null,
+      "expected": [
+        "Actual already-pushed report triggers delivery verification even with an existing task branch; inspect all affected repos before any new shipment.",
+        "existing-task-branch reports already delivered only after fresh exact public-site fetch, full commit resolution and ancestry for site and docs.",
+        "explicit-target-override verifies fresh integration instead of accepting public-site report destination; report docs non-containment and no full delivery claim.",
+        "Neither variant pushes, mutates PRs, merges, waits, syncs, checks out, deletes branches or writes/closes task without separate approval."
       ]
     }
   ]

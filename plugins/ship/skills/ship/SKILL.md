@@ -10,14 +10,16 @@ Take a finished plan branch to the base branch in every repo of the workspace th
 push -> PR -> merge when CI is green -> sync base locally -> delete branches -> report -> task.
 The entry is a branch or a Vikunja task (its `<id>-<slug>` branch), optionally with multiline handoff
 fields; read `sections/task.md` before preflight for a task or handoff, including comment discovery.
-Base: the branch the user names as the target ("into X", «в X», «общая ветка X»), else each repo's
-default branch. A named target that is not an existing remote branch is a question, not a guess.
+Base: the user's named destination, else valid handoff target. For a named/inferred task, an
+unresolved target requires clarification; never default it to main. Only non-task branch shipping
+defaults to each repo's default branch. A missing named remote target is a question, not a guess.
 Forgejo only, driven through the Forgejo MCP. Reply in the user's language. PR titles/bodies use the
 language of the plan/commits (default: short English title from the branch/commits, body summarises
 the commits). No personal data in PR bodies.
 
 Do not assume an install location or an environment variable for the script.
-Invoking the skill already means the user wants the branch pushed: never ask about pushing.
+Invocation authorizes preparing the intended delivery, not inventing its source, target or scope.
+Do not ask separately about pushing; resolved shipping actions use the execution approval below.
 
 ## Helper
 
@@ -27,9 +29,10 @@ shell cwd set to the user's workspace (or pass `--root`); from any other cwd roo
 `python3 <skill_dir>/scripts/ship.py <plan|push|wait|sync> [--root DIR] [--branch NAME | --task ID] [--repos PATH...]`
 
 `--base NAME` (all subcommands): the named target; must exist as `origin/NAME`, never replaced by
-the default. Retain `root` and `branch` from `plan`; pass `--root <root> --branch <branch>` (and
-`--base` when named) explicitly to every later helper call, including retries. `sync` switches the
-current branch, so do not re-detect it.
+the default. Retain `root`, `branch` and `task` from `plan`; pass `--root <root> --branch <branch>`
+and any `--task <id>` to every later helper call, including retries. Task execution requires
+`--base <resolved-target>`; push/wait/sync without it exit 2. Retain named bases for non-task runs
+too. `sync` switches the current branch, so do not re-detect it.
 
 - JSON to stdout, diagnostics to stderr. Exit 0 = ran (per-repo statuses in JSON); exit 2 =
   usage/environment error (no git, root not found, branch undeterminable, branch is main/master/base).
@@ -42,9 +45,11 @@ current branch, so do not re-detect it.
   (ssh-config-resolved hostname; `host_alias` when the remote used an alias), owner, repo, base,
   is_base, has_ci, dirty, ahead, behind, pushed, remote_branch (origin/<branch> exists locally),
   head_sha, current_branch}]}`.
-  `base` is `--base` if `origin/<base>` exists, else origin/HEAD -> origin/main -> origin/master; it
-  may be null. `ahead`/`behind` are against `origin/<base>`. `has_ci` = a workflows dir
-  (.forgejo/.gitea/.github) exists on the branch tree - only a hint: workflows may not run on PRs.
+  `base` is `--base` if `origin/<base>` exists (else null). Without `--base`, task plans return
+  `base: null`, `ahead: null`, `behind: null` until the target is resolved; non-task plans use
+  origin/HEAD -> origin/main -> origin/master. `ahead`/`behind` are against `origin/<base>`.
+  `has_ci` = a workflows dir (.forgejo/.gitea/.github) exists on the branch tree - only a hint:
+  workflows may not run on PRs.
 - `push [--repos]`: always pushes (idempotent); per repo `pushed | up-to-date | failed` (+`error`,
   includes porcelain `!` reject lines).
 - `wait [--repos] [--timeout 1800] [--interval 15]` (auto-merge repos only): polls the remote branch with backoff; branch gone
@@ -93,17 +98,20 @@ substitute gh/glab/fj/REST and do not change MCP configuration.
 
 ## Workflow
 
-1. **Preflight.** Resolve handoff candidates through `sections/task.md`, then run `ship.py plan`.
-   Exit 2 -> report the error and stop, except its narrowly defined multiple-task-branches recovery.
-   If plan first discovers an inferred task, read that section now and replan with any candidate base
-   before Forge facts. No repos with the branch
-   -> say so and stop. Any environment failure stops before a write.
+1. **Preflight.** Resolve task/handoff context through `sections/task.md`, then run `ship.py plan`.
+   Exit 2 -> report and stop, except its multiple-task-branches recovery or missing-task-branch
+   delivery check. Reported delivery also triggers that check before proposing any merge:
+   fully verified work ends `already delivered`, with no shipping mutations or branch cleanup.
+   If plan infers a task, read that section now. Resolve source, target and scope, then replan with
+   the retained task and explicit base before Forge facts. No repos with the branch -> stop.
+   Environment failures stop before writes; shared-source replacement needs explicit scope resolution.
 2. **Forge facts (read-only).** Per repo: `get_repo` (merge style; a style named in the request
    overrides it). Forge identity: compare plan `host` (resolved) with the hosts of `html_url`, `ssh_url`
-   and `clone_url`; owner/repo null or no host matches -> `skipped: not forgejo`. Base: the named
-   target, else `default_branch`. Named target: plan `base` null or not in `list_branches` ->
-   `skipped: base not found`. Default: plan `base` null or different from `default_branch` ->
-   `skipped: base mismatch` (hint `git remote set-head origin -a`). `is_base` -> `skipped: is base`.
+   and `clone_url`; owner/repo null or no host matches -> `skipped: not forgejo`. Base: the resolved
+   target; `default_branch` is a fallback only for non-task shipping. Named target: plan `base`
+   null or not in `list_branches` -> `skipped: base not found`. Non-task default: plan `base` null
+   or different from `default_branch` -> `skipped: base mismatch` (hint `git remote set-head origin -a`).
+   `is_base` -> `skipped: is base`.
    Find the existing open PR whose `head.ref` is the branch AND `base.ref` is the base.
    **Merge mode** from the base's `list_branches` entry:
    - `auto-merge`: `enable_status_check` true with non-empty `status_check_contexts`. The server
@@ -111,17 +119,20 @@ substitute gh/glab/fj/REST and do not change MCP configuration.
    - `gated`: anything else. Forgejo's auto-merge then fires on the first green status while other
      jobs still run (seen live), so ship gates CI itself before a plain merge.
    No CI = plan `has_ci` false; a hint for the confirmation only, the PR's checks decide.
-3. **Confirm once.** Show an action table: `repo | base | push? | PR new/#N | merge style | mode |
-   then`. Then ONE
+3. **Confirm execution once, after clarification.** Show an action table:
+   `repo | source → target | target source | scope/ahead | push? | PR new/#N | style | mode | then`.
+   Scope is the entire branch delta; identify extra repos from task scope resolution. Then ONE
    structured-choice call: Claude Code `AskUserQuestion`; omp `ask`; native Codex's ask tool only if
    available for confirmations. Without a suitable ask tool, ask the same questions together in plain
    text, end the turn and wait for explicit answers (silence/dismissal is not approval). Respect the limits
    (<=4 questions, 2-4 options each): one question per category listing the affected repos, never
    per repo. Only needed questions:
-   - Always: "Merge into <base>?" - "Start (Recommended)" / "PRs only, no merge" / "Stop"
-     («Начать (рекомендуется)» / «Только PR, без мержа» / «Стоп»).
-     When the base came from task handoff, both table and question identify its source:
-     "Merge into X (from #<id>)?" / «Merge into X (из #<id>)». Inline handoff says "from argument".
+   - Always: "Merge <source> → <target> in these repos?" — "Merge <source> → <target>" /
+     "PRs only, no merge" / "Stop". Name the actual direction in the action label, not "Start".
+     Both table and question identify target provenance: user, handoff `from #<id>` («из #<id>»),
+     inline `from argument`, or `repository default` (non-task only).
+     Broader/shared-branch shipping uses "Merge entire <source> → <target>" and no recommended
+     merge option (`sections/task.md`). Unresolved roles/scope return to clarification, never approval.
    - Dirty repos: "Skip (Recommended)" / "Stop everything".
    - `behind > 0`: "Merge as is (Recommended)" / "Rebase first". For repos whose branch is already on
      the remote (plan `remote_branch` true) the label is "Rebase first (force-with-lease
@@ -129,10 +140,10 @@ substitute gh/glab/fj/REST and do not change MCP configuration.
    - Repos without CI (plan `has_ci` false, listed by name): "Merge (Recommended)" / "PR only".
    - Existing open PR with another base: "Skip" / "Create new PR".
    - A task (plan `task` or a named one): the task question from `sections/task.md`.
-   Over 4 questions: fold no-CI into the main question ("Start; PR only for repos without CI"),
-   then dirty ("...; skip dirty repos"); the main question keeps three options, and a folded policy
-   applies to every option that proceeds, "PRs only" included. After the answer run to the end
-   without questions.
+   Over 4 questions: fold no-CI into the main question ("Merge X → Y; PR only for repos without CI"),
+   then dirty ("...; skip dirty repos"); keep the actual source/target and any "entire branch"
+   scope in the action label. The main question keeps three options, and a folded policy applies
+   to every option that proceeds, "PRs only" included. After approval run to the end without questions.
    "Rebase first" is part of this approval: rebase onto `origin/<base>` BEFORE the first push, in
    those repos only; for already-pushed repos this includes the force-with-lease push the label
    named (see `sections/conflict.md` for a failing rebase).

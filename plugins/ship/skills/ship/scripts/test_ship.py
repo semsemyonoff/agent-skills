@@ -41,9 +41,9 @@ def commit(repo, name, content="x"):
     g(repo, "commit", "-q", "-m", f"add {name}")
 
 
-def run(*args, cwd=None):
+def run(*args, cwd=None, env=None):
     r = subprocess.run([sys.executable, str(SCRIPT), *args], cwd=str(cwd) if cwd else None,
-                       capture_output=True, text=True)
+                       capture_output=True, text=True, env=env)
     return r
 
 
@@ -305,6 +305,115 @@ class TestTask(Fixture):
         r = run("plan", "--root", str(self.ws), "--task", "587")
         self.assertEqual(r.returncode, 2, r.stdout)
         self.assertIn("cannot list branches in b", r.stderr)
+
+    def test_task_plan_leaves_target_unresolved(self):
+        for name, branch, selection in (
+            ("named", "587-icons", ["--task", "587"]),
+            ("inferred", "588-icons", ["--branch", "588-icons"]),
+            ("current", "589-icons", []),
+            ("shared", "public-site", ["--task", "590", "--branch", "public-site"]),
+        ):
+            with self.subTest(selection=name):
+                a, _ = self.make_repo(name, branch=branch)
+                out = run_json("plan", "--root", str(self.ws), *selection, cwd=a)
+                self.assertEqual(out["branch"], branch)
+                self.assertIsNotNone(out["task"])
+                self.assertEqual([r["path"] for r in out["repos"]], [name])
+                r = out["repos"][0]
+                self.assertIsNone(r["base"])
+                self.assertIsNone(r["ahead"])
+                self.assertIsNone(r["behind"])
+                self.assertFalse(r["is_base"])
+                self.assertEqual(r["head_sha"], g(a, "rev-parse", branch))
+
+    def test_shared_task_source_can_be_remote_default(self):
+        a, _ = self.make_repo("a", branch="public-site")
+        g(a, "push", "-q", "-u", "origin", "public-site")
+        g(a, "remote", "set-head", "origin", "public-site")
+        out = run_json("plan", "--task", "590", "--branch", "public-site", cwd=a)
+        self.assertEqual(out["task"], "590")
+        self.assertIsNone(out["repos"][0]["base"])
+        self.assertFalse(out["repos"][0]["is_base"])
+        self.assertEqual(run("plan", "--branch", "public-site", cwd=a).returncode, 2)
+
+    def test_task_execution_without_target_preserves_delivery_and_worktree(self):
+        for name, branch, selection in (
+            ("named", "587-icons", ["--task", "587"]),
+            ("inferred", "588-icons", ["--branch", "588-icons"]),
+            ("current", "589-icons", []),
+            ("shared", "public-site", ["--task", "590", "--branch", "public-site"]),
+        ):
+            a, bare = self.make_repo(name, branch=branch)
+            # Simulate an already merged delivery: an unsafe push republishes the source,
+            # while an unsafe sync fetches the merge, switches branches and deletes it.
+            g(a, "push", "-q", "-u", "origin", branch)
+            other = self.tmp / f"merge-{name}"
+            g(self.tmp, "clone", "-q", str(bare), str(other))
+            g(other, "merge", "-q", "--no-ff", "-m", "delivered", f"origin/{branch}")
+            g(other, "push", "-q", "origin", "main")
+            g(other, "push", "-q", "origin", "--delete", branch)
+            remote_before = g(bare, "show-ref")
+            local_before = g(a, "show-ref")
+            files_before = {p.name: p.read_bytes() for p in a.iterdir() if p.is_file()}
+            for cmd in ("push", "wait", "sync"):
+                with self.subTest(selection=name, command=cmd):
+                    trace = self.tmp / f"{name}-{cmd}.trace"
+                    env = {**os.environ, "GIT_TRACE": str(trace)}
+                    extra = ["--timeout", "0"] if cmd == "wait" else []
+                    r = run(cmd, "--root", str(self.ws), *selection, "--repos", name,
+                            *extra, cwd=a, env=env)
+                    self.assertEqual(r.returncode, 2, r.stderr)
+                    self.assertEqual(r.stdout, "")
+                    self.assertIn("--base", r.stderr)
+                    self.assertEqual(g(bare, "show-ref"), remote_before)
+                    self.assertEqual(g(a, "show-ref"), local_before)
+                    self.assertEqual(g(a, "branch", "--show-current"), branch)
+                    self.assertEqual(g(a, "status", "--porcelain"), "")
+                    self.assertEqual(
+                        {p.name: p.read_bytes() for p in a.iterdir() if p.is_file()},
+                        files_before)
+                    calls = trace.read_text()
+                    for network_command in ("push", "fetch", "ls-remote"):
+                        self.assertNotIn(f"built-in: git {network_command}", calls)
+
+    def test_task_explicit_target_executes_delivery(self):
+        for name, branch, selection in (
+            ("named", "587-icons", ["--task", "587"]),
+            ("inferred", "588-icons", ["--branch", "588-icons"]),
+            ("shared", "public-site", ["--task", "590", "--branch", "public-site"]),
+        ):
+            with self.subTest(selection=name):
+                a, bare = self.make_repo(name, branch=branch)
+                # A non-default integration target must stay selected throughout.
+                g(a, "branch", "site/docs", "main")
+                g(a, "push", "-q", "origin", "site/docs")
+                common = ["--root", str(self.ws), *selection, "--base", "site/docs"]
+                plan = run_json("plan", *common, cwd=a)
+                self.assertEqual((plan["repos"][0]["base"], plan["repos"][0]["ahead"],
+                                  plan["repos"][0]["behind"]), ("site/docs", 1, 0))
+                out = run_json("push", *common, "--repos", name, cwd=a)
+                self.assertEqual(out["repos"][0]["status"], "pushed")
+                self.assertEqual(g(bare, "rev-parse", branch), g(a, "rev-parse", branch))
+                out = run_json("wait", *common, "--repos", name, "--timeout", "0", cwd=a)
+                self.assertEqual(out["repos"][0]["status"], "pending")
+                main_before = g(bare, "rev-parse", "main")
+                other = self.tmp / f"merge-{name}"
+                g(self.tmp, "clone", "-q", str(bare), str(other))
+                g(other, "switch", "-q", "site/docs")
+                g(other, "merge", "-q", "--no-ff", "-m", "delivered", f"origin/{branch}")
+                g(other, "push", "-q", "origin", "site/docs")
+                g(other, "push", "-q", "origin", "--delete", branch)
+                out = run_json("wait", *common, "--repos", name, "--timeout", "0", cwd=a)
+                self.assertEqual(out["repos"][0]["status"], "merged")
+                out = run_json("sync", *common, "--repos", name, cwd=a)["repos"][0]
+                self.assertEqual((out["status"], out["base"], out.get("deleted")),
+                                 ("synced", "site/docs", "merged"))
+                self.assertEqual(g(a, "branch", "--show-current"), "site/docs")
+                self.assertEqual(g(a, "branch", "--list", branch), "")
+                self.assertEqual(g(a, "rev-parse", "site/docs"),
+                                 g(bare, "rev-parse", "site/docs"))
+                self.assertEqual(g(a, "rev-parse", "main"), main_before)
+                self.assertEqual(g(bare, "rev-parse", "main"), main_before)
 
 
 class TestResolution(Fixture):

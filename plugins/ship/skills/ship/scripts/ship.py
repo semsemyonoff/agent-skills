@@ -4,7 +4,8 @@
 Stdlib-only. Subcommands: plan and handoff (read-only), push, wait, sync. JSON on stdout,
 diagnostics on stderr. Exit 0 when the command ran (per-repo failures are
 statuses), 2 on usage/environment errors. Never resets, stashes, cleans or
-force-pushes.
+force-pushes. Named or branch-inferred tasks have no default target: plan leaves
+base unresolved without --base; push, wait and sync require an explicit --base.
 """
 import argparse
 import json
@@ -360,7 +361,8 @@ def find_branch(arg: Optional[str], root: Path, base: Optional[str] = None,
         branch = s.stdout.strip()
     if branch in PROTECTED_BRANCHES:
         raise UsageError(f"refusing to ship protected branch '{branch}'")
-    if branch == base or (cwd_repo is not None and branch == base_of(cwd_repo, base)):
+    if branch == base or (cwd_repo is not None and (base or not (task or task_of(branch)))
+                          and branch == base_of(cwd_repo, base)):
         raise UsageError(f"refusing to ship base branch '{branch}'")
     return branch
 
@@ -410,12 +412,13 @@ def remote_fields(url: Optional[str]) -> Dict[str, Optional[str]]:
 
 def cmd_plan(root: Path, branch: str, args) -> dict:
     repos = []
+    task = args.task or task_of(branch)
     for repo in discover_repos(root):
         if not has_branch(repo, branch):
             continue
         r = git(["remote", "get-url", "origin"], repo)
         url = r.stdout.strip() if r.returncode == 0 else None
-        base = base_of(repo, args.base)
+        base = base_of(repo, args.base) if args.base or not task else None
         base_ref = None
         for cand in (f"refs/remotes/origin/{base}", f"refs/heads/{base}") if base else ():
             if ref_sha(repo, cand):
@@ -443,7 +446,7 @@ def cmd_plan(root: Path, branch: str, args) -> dict:
             "head_sha": ref_sha(repo, f"refs/heads/{branch}"),
             "current_branch": cur.stdout.strip() if cur.returncode == 0 else None,
         })
-    return {"root": str(root), "branch": branch, "task": args.task or task_of(branch), "repos": repos}
+    return {"root": str(root), "branch": branch, "task": task, "repos": repos}
 
 
 def missing_entries(missing: List[str], status: str) -> List[dict]:
@@ -603,7 +606,7 @@ def build_parser() -> argparse.ArgumentParser:
         p = sub.add_parser(name)
         p.add_argument("--root")
         p.add_argument("--branch")
-        p.add_argument("--base", help="target branch on origin; default: origin/HEAD, main, master")
+        p.add_argument("--base", help="target branch on origin; required for tasks; otherwise origin/HEAD, main, master")
         p.add_argument("--task", type=task_arg, help="tracker task id; finds the `<id>-...` branch")
         if name != "plan":
             p.add_argument("--repos", nargs="+", metavar="PATH")
@@ -630,6 +633,9 @@ def main(argv: Optional[List[str]] = None) -> int:
                 raise UsageError("git not found in PATH")
             root = find_root(args.root)
             branch = find_branch(args.branch, root, args.base, args.task)
+            task = args.task or task_of(branch)
+            if args.cmd != "plan" and task and not args.base:
+                raise UsageError(f"task {task} requires an explicit target: pass --base <target-branch>")
             result = COMMANDS[args.cmd](root, branch, args)
     except UsageError as e:
         print(f"error: {e}", file=sys.stderr)
