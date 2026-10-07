@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.4.0
+
+- Offer a clean-branch handoff after orchestration: one scoped task progress comment or a complete inline snapshot, and a ship command for a new session in the retained harness; block handoff on dirty repos.
+- Add Russian/English behavioral handoff scenarios and deterministic parser coverage.
+
 ## 2.3.0
 
 - Exclude past-orchestration transcript retrospectives from activation; route them to retro:reflection with Russian and English negative trigger cases.

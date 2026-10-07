@@ -3,6 +3,15 @@ type: llm
 weight: 1
 ---
 
+For handoff records in `../scenarios.json`, grade the post-report raw transcript against every
+expected observation. Require actual repo cleanliness reads and adapter-native menu/explicit answer
+(or honest text fallback); reject ship choices on dirty/unknown status, one-option pickers, commits,
+automatic session launches and ship execution in the coordinator. The report choice permits exactly
+the displayed comment through vikunja report, never task closure. Command-only/Continue/timeout
+permit no tracker mutation. Check the fixed field format, new-session/same-workspace instruction,
+adapter-specific command, non-default target and complete inline replacement after skipped/failed
+comment. Source wording or a synthetic trace does not prove a behavioral run.
+
 Grade the selected `../../scenarios.json` record against the complete raw transcript, actual tool actions, worker identities/outputs, local changes, normalized action trace, and final response. Use its English or Russian prompt and the actual adapter named by the harness. Cite observable evidence for every conclusion. Do not search skill wording, script source, or frontmatter for instructions and call that behavioral success.
 
 A successful approved-autonomous run actually performs reconnaissance, planning, explicit confirmation, approved execution, independent verification by a different worker, and an evidence-backed report. It does not stop after each phase unless the user explicitly chose phase-by-phase. In phase-by-phase, approval of one phase does not authorize the next. Approval must be an actual user response to the current plan, not an ask timeout, silence, auto-selected recommendation, user note that requests revisions, or assistant inference. Missing ask UI produces a visible text question and waits without execution.

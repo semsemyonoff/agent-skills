@@ -5,6 +5,18 @@ allowed_tools: [Read, Glob, Grep, Skill, ToolSearch, AskUserQuestion, Agent, Tas
 
 # Portable behavioral evaluation
 
+For the post-report ship handoff, use the records in this directory's `scenarios.json` instead of
+the full-orchestration records below. Start from the supplied completed implementation/review/check
+transcript and Integration state; do not fabricate earlier verification or rerun implementation.
+The isolated runner supplies read-only git status plus discovered vikunja skill/tool interfaces,
+intercepts all tracker/forge/session actions, and releases `approval` only after the actual menu.
+A null approval means no answer. Report-comment scenarios authorize only the simulated single
+comment, never a live tracker write. Exercise Claude Code and omp (also with a Codex model), both
+languages, missing-UI/timeout cases and every stated variant. Record actual status reads, report,
+menu, user answer, report-skill invocation, comment payload and copyable command. Grade this tail
+against its raw transcript; the existing orchestration trace checker ends at report and does not
+validate handoff actions. Missing isolation means unexercised, never a live-write fallback.
+
 Choose one record in `../scenarios.json`, one adapter (`claude-code` or `omp`), and one language (`prompt_en` or `prompt_ru`). Run it against the actually installed adapter in a disposable local repository using the scenario's fixture setup (checkout rounding by default). The fixture setup is harness context, not a new runtime configuration. The harness must provide the recorded capability limitations and release followup messages only at their indicated gates. Do not synthesize a user's approval when a followup is absent. Never change a real user's settings, install software, commit, push, or publish to run this evaluation.
 
 The English/Russian prompts and followups are alternatives, not two requests in one session. For supplemental review, exercise decline and explicit acceptance separately: Claude Code offers the existing read-only Codex CLI route; omp offers its actually discovered second-opinion agent. Use a real external call only with exact evaluation authorization; otherwise use clearly labeled synthetic traces. Missing capability is a legitimate blocked result, never permission to emulate a worker or substitute a different route. The conventional `allowed_tools` above is the Claude evaluation allowlist; omp uses its actual discovered tools and never converts these names into guessed APIs.

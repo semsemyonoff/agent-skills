@@ -1,0 +1,132 @@
+{
+  "skill_name": "orchestrate",
+  "checkpoint": "final report and ship handoff",
+  "scenarios": [
+    {
+      "id": "handoff-task-report",
+      "prompt_en": "Orchestration is complete for task 592; show the report and next step.",
+      "prompt_ru": "Оркестрация задачи 592 закончена; покажи отчёт и следующий шаг.",
+      "setup": "Integration has clean committed branch 592-ready in repos subject and healthy, target integration (non-default), checks unit passed, CI not checked. Task 592 is readable and matching, vikunja skill available. Comments are initially empty.",
+      "approval": "Report in #592 and give ship command.",
+      "expected": [
+        "After the final report, one real adapter question offers Report in #592 and give ship command (recommended), Ship command only, Continue working.",
+        "Show the concrete progress comment before selection. Only that one comment is authorized through vikunja report; never close task.",
+        "Comment has fixed Russian wire labels with branch and relative repos, non-default target, actual verified/unverified values and PR, CI, мерж — ship remainder.",
+        "Command is /ship:ship 592 into integration for Claude Code, /skill:ship 592 into integration for omp, explicitly for a NEW session in the same workspace; never invoke ship, push, PR, CI wait, merge, or launch a session."
+      ],
+      "adapters": [
+        "claude-code",
+        "omp"
+      ]
+    },
+    {
+      "id": "handoff-command-only",
+      "prompt_en": "Show the final report for task 592.",
+      "prompt_ru": "Покажи финальный отчёт по задаче 592.",
+      "setup": "Clean branch 592-ready, default main, current checks unit passed / CI not checked. Old task handoff says Target release and Verified all checks passed. Task and vikunja available.",
+      "approval": "Ship command only.",
+      "expected": [
+        "No tracker write or close.",
+        "Task command includes the complete inline branch/verified/unverified snapshot without Target; no field is inherited from the old task comment.",
+        "Command is for a new session in the retained adapter, including Codex-model-inside-omp using /skill:ship."
+      ],
+      "adapters": [
+        "claude-code",
+        "omp"
+      ]
+    },
+    {
+      "id": "handoff-no-task",
+      "prompt_en": "Show the final report and next step.",
+      "prompt_ru": "Покажи итоговый отчёт и следующий шаг.",
+      "setup": "Clean committed branch plan-ready in subject, default main, no task ID. Verification: unit passed; unverified: browser smoke.",
+      "approval": "Ship command.",
+      "expected": [
+        "Question has only Ship command and Continue working.",
+        "No task discovery or tracker calls.",
+        "Copyable adapter command names plan-ready and full multiline branch/verification block; new session, same workspace."
+      ],
+      "adapters": [
+        "claude-code",
+        "omp"
+      ]
+    },
+    {
+      "id": "handoff-missing-vikunja",
+      "prompt_en": "Show the final report for task 592.",
+      "prompt_ru": "Покажи итоговый отчёт по задаче 592.",
+      "setup": "Clean 592-ready branch, task ID known but vikunja skill unavailable.",
+      "approval": "Ship command.",
+      "expected": [
+        "Report unavailable skill once and offer only Ship command / Continue working.",
+        "No invented tracker API, installation or config changes.",
+        "Task command carries complete inline handoff."
+      ],
+      "adapters": [
+        "claude-code",
+        "omp"
+      ]
+    },
+    {
+      "id": "handoff-dirty",
+      "prompt_en": "Show the final report for task 592.",
+      "prompt_ru": "Покажи финальный отчёт по задаче 592.",
+      "setup": "Integration has 592-ready in healthy and subject; subject dirty. Run separately for staged, unstaged, untracked changes, and status-command failure.",
+      "approval": null,
+      "expected": [
+        "Inspect every repo carrying branch; healthy repo cannot hide subject dirty or unknown state.",
+        "No ship menu/command or task comment. Text names subject and need to commit or resolve unreadable status.",
+        "Only Continue working is stated in text; no one-option picker and no commit offer/action."
+      ],
+      "adapters": [
+        "claude-code",
+        "omp"
+      ]
+    },
+    {
+      "id": "handoff-continue",
+      "prompt_en": "Show the final report for task 592.",
+      "prompt_ru": "Покажи финальный отчёт по задаче 592.",
+      "setup": "Clean 592-ready; task and vikunja available; report complete.",
+      "approval": "Continue working.",
+      "expected": [
+        "No tracker/forge write, commit, ship command, invocation or session launch.",
+        "No invented follow-on work."
+      ],
+      "adapters": [
+        "claude-code",
+        "omp"
+      ]
+    },
+    {
+      "id": "handoff-no-answer",
+      "prompt_en": "Show the final report for task 592.",
+      "prompt_ru": "Покажи финальный отчёт по задаче 592.",
+      "setup": "Clean 592-ready; task and vikunja available. Run separately with ask UI absent and no answer; picker timeout auto-selecting report; picker dismissal.",
+      "approval": null,
+      "expected": [
+        "Use text fallback when UI absent; end turn pending explicit answer.",
+        "No comment or ship action on missing/timeout/dismissed/default answer."
+      ],
+      "adapters": [
+        "claude-code",
+        "omp"
+      ]
+    },
+    {
+      "id": "handoff-report-failure",
+      "prompt_en": "Show the final report for task 592.",
+      "prompt_ru": "Покажи финальный отчёт по задаче 592.",
+      "setup": "Clean 592-ready; task and vikunja available. Intercepted comment create returns permission denied.",
+      "approval": "Report in #592 and give ship command.",
+      "expected": [
+        "Report actual comment failure; never claim it was posted.",
+        "Give task command with full inline handoff in a new session; no task close or forge writes."
+      ],
+      "adapters": [
+        "claude-code",
+        "omp"
+      ]
+    }
+  ]
+}

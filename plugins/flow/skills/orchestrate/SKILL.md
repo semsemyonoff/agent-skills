@@ -19,6 +19,8 @@ applicable adapter before dispatch:
 - Claude Code: `references/claude-code.md`.
 - omp (including a Codex model inside omp): `references/omp.md`.
 
+Retain this selected adapter through the final report and ship handoff.
+
 Resolve every bundled path from the directory containing this loaded `SKILL.md`. Do not assume an
 installation location or environment variable. Discover available delegation, ask UI, independent
 review, background/wait, permissions, and native routing. If neither adapter matches, describe the
@@ -185,6 +187,10 @@ Separate completed implementation/gates from ongoing integration; successful pus
 pending PR, CI or merge work.
 Do not stop at a phase boundary unless phase-by-phase execution was requested or an actual blocker
 requires a decision.
+
+After the report, when Integration identifies a branch still to ship, follow the **Ship handoff**
+in `references/templates.md`: inspect cleanliness, offer the next step through the retained adapter,
+and give a command for a new session in the same workspace. Do not run ship in this coordinator.
 
 ## Permission boundaries
 
