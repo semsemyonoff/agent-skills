@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0
+
+- Add an orchestration retrospective: per orchestrated session coordinator usage around the skill load, approximate context-growth attribution, coordinator edits, workers with routing/usage, stall and follow-up signals, a same-call-sequence replay estimate, and redacted plan/report and idle-notice excerpts.
+
 ## 1.1.0
 
 - Add an actual omp JSONL reader alongside Claude Code, with required explicit `--source claude|omp|both`, exact storage-root overrides and one source-qualified digest.

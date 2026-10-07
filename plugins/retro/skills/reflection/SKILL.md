@@ -1,6 +1,6 @@
 ---
 name: reflection
-description: Retrospective over past Claude Code or omp session transcripts — recurring requests to automate, repeated corrections, tool errors, permission denials, provider/model/effort routing and token spend. Use for "reflect on my sessions", "retro for the week", "analyze transcripts", "what can I automate", "what do I keep repeating", "review how I use Claude/omp", «проанализируй сессии», «проанализируй транскрипты», «рефлексия», «ретро за неделю», «что можно автоматизировать», «что я постоянно повторяю», «где я теряю время с Claude/omp». Not for summarizing only the current conversation, a team meeting retrospective, or cost dashboards alone. Native Codex CLI logs are outside scope; Codex models running inside omp use the omp reader.
+description: Retrospective over past Claude Code or omp session transcripts — recurring requests to automate, repeated corrections, tool errors, permission denials, provider/model/effort routing and token spend. Use for "reflect on my sessions", "retro for the week", "analyze transcripts", "what can I automate", "what do I keep repeating", "review how I use Claude/omp", «проанализируй сессии», «проанализируй транскрипты», «рефлексия», «ретро за неделю», «что можно автоматизировать», «что я постоянно повторяю», «где я теряю время с Claude/omp», "how did orchestration perform", «как отработала оркестрация», «экономит ли оркестрация токены». Not for summarizing only the current conversation, a team meeting retrospective, or cost dashboards alone. Native Codex CLI logs are outside scope; Codex models running inside omp use the omp reader.
 ---
 
 # Reflection over session transcripts
@@ -49,6 +49,8 @@ project, roots and read diagnostics before drawing conclusions. All totals obey 
 ## 3. Analyze
 
 Read `sections/analysis.md`: recurring intents, friction, errors/denials, routing and spend.
+For how orchestration/delegation performed (coordinator context, workers, stalls, savings), read
+`sections/orchestration.md` and run `scripts/orchestration.py` instead of the general digest.
 
 - Correction candidates are RU/EN regex hits, not proven friction. Drop simple negative replies and
   approvals with side notes; flag ambiguous context as uncertain.
@@ -81,4 +83,6 @@ edit project rules/skills, install anything, commit, push or modify service conf
 
 - `sections/analysis.md` — clustering, friction, errors, denials, routing and proposals.
 - `references/digest-format.md` — CLI contract, roots, persisted schemas, counting and blind spots.
+- `sections/orchestration.md` — orchestration retrospective: run, meaning and limits of the numbers, checks.
 - `scripts/transcripts.py` — read-only extractor; `scripts/test_transcripts.py` — synthetic behavioral tests.
+- `scripts/orchestration.py` — orchestration metrics on top of the extractor; `scripts/test_orchestration.py`.
