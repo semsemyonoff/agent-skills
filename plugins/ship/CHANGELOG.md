@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.4.0
+
+- Read and validate task/inline handoffs before confirmation, resolve branch ambiguity and candidate targets with provenance, and carry historical verification into new PRs and task reports without granting merge or CI authority.
+- Show the handoff timestamp and any later progress/completion report before confirmation without changing candidate selection.
+- Add Russian/English behavioral handoff scenarios and deterministic parser coverage.
+
 ## 0.3.0
 
 - Track the accepted PR head and its evidence basis through merge and sync: explicit no-CI permission supports safe sync without a false CI-pass claim; head/base changes block cleanup, while required-check auto-merge remains protected.

@@ -1,7 +1,7 @@
 {
   "name": "ship",
   "description": "Land a plan or task branch into the base branch in every repo of a workspace on Forgejo: push, PR, merge once CI is green, sync, cleanup, report, optional task report and close / Довести ветку плана или задачи до базовой ветки во всех репо: push, PR, мерж после CI, синхронизация, отчёт, отписаться и закрыть задачу",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "author": {
     "name": "semsemyonoff"
   }

@@ -1,0 +1,77 @@
+{
+  "synthetic": true,
+  "provenance": "Entire content and identifiers invented. Response shape and markdown conventions reported from read-only observation on 2026-10-07. No tracker content copied; handoff field round-trip remains unverified.",
+  "response": {
+    "$schema": "https://example.invalid/synthetic-comment-list-schema",
+    "items": [
+      {
+        "author": {
+          "created": "2026-01-01T00:00:00Z",
+          "id": 1,
+          "name": "Synthetic User",
+          "updated": "2026-01-01T00:00:00Z",
+          "username": "synthetic"
+        },
+        "comment": "**Прогресс (2026-10-07)**\n\n- Ветка: `592-old`; репо: `subject`\n- Цель: `release-old`\n- Проверено: old checks\n- Не проверено: CI\n\n**Что осталось**\n\n- PR, CI, мерж — ship",
+        "created": "2026-10-07T12:01:00Z",
+        "id": 1,
+        "reactions": null,
+        "updated": "2026-10-07T12:01:00Z"
+      },
+      {
+        "author": {
+          "created": "2026-01-01T00:00:00Z",
+          "id": 1,
+          "name": "Synthetic User",
+          "updated": "2026-01-01T00:00:00Z",
+          "username": "synthetic"
+        },
+        "comment": "**Прогресс (2026-10-07)**\n\n- Ветка: `592-ready`; репо: `subject`, `healthy`\n- Цель: `integration`\n- Проверено: `assert 1 < 2`, `value > 0`, `\"self\"`, `'self'` passed; [#101](https://tasks.example.invalid/tasks/101)\n- Не проверено: CI, browser smoke\n\n**Что осталось**\n\n- PR, CI, мерж — ship",
+        "created": "2026-10-07T12:02:00Z",
+        "id": 2,
+        "reactions": null,
+        "updated": "2026-10-07T12:02:00Z"
+      },
+      {
+        "author": {
+          "created": "2026-01-01T00:00:00Z",
+          "id": 1,
+          "name": "Synthetic User",
+          "updated": "2026-01-01T00:00:00Z",
+          "username": "synthetic"
+        },
+        "comment": "**Прогресс (2026-10-07)**\n\n- **Note.** Synthetic ordinary progress.\n \n - Ветка: `592-nested`; репо: `subject`\n\n### Follow-up\n\nSee [#101](https://tasks.example.invalid/tasks/101).",
+        "created": "2026-10-07T12:03:00Z",
+        "id": 3,
+        "reactions": null,
+        "updated": "2026-10-07T12:03:00Z"
+      },
+      {
+        "author": {
+          "created": "2026-01-01T00:00:00Z",
+          "id": 1,
+          "name": "Synthetic User",
+          "updated": "2026-01-01T00:00:00Z",
+          "username": "synthetic"
+        },
+        "comment": "**Сделано (2026-10-07)**\n\n- Synthetic completion report with no handoff fields.",
+        "created": "2026-10-07T12:04:00Z",
+        "id": 4,
+        "reactions": null,
+        "updated": "2026-10-07T12:04:00Z"
+      }
+    ],
+    "page": 1,
+    "per_page": 50,
+    "total": 4,
+    "total_pages": 1
+  },
+  "empty_response": {
+    "$schema": "https://example.invalid/synthetic-comment-list-schema",
+    "items": [],
+    "page": 1,
+    "per_page": 50,
+    "total": 0,
+    "total_pages": 0
+  }
+}

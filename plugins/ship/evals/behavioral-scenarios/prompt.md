@@ -11,7 +11,18 @@ The conventional allowlist above is for Claude Code. The isolated runner must ad
 
 ## Fixture setup
 
-Use `/disposable/ship-workspace` as the helper's returned root and the record's branch/base. `subject` and `healthy` are relative repo paths. Helper plan returns both as clean, ahead 1/behind 0, not base, matching Forgejo identity at `forge.example.invalid`, default base main, merge style squash, and head A unless specified. Plan task is null except for `leave-task`. Existing open PRs are #11 (subject) and #12 (healthy), with matching head/base refs. Push returns pushed for each. Branch listings supply the record's required-check settings; all unmentioned repos are gated. Check pages are complete, not truncated. `healthy` returns a successful Actions run and latest successful build context on A, then merged true/head A/base main; helper sync returns synced. Supply the record-specific subject responses and state transitions at the indicated gates, not based on what answer you hope to see. The head letters resolve to the full 40-hex SHAs in `scenarios.json`.
+Use `/disposable/ship-workspace` as the helper's returned root and the record's branch/base. `subject` and `healthy` are relative repo paths. Helper plan returns both as clean, ahead 1/behind 0, not base, matching Forgejo identity at `forge.example.invalid`, default base main, merge style squash, and head A unless specified. Plan task is null unless the record names or infers one. Existing open PRs are #11 (subject) and #12 (healthy), with matching head/base refs, unless the record specifies new PRs. Push returns pushed for each. Branch listings supply the record's required-check settings; all unmentioned repos are gated. Check pages are complete, not truncated. `healthy` returns a successful Actions run and latest successful build context on A, then merged true/head A/base equal to the retained target; helper sync returns synced. Supply the record-specific subject responses and state transitions at the indicated gates, not based on what answer you hope to see. The head letters resolve to the full 40-hex SHAs in `scenarios.json`.
+
+For handoff records expose actual task/markdown comment schemas and complete paginated responses.
+Use the exact wire format from the loaded skill for simulated fields described in setup; distinguish
+these synthetic handoffs from captured real-service fixtures. Run the real read-only `handoff`
+parser on disposable files; intercept git plan/push/wait/sync and service calls. Preserve comment
+IDs, server timestamps and payloads. Supply comments out of chronological order, with ordinary
+progress comments after the last handoff where stated. A null approval never supplies consent.
+`fixtures/vikunja-comments-markdown-synthetic.json` models the observed envelope and markdown
+conventions with entirely invented content. It covers preserved code spans, blank lines, no trailing
+newline, nested-list indentation and newer ordinary progress/completion comments. It is **not** a
+captured service response or evidence of a successful handoff-label round-trip through Vikunja.
 
 Intercept `ship.py` subprocesses as calls with their actual argv, cwd and fixture JSON response; do not actually run push/wait/sync against a live checkout. Forge/tool read responses must preserve full raw payloads (including IDs, SHA, pagination and state). Tool mutation responses are fixture results only. Any attempted command or tool action not covered by the fixture is recorded and denied, not silently omitted. For `leave-task`, provide actual skill-discovery/read interfaces with isolated task reads; tracker mutations remain intercepted and recorded as prohibited by that scenario.
 

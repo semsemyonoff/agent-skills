@@ -8,7 +8,8 @@ argument-hint: "[branch | task] [into <base>]"
 
 Take a finished plan branch to the base branch in every repo of the workspace that has it:
 push -> PR -> merge when CI is green -> sync base locally -> delete branches -> report -> task.
-The entry is a branch or a Vikunja task (its `<id>-<slug>` branch); see `sections/task.md`.
+The entry is a branch or a Vikunja task (its `<id>-<slug>` branch), optionally with multiline handoff
+fields; read `sections/task.md` before preflight for a task or handoff, including comment discovery.
 Base: the branch the user names as the target ("into X", «в X», «общая ветка X»), else each repo's
 default branch. A named target that is not an existing remote branch is a question, not a guess.
 Forgejo only, driven through the Forgejo MCP. Reply in the user's language. PR titles/bodies use the
@@ -92,7 +93,10 @@ substitute gh/glab/fj/REST and do not change MCP configuration.
 
 ## Workflow
 
-1. **Preflight.** Run `ship.py plan`. Exit 2 -> report the error and stop. No repos with the branch
+1. **Preflight.** Resolve handoff candidates through `sections/task.md`, then run `ship.py plan`.
+   Exit 2 -> report the error and stop, except its narrowly defined multiple-task-branches recovery.
+   If plan first discovers an inferred task, read that section now and replan with any candidate base
+   before Forge facts. No repos with the branch
    -> say so and stop. Any environment failure stops before a write.
 2. **Forge facts (read-only).** Per repo: `get_repo` (merge style; a style named in the request
    overrides it). Forge identity: compare plan `host` (resolved) with the hosts of `html_url`, `ssh_url`
@@ -116,6 +120,8 @@ substitute gh/glab/fj/REST and do not change MCP configuration.
    per repo. Only needed questions:
    - Always: "Merge into <base>?" - "Start (Recommended)" / "PRs only, no merge" / "Stop"
      («Начать (рекомендуется)» / «Только PR, без мержа» / «Стоп»).
+     When the base came from task handoff, both table and question identify its source:
+     "Merge into X (from #<id>)?" / «Merge into X (из #<id>)». Inline handoff says "from argument".
    - Dirty repos: "Skip (Recommended)" / "Stop everything".
    - `behind > 0`: "Merge as is (Recommended)" / "Rebase first". For repos whose branch is already on
      the remote (plan `remote_branch` true) the label is "Rebase first (force-with-lease
@@ -133,6 +139,8 @@ substitute gh/glab/fj/REST and do not change MCP configuration.
 4. **Execute** (repos independently).
    1. `ship.py push --repos ...` for non-skipped repos. `failed` -> `push failed`, error verbatim.
    2. Create the PR (`create_pull_request`; error -> `PR failed`, verbatim) or reuse the existing one.
+      With a valid handoff, append verification only to a new PR (`sections/task.md`); for a reused
+      PR report that verification was not added to existing PR #N, without updating its body.
       From here on use the PR's `head.sha` (`get_pull_request_by_index`), never plan `head_sha`: it
       goes stale after an upfront rebase or a CI-fix push.
       Keep lightweight per-repo run state: target base, candidate head, and `accepted_head` with
@@ -197,7 +205,7 @@ substitute gh/glab/fj/REST and do not change MCP configuration.
 
 ## Sections
 
-- `sections/task.md` - read when the run has a Vikunja task (named, or plan `task` not null).
+- `sections/task.md` - read for a Vikunja task (named/inferred) or multiline handoff arguments.
 - `sections/ci-gate.md` - read when a repo is in `gated` mode.
 - `sections/ci-failure.md` - read when any check source fails, including cancellation or external status.
 - `sections/conflict.md` - read when a PR is not mergeable or an upfront "Rebase first" fails.

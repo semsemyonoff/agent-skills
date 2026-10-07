@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Local-git helper for the ship skill: bring a plan branch to base across repos.
 
-Stdlib-only. Subcommands: plan (read-only), push, wait, sync. JSON on stdout,
+Stdlib-only. Subcommands: plan and handoff (read-only), push, wait, sync. JSON on stdout,
 diagnostics on stderr. Exit 0 when the command ran (per-repo failures are
 statuses), 2 on usage/environment errors. Never resets, stashes, cleans or
 force-pushes.
@@ -14,6 +14,7 @@ import shutil
 import subprocess
 import sys
 import time
+from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
 
@@ -37,6 +38,142 @@ URL_RE = re.compile(r"^(?:ssh|https?|git)://(?:[^@/]+@)?([^/:]+)(?::\d+)?/(.+)/(
 
 class UsageError(Exception):
     """Environment or usage problem; maps to exit code 2."""
+
+
+HANDOFF_LABELS = {
+    "Ветка": "branch", "Branch": "branch", "Цель": "base", "Target": "base",
+    "Проверено": "verified", "Verified": "verified",
+    "Не проверено": "unverified", "Not verified": "unverified",
+}
+HANDOFF_FIELD_RE = re.compile(r"^(?:- )?(" + "|".join(HANDOFF_LABELS) + r"):\s*(.*)$")
+PROGRESS_RE = re.compile(r"^\*\*(?:Прогресс|Progress) \(\d{4}-\d{2}-\d{2}\)\*\*$")
+REPORT_RE = re.compile(r"^\*\*(Прогресс|Progress|Сделано|Done) \(\d{4}-\d{2}-\d{2}\)\*\*$")
+BRANCH_VALUE_RE = re.compile(r"^`([^`]+)`; (?:репо|repos): (`[^`]+`(?:, `[^`]+`)*)$")
+
+
+def handoff_lines(body: str) -> List[str]:
+    # Keep indentation: nested lists and quoted examples are not top-level fields.
+    lines = []
+    fence = None
+    for line in body.splitlines():
+        stripped = line.strip()
+        if stripped.startswith(("```", "~~~")):
+            marker = stripped[:3]
+            if fence is None:
+                fence = marker
+            elif fence == marker:
+                fence = None
+            continue
+        if fence is None:
+            lines.append(line.rstrip())
+    return lines
+
+
+def handoff_fields(body: str) -> List[Tuple[str, str, str]]:
+    return [(HANDOFF_LABELS[m[1]], m[2], line) for line in handoff_lines(body)
+            if (m := HANDOFF_FIELD_RE.fullmatch(line))]
+
+
+def handoff_ref(value: str) -> bool:
+    """Conservative branch-name validation without running git or interpreting shell text."""
+    return bool(value) and not (
+        value.startswith(("-", "/")) or value.endswith(("/", ".")) or value == "@"
+        or any(x in value for x in ("..", "@{", "//"))
+        or re.search(r"[\s\x00-\x1f\x7f~^:?*\[\\`]+", value)
+        or any(p.startswith(".") or p.endswith(".lock") for p in value.split("/"))
+    )
+
+
+def parse_handoff(body: str, source: dict) -> dict:
+    fields = {}
+    raw = {}
+    in_fields = False
+    for line in handoff_lines(body):
+        if line in ("**Что осталось**", "**Remaining**"):
+            break
+        if HANDOFF_FIELD_RE.fullmatch(line):
+            in_fields = True
+        elif in_fields and line:
+            return {"status": "invalid", **source, "error": "fields must be contiguous single lines"}
+    for key, value, line in handoff_fields(body):
+        if key in fields or not value.strip():
+            return {"status": "invalid", **source, "error": f"duplicate or empty {key} field"}
+        fields[key], raw[key] = value, line
+    missing = {"branch", "verified", "unverified"} - fields.keys()
+    if missing:
+        return {"status": "invalid", **source, "error": "missing fields: " + ", ".join(sorted(missing))}
+    branch = BRANCH_VALUE_RE.fullmatch(fields["branch"])
+    if branch is None or not handoff_ref(branch[1]):
+        return {"status": "invalid", **source, "error": "malformed branch/repo field"}
+    repos = re.findall(r"`([^`]+)`", branch[2])
+    if any(p.startswith("/") or ".." in p.split("/") or "\x00" in p for p in repos):
+        return {"status": "invalid", **source, "error": "repos must be workspace-relative paths"}
+    base = fields.get("base")
+    if base is not None:
+        match = re.fullmatch(r"`([^`]+)`", base)
+        if match is None or not handoff_ref(match[1]):
+            return {"status": "invalid", **source, "error": "malformed target field"}
+        base = match[1]
+    return {"status": "ok", **source, "branch": branch[1], "repos": repos, "base": base,
+            "verified": fields["verified"], "unverified": fields["unverified"],
+            "verification_lines": [raw["verified"], raw["unverified"]]}
+
+
+def select_handoff(comments: list) -> dict:
+    candidates = []
+    reports = []
+    report_warnings = []
+    for comment in comments:
+        if not isinstance(comment, dict) or not isinstance(comment.get("comment"), str):
+            return {"status": "invalid", "error": "expected comment objects with markdown comment text"}
+        body = comment["comment"]
+        lines = [line for line in handoff_lines(body) if line]
+        report = REPORT_RE.fullmatch(lines[0]) if lines else None
+        if report is None:
+            continue
+        is_handoff = (PROGRESS_RE.fullmatch(lines[0]) is not None
+                      and any(key == "branch" for key, _, _ in handoff_fields(body)))
+        try:
+            created = datetime.fromisoformat(comment["created"].replace("Z", "+00:00"))
+            if created.tzinfo is None:
+                raise ValueError("timestamp has no timezone")
+            cid = comment["id"]
+            if isinstance(cid, bool) or not isinstance(cid, int) or cid <= 0:
+                raise ValueError("invalid comment id")
+        except (KeyError, TypeError, ValueError, AttributeError):
+            if is_handoff:
+                return {"status": "invalid", "error": "cannot order handoffs: invalid created/id"}
+            report_warnings.append(f"cannot date report {comment.get('id')!r}: invalid created/id")
+            continue
+        order = (created.astimezone(timezone.utc), cid)
+        reports.append((*order, {"comment_id": cid, "created": comment["created"], "kind": report[1]}))
+        if is_handoff:
+            candidates.append((*order, comment))
+    if not candidates:
+        return {"status": "none"}
+    created, cid, latest = max(candidates, key=lambda item: item[:2])
+    result = parse_handoff(latest["comment"], {"source": "comment", "comment_id": cid,
+                                               "created": latest["created"]})
+    newer = [report for report in reports if report[:2] > (created, cid)]
+    if newer:
+        result["later_report"] = max(newer, key=lambda item: item[:2])[2]
+    if report_warnings:
+        result["report_warnings"] = report_warnings
+    return result
+
+
+def cmd_handoff(args) -> dict:
+    try:
+        if args.argument:
+            return parse_handoff(Path(args.argument).read_text(encoding="utf-8"), {"source": "argument"})
+        if not args.comments:
+            raise UsageError("handoff requires --comments or --argument")
+        comments = json.loads(Path(args.comments).read_text(encoding="utf-8"))
+    except (OSError, ValueError) as e:
+        raise UsageError(str(e)) from e
+    if not isinstance(comments, list):
+        raise UsageError("--comments must contain the complete JSON array of comment objects")
+    return select_handoff(comments)
 
 
 def git(args: List[str], cwd: Path, timeout: Optional[float] = None) -> subprocess.CompletedProcess:
@@ -459,6 +596,9 @@ def cmd_sync(root: Path, branch: str, args) -> dict:
 def build_parser() -> argparse.ArgumentParser:
     ap = argparse.ArgumentParser(description=__doc__)
     sub = ap.add_subparsers(dest="cmd", required=True)
+    h = sub.add_parser("handoff", help="parse read-only handoff data; never runs git or service calls")
+    h.add_argument("--comments", metavar="JSON_FILE")
+    h.add_argument("--argument", metavar="TEXT_FILE", help="whole snapshot; overrides comments")
     for name in ("plan", "push", "wait", "sync"):
         p = sub.add_parser(name)
         p.add_argument("--root")
@@ -483,11 +623,14 @@ COMMANDS = {"plan": cmd_plan, "push": cmd_push, "wait": cmd_wait, "sync": cmd_sy
 def main(argv: Optional[List[str]] = None) -> int:
     args = build_parser().parse_args(argv)
     try:
-        if shutil.which("git") is None:
-            raise UsageError("git not found in PATH")
-        root = find_root(args.root)
-        branch = find_branch(args.branch, root, args.base, args.task)
-        result = COMMANDS[args.cmd](root, branch, args)
+        if args.cmd == "handoff":
+            result = cmd_handoff(args)
+        else:
+            if shutil.which("git") is None:
+                raise UsageError("git not found in PATH")
+            root = find_root(args.root)
+            branch = find_branch(args.branch, root, args.base, args.task)
+            result = COMMANDS[args.cmd](root, branch, args)
     except UsageError as e:
         print(f"error: {e}", file=sys.stderr)
         return 2
