@@ -1,6 +1,6 @@
 ---
 max_turns: 6
-allowed_tools: [Read, Glob, Grep, Bash, Skill]
+allowed_tools: [Read, Glob, Grep, Bash, Skill, AskUserQuestion]
 ---
 
 Доведи ветку плана до main во всех репо воркспейса: пуш, PR и мерж после зелёного CI. Это учебный прогон: ничего не пушь, не создавай PR и не вызывай Forgejo; остановись на шаге подтверждения и покажи, что именно спросишь.

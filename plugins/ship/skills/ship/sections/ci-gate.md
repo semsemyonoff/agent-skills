@@ -24,15 +24,19 @@ page fetch makes the round pending: never judge partial lists.
 
 ## Round outcome
 
-- All pass -> the pre-merge re-read from `SKILL.md` (open, `base.ref`). If `head.sha` moved,
-  restart the gate on the new sha, where no runs or statuses never count as passing. Otherwise
-  `merge_pull_request` with `merge_when_checks_succeed=false`, never `force_merge`.
-- Any fail -> `CI failed` (`sections/ci-failure.md`).
+- All pass (at least one check; empty sources go through the checks guard, never count as passing)
+  -> snapshot the checked SHA as `accepted_head`, evidence basis `CI passed`; then the pre-merge
+  re-read from `SKILL.md` (open, `base.ref`, same `head.sha`). If the head moved, clear acceptance
+  and restart the checks guard/gate on the new SHA. Otherwise `merge_pull_request` with
+  `merge_when_checks_succeed=false`, never `force_merge`. Re-read again on every retry.
+- Any fail -> `CI failed`; pass the actual failing source(s), head SHA, run ID/state or external
+  context/state/description/target_url to `sections/ci-failure.md`, not a presumed failed job.
 - Anything pending -> pause with the harness's wait mechanism (e.g. a background `sleep`), 30 s
   growing to 120 s; 1800 s total -> `timeout`, offer ONE more round.
 
 ## Residual race
 
 The MCP merge takes no expected head, so a push between the re-read and the merge is not prevented.
-After the merge compare the PR `head.sha` with the gated sha; a mismatch -> `merged: ungated head
-<sha>`, with no sync and no branch cleanup in that repo.
+After the merge compare the PR `head.sha` with `accepted_head` and its base with the retained target,
+as required by `SKILL.md`. A head mismatch -> `merged: ungated head <sha>`, with no sync or branch
+cleanup in that repo. This also applies to a head accepted with explicit no-CI permission.

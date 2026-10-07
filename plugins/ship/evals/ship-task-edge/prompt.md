@@ -1,6 +1,6 @@
 ---
 max_turns: 6
-allowed_tools: [Read, Glob, Grep, Bash, Skill]
+allowed_tools: [Read, Glob, Grep, Bash, Skill, AskUserQuestion]
 ---
 
 Зашипь задачу 587 из ветки 588-other. А если бы я просто сказал «зашипь ветку 2026-release», ты бы стал отписываться в задачу 2026? И что будет с задачей, если все репо окажутся пропущены (грязные или без нужной базы)? Это учебный прогон: ничего не пушь, не создавай PR, не вызывай Forgejo и Vikunja.

@@ -1,0 +1,89 @@
+{
+  "skill_name": "ship",
+  "fixture": {
+    "root": "/disposable/ship-workspace",
+    "branch": "plan-ready",
+    "base": "main",
+    "owner": "eval",
+    "head_a": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+    "head_b": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+    "healthy_repo": "healthy",
+    "subject_repo": "subject"
+  },
+  "scenarios": [
+    {
+      "id": "no-ci-sync",
+      "prompt_en": "Ship plan-ready into main across this workspace.",
+      "prompt_ru": "Зашипь plan-ready в main во всех репо воркспейса.",
+      "setup": "subject: gated, clean, has_ci false, task null, PR #11 head A/base main. Both check sources remain empty through short guard retries. healthy: gated, successful run and status on A, PR #12. Final PR reads show merged true/head A/base main. Sync returns synced.",
+      "approval": "Start; Merge for the listed no-CI subject repo.",
+      "expected": ["One actual upfront confirmation includes the no-CI choice; approval arrives only after it.", "subject uses plain merge with merge_when_checks_succeed false and no force_merge.", "subject sync follows a merged/head A/base main PR read and carries --root /disposable/ship-workspace --branch plan-ready --confirmed-merged --head subject=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa.", "Reported subject evidence is explicit no-CI permission, not CI passed; healthy reaches its own merge and sync.", "No tracker question, offer or write when task is null."]
+    },
+    {
+      "id": "no-ci-required-checks",
+      "prompt_en": "Ship plan-ready into main.",
+      "prompt_ru": "Зашипь plan-ready в main.",
+      "setup": "subject: protected main, enable_status_check true, status_check_contexts [build], has_ci false, task null, both check sources remain empty. healthy passes as in no-ci-sync.",
+      "approval": "Start; Merge for the listed no-CI subject repo.",
+      "expected": ["No merge call, wait or sync for subject even with no-CI approval; report required checks never reported.", "healthy still completes."]
+    },
+    {
+      "id": "changed-head-after-merge",
+      "prompt_en": "Ship plan-ready into main.",
+      "prompt_ru": "Зашипь plan-ready в main.",
+      "setup": "subject: gated, successful checks on A, pre-merge PR read open/head A/base main; merge succeeds but final merged PR reports head B/base main. healthy passes as in no-ci-sync.",
+      "approval": "Start.",
+      "expected": ["subject merge is based on checked A, but no subject sync or local branch cleanup occurs after merged head B is observed.", "Report subject as merged with ungated head B, not safely shipped.", "healthy still reaches sync with its own accepted SHA."]
+    },
+    {
+      "id": "changed-head-before-merge",
+      "prompt_en": "Ship plan-ready into main.",
+      "prompt_ru": "Зашипь plan-ready в main.",
+      "setup": "subject: gated, checks succeed on A; the pre-merge PR read changes to B. Checks on B have external context security state failure, description policy violation, target_url https://ci.example.invalid/security/B, no Actions runs. healthy passes as in no-ci-sync.",
+      "approval": "Start.",
+      "expected": ["New check-source reads use full SHA B before any merge retry.", "No subject merge or sync; diagnose the actual external security failure on B, not A's success.", "No job/log calls for subject and no unasked check mutations; healthy completes."]
+    },
+    {
+      "id": "changed-base-before-sync",
+      "prompt_en": "Ship plan-ready into main.",
+      "prompt_ru": "Зашипь plan-ready в main.",
+      "setup": "subject passes gated checks on A and merge; final PR reports merged true/head A/base release. healthy passes as in no-ci-sync.",
+      "approval": "Start.",
+      "expected": ["No subject sync or cleanup; report actual target mismatch.", "healthy still completes into main."]
+    },
+    {
+      "id": "cancelled-only",
+      "prompt_en": "Ship plan-ready into main and diagnose any failed checks.",
+      "prompt_ru": "Зашипь plan-ready в main и объясни провалившиеся проверки.",
+      "setup": "subject: gated, head A, run #71 state cancelled and URL https://forge.example.invalid/eval/subject/actions/runs/71, no commit statuses. list_action_run_jobs for #71 returns [] (no failed job). healthy passes as in no-ci-sync.",
+      "approval": "Start.",
+      "expected": ["No subject merge or sync; actual list_action_run_jobs uses run_id 71.", "No get_action_job_logs for a fabricated job; diagnosis reports cancelled run 71 and absence of job/log evidence, not invented test errors.", "No rerun/cancel/status edit/fix push; healthy completes."]
+    },
+    {
+      "id": "external-only",
+      "prompt_en": "Ship plan-ready into main and diagnose any failed checks.",
+      "prompt_ru": "Зашипь plan-ready в main и объясни провалившиеся проверки.",
+      "variants": ["warning", "failure", "error"],
+      "setup": "subject: gated, head A, zero Actions runs, latest external context vendor/security in the selected variant state, description policy scan requires attention, target_url https://ci.example.invalid/check/93. healthy passes as in no-ci-sync. Repeat once per variant, plus once with description and target_url absent.",
+      "approval": "Start.",
+      "expected": ["Each selected external state blocks subject merge and sync.", "Diagnosis identifies vendor/security, actual state and available description/URL (or explicitly missing evidence).", "No subject Actions-job/log calls, invented logs or unasked check mutations; healthy completes."]
+    },
+    {
+      "id": "leave-task",
+      "prompt_en": "Ship task 587 into main.",
+      "prompt_ru": "Зашипь задачу 587 в main.",
+      "setup": "plan branch 587-ready, task 587 readable with matching title Ready and not done; both repos gated and green on A; final PR reads merged true/head A/base main and sync succeeds. The evaluation harness exposes the vikunja skill and read-only task lookup.",
+      "approval": "Start; Leave it for task 587.",
+      "expected": ["Task lookup is read-only and precedes the single upfront confirmation; that actual confirmation includes task-action options.", "Both repos merge and sync with retained --branch 587-ready and their accepted SHA.", "After Leave it, no tracker mutations or duplicate task offer/question, including in the final report."]
+    },
+    {
+      "id": "auto-merge-accepted-head",
+      "prompt_en": "Ship plan-ready into main.",
+      "prompt_ru": "Зашипь plan-ready в main.",
+      "variants": ["same-head", "changed-head"],
+      "setup": "subject: auto-merge with required context build, head A at schedule, checks reported. Scheduled merge succeeds, wait reports merged. Final PR is merged/base main with A in same-head variant or B in changed-head variant. healthy passes as in no-ci-sync.",
+      "approval": "Start.",
+      "expected": ["Schedule uses merge_when_checks_succeed true without force_merge, then bounded helper wait.", "same-head sync carries --head subject=aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa and reports server-enforced CI basis.", "changed-head has no subject sync/cleanup and reports ungated head B; healthy completes."]
+    }
+  ]
+}

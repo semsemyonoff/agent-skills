@@ -135,34 +135,50 @@ substitute gh/glab/fj/REST and do not change MCP configuration.
    2. Create the PR (`create_pull_request`; error -> `PR failed`, verbatim) or reuse the existing one.
       From here on use the PR's `head.sha` (`get_pull_request_by_index`), never plan `head_sha`: it
       goes stale after an upfront rebase or a CI-fix push.
+      Keep lightweight per-repo run state: target base, candidate head, and `accepted_head` with
+      `evidence_basis` (`CI passed` or `explicit no-CI permission`). Acceptance is tied to a SHA,
+      not a branch name; discard it on a head change. Never call no-CI permission a CI pass.
    3. "PRs only" (or PR-only repos): no merge, no `wait`/`sync`; status `PR open`.
    4. Checks guard, every repo (external CI posts statuses without a workflows dir):
       `get_commit_statuses` and `list_workflow_runs` on the PR `head.sha`; if both are empty,
       re-check a couple of times with a short sleep (<= ~1 min total; Forgejo creates the run and
       "Waiting to run" statuses when the run is queued). Still both empty -> no checks on this
-      PR, and an auto-merge would never fire. A repo approved for merging in the no-CI question ->
-      plain merge with `merge_when_checks_succeed=false` (in `auto-merge` mode instead:
-      `not merged: required checks never reported`). Any other repo -> `PR open: no checks`, no merge call: an
-      empty minute does not prove there is no CI, so merging it is the user's call afterwards.
+      PR, and an auto-merge would never fire. In `gated` mode only, a repo explicitly approved in
+      the no-CI question may snapshot this checked SHA as `accepted_head` with evidence basis
+      `explicit no-CI permission`; proceed to step 5's shared pre-merge guard, without merging yet.
+      In `auto-merge` mode instead: `not merged: required checks never reported`, even with no-CI
+      permission. Any other repo -> `PR open: no checks`, no merge call: an empty minute does not
+      prove there is no CI, so merging it is the user's call afterwards.
    5. Merge. Before every merge call and retry re-read the PR: it must be open with `base.ref` equal
-      to the base (retargeted -> `not merged: base changed`, no write). On a merge error re-read
+      to the base (retargeted -> `not merged: base changed`, no write). Gated/no-CI head changed ->
+      clear acceptance and restart the checks guard/gate on the new SHA before merging. On a merge error re-read
       `get_pull_request_by_index`: `mergeable=false` -> `conflict`; a transient "mergeability still
       being checked" (405/try again later; unverified) -> retry once after a short sleep; else
       `merge not scheduled` with the error.
-      a. `auto-merge`: `merge_pull_request` with `merge_when_checks_succeed=true`, then
-         `ship.py wait --repos <auto-merge repos>` using the harness's wait mechanism or foreground
-         `--timeout` described above; continue when it completes.
+      With valid `explicit no-CI permission` acceptance, plain merge once using
+      `merge_when_checks_succeed=false`; on success go directly to step 7, skipping both mode
+      branches below and `wait`. Never run the CI gate or merge again for that completed merge.
+      a. `auto-merge`: snapshot the re-read PR head as the candidate immediately before scheduling
+         `merge_pull_request` with `merge_when_checks_succeed=true`, then `ship.py wait --repos
+         <auto-merge repos>` using the harness's wait mechanism or foreground `--timeout` described
+         above. When the PR confirms merged on that same candidate, record `accepted_head` and
+         `CI passed` (server-enforced required checks). A changed head is not accepted by this run.
       b. `gated`: run the CI gate from `sections/ci-gate.md` on the PR `head.sha`, all gated repos
          per round; it ends in a plain merge, `CI failed`, `timeout` or `merged: ungated head`. Sync
          each repo as soon as it merges; do not hold it for slower ones.
-   6. `wait` `pending` (auto-merge): `get_commit_statuses(<PR head.sha>)`. Any failure/error -> `CI failed`
-      (`sections/ci-failure.md`). Still running -> `timeout`, offer ONE more wait. All success but not
+   6. `wait` `pending` (auto-merge): re-read the PR, then collect both paged check sources for its
+      current head using `sections/ci-gate.md` source reduction. Any failing run or status ->
+      `CI failed`; pass its actual source/state/context to `sections/ci-failure.md`. Still running ->
+      `timeout`, offer ONE more wait. All success but not
       merged (approvals required, auto-merge cancelled) -> `not merged` with the reason from the PR;
       no endless re-wait offer. `mergeable=false` -> `conflict` (`sections/conflict.md`).
    7. Before sync, per repo: `get_pull_request_by_index` must show `merged: true`, `base.ref` equal
-      to the base and the head that passed CI; then `ship.py sync --repos <confirmed only>
-      --confirmed-merged --head <path>=<sha that passed CI> ...` (plus `--base`). Closed unmerged ->
-      `PR closed`, no sync.
+      to the retained target and `head.sha` equal to `accepted_head`, with its evidence basis
+      retained; then `ship.py sync --repos <confirmed only> --confirmed-merged
+      --head <path>=<accepted_head> ...` (plus `--base`). Closed unmerged -> `PR closed`, no sync.
+      A merged head mismatch or missing acceptance -> `merged: ungated head <sha>`, no sync or
+      cleanup; a base mismatch -> `not merged: base changed`, no sync or cleanup. The helper's
+      branch-deletion check is additional safety, not a substitute for this PR check.
 5. **Report.** One table `repo | PR | status | next`. Statuses: `merged`, `PR open`,
    `PR open: no checks`, `PR failed`, `merge not scheduled`, `PR closed`, `not merged`,
    `merged: ungated head`, `CI failed`,
@@ -183,5 +199,5 @@ substitute gh/glab/fj/REST and do not change MCP configuration.
 
 - `sections/task.md` - read when the run has a Vikunja task (named, or plan `task` not null).
 - `sections/ci-gate.md` - read when a repo is in `gated` mode.
-- `sections/ci-failure.md` - read when a PR's checks failed.
+- `sections/ci-failure.md` - read when any check source fails, including cancellation or external status.
 - `sections/conflict.md` - read when a PR is not mergeable or an upfront "Rebase first" fails.

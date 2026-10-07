@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.3.0
+
+- Track the accepted PR head and its evidence basis through merge and sync: explicit no-CI permission supports safe sync without a false CI-pass claim; head/base changes block cleanup, while required-check auto-merge remains protected.
+- Diagnose the actual failed check source, including cancelled Actions runs with no failed job and external warning/failure/error statuses with no Actions logs; never perform unasked retries or check mutations.
+- Align tracker evaluation with the upfront task decision and add observable behavioral scenarios for accepted-head sync, races, check diagnostics, and no-task/Leave-it handling; keep dry-run grades separate from execution evidence.
+
 ## 0.2.0
 
 - Ship into a named integration branch: `ship.py --base` and "[branch] into <base>"; a missing target is never replaced by the default branch, and the merged PR's base is verified before sync.

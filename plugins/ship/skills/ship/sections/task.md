@@ -35,7 +35,8 @@ an explicit request built from the answer and the per-repo results.
 - Partial: a «Прогресс» comment with «Что осталось» naming each unmerged or skipped repo, its PR and
   status; never close, even if "Report and close" was chosen, and say why in the final message.
   Nothing merged and no PR opened -> no comment; say so in the final message.
-- Content: base branch, PR links, merge commits, CI evidence, notable statuses. No personal data.
+- Content: base branch, PR links, merge commits, accepted head and its evidence basis (`CI passed`
+  or `explicit no-CI permission`), notable statuses. No personal data; never describe permission as CI evidence.
 
 Relay the vikunja skill's result (comment link, closed or left open, failed calls verbatim) in the
 final message. "Leave it": nothing, no offer.

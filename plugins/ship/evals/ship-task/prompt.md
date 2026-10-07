@@ -1,6 +1,6 @@
 ---
 max_turns: 6
-allowed_tools: [Read, Glob, Grep, Bash, Skill]
+allowed_tools: [Read, Glob, Grep, Bash, Skill, AskUserQuestion]
 ---
 
 Зашипь задачу 587 во всех репо воркспейса. Это учебный прогон: ничего не пушь, не создавай PR, не вызывай Forgejo и Vikunja; опиши, как найдёшь ветку, что спросишь в подтверждении и что сделаешь с задачей после мержа.
