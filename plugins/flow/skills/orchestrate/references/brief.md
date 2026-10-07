@@ -1,8 +1,8 @@
 # Worker brief
 
-Assume no conversation history unless the actual harness proves otherwise. Put everything needed
-in a self-contained brief. The coordinator owns the complete plan even if the native worker is
-allowed to delegate. Write in English or the user's language as appropriate for the surrounding code.
+Supply a self-contained brief; do not assume conversation history. Workers read their slice's source;
+the coordinator supplies acceptance, contracts and seams, and retains plan ownership. Use English or
+the user's language as appropriate.
 
 ## Template
 
@@ -14,6 +14,7 @@ Configured/requested model + reasoning: <accessible effective pair/source, or un
 Routing allowance: <approved profile(s), escalation conditions/budget; no silent default fallback>
 
 Context:
+- Skills to load: <slice's language/domain skills; workers read them for their own work>.
 - <workspace, exact files/entry points, input artifact paths and relevant source locations>
 - <approved approach, contracts, constraints, versions, decisions already settled>
 - <pre-existing edits to preserve and facts already learned>
@@ -37,8 +38,10 @@ Boundaries:
 Acceptance: <observable consumer behavior/boundaries, not just files present or tests written>
 
 Return compactly:
-- Findings/changes with exact paths and source locations.
-- Evidence actually observed; commands suggested but not run must be identified as such.
+- Compact facts/findings/changes with paths and source locations; no source dumps.
+- Checks: tree version/state (including dirty changes), scenario/environment, command + exit code
+  (or browser tool + returned status),
+  full log/screenshot paths and unverified items. Distinguish suggested checks from observed results.
 - Uncertainties, changed complexity/risk, missing capabilities and precise blockers.
 - Requested/configured pair versus exposed actual model/reasoning; never infer actual from a profile.
 ```
@@ -50,26 +53,24 @@ and permissions unchanged. Before marking done, use available reads to check the
 and report missing evidence as a gap, not success. These reads do not replace the verification owner's
 runtime checks or authorize worker shared gates; do not add source-text/incidental tests for them.
 
-On failure, sharpen the brief or isolate the hard part with evidence and an observable acceptance
-result before reassessing the route. A worker whose uncertainty/risk no longer fits the approved
-profile reports the gap; it does not widen permissions or switch models/settings. Use stronger
-profiles only within the authorized policy/plan, otherwise ask. Independent review uses a separate
-worker; choose its profile by review risk rather than always inheriting the author's or highest pair.
+A small fix in familiar scope may reuse its worker. Consider a fresh worker for a changed task,
+large exposed context or repeated failure. Around 150k is an experimental guide, not a hard limit;
+weigh progress, remaining work and new-brief cost. After failure, diagnose anew or sharpen the brief
+before retry/replacement. Follow SKILL.md's stop -> inventory -> replace order. Changed risk or
+missing capabilities must be reported; no worker may widen permissions or switch routes/settings.
 
 ## Example
 
 ```text
-Goal: Upload bodies over the approved 10 MiB limit get HTTP 413; smaller bodies still upload.
-Capability: implementation; requested profile: the discovered permitted strong editor.
-Complexity: high failure cost at an untrusted-input/public boundary; stream ownership must be preserved.
-Configured/requested pair: effective native strong profile; exact values only from available config.
-Routing allowance: this profile only; sharpen/split before any explicitly authorized stronger route.
-Context: internal/http/upload.go handler; internal/config/config.go follows existing timeout pattern.
-Change: use the service's current body-limit pattern and error helper; cover exact-limit and over-limit.
-May touch: internal/http/upload.go, internal/http/upload_test.go, internal/config/config.go.
-Do not change other handlers, dependencies, native routing, or pre-existing unrelated edits.
-Skip checks/formatters mid-flight; coordinator will run project gates and exercise upload requests.
-No external writes/commits/push/installs; no nested delegation for this slice.
-Acceptance: 10 MiB succeeds; 10 MiB + 1 byte receives 413 without storing the oversized body.
-Return: changed paths, unchecked assumptions, suggested central scenario commands.
+Goal: Enforce the approved 10 MiB upload limit.
+Capability/complexity: implementation; high failure cost at an untrusted boundary; preserve stream ownership.
+Route: discovered permitted strong editor; record effective configured pair, not guessed actual identity.
+Context/ownership: internal/http/upload.go, internal/http/upload_test.go, internal/config/config.go;
+use existing body-limit/error/config patterns. Preserve unrelated edits; no other files.
+Change: enforce the limit using existing body-limit/error handling.
+Boundaries: no gates/formatters mid-flight, nested delegation, external writes, commits/push,
+installs, destructive cleanup or routing/settings changes. Report gaps before escalation.
+Verification owner: assigned checker or coordinator; run project gates and upload scenarios on stable tree.
+Acceptance: exactly 10 MiB succeeds; 10 MiB + 1 byte gets HTTP 413 without storing the oversized body.
+Return: changed paths, source-grounded facts, risks/unverified items and observed evidence as above.
 ```

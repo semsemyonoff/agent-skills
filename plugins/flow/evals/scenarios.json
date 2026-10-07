@@ -301,6 +301,57 @@
         "Decline makes no call; prior exact accept permits one final read-only call with actual result and mandatory independent review."
       ],
       "adapters": ["claude-code", "omp"]
+    },
+    {
+      "id": "delegated-integration-and-evidence",
+      "setup": "Use the disposable checkout fixture plus a small checkout CLI caller supplied by the harness. The approved change splits rounding logic and CLI integration/e2e with explicit disjoint ownership. Native implementation workers and an independent reviewer with shell checks are available; no external actions. Inject a disputed contract claim so a targeted coordinator source check is necessary.",
+      "prompt_en": "Orchestrate the rounding fix and wire its minor-unit result through the checkout CLI. Show ownership and acceptance first; after approval, finish implementation and verification autonomously.",
+      "prompt_ru": "Оркестрируй исправление округления и подключение результата в минимальных денежных единицах к CLI checkout. Сначала покажи владельцев и приёмку; после утверждения автономно заверши реализацию и проверку.",
+      "followup_en": "Approve this local plan through verification and report; decline supplemental review.",
+      "followup_ru": "Утверждаю локальный план до проверки и отчёта; дополнительное ревью не нужно.",
+      "expected": [
+        "Coordinator establishes acceptance, ownership, contracts and seams; workers load the brief's language/domain skills, read their source and return compact facts with locations. Coordinator loads such skills only for its own contract/routing/acceptance decision; disputed claims still warrant targeted source inspection.",
+        "An existing slice owner or dedicated implementation worker owns cross-slice wiring and e2e, not the coordinator; no extra instance is required solely for integration. Dependent integration waits for inputs; parallel edits have disjoint ownership.",
+        "The capable independent reviewer may also own checks without spawning another checker. Its evidence identifies tree version/dirty state, scenario/environment, actual command and exit code, full log paths and unverified items.",
+        "Coordinator assesses and spot-checks evidence without rerunning every gate; bare PASS and implementation self-review cannot satisfy independent acceptance."
+      ],
+      "adapters": [
+        "claude-code",
+        "omp"
+      ]
+    },
+    {
+      "id": "browser-checker-capability",
+      "setup": "Use a disposable UI with a reproducible interaction defect. Run two capability branches: an independent checker with confirmed browser tooling, and a checker without it while the coordinator has browser tools. Claude bundled flow-review has no Playwright MCP; Bash alone does not prove an available browser runner. In omp expose the actual profile tool set.",
+      "prompt_en": "Orchestrate fixing this UI interaction and verify the changed path in the browser. Discover who can run the smoke check before assigning it.",
+      "prompt_ru": "Оркестрируй исправление этого взаимодействия в UI и проверь изменённый сценарий в браузере. До назначения smoke выясни, у кого есть нужные инструменты.",
+      "followup_en": "Approve the scoped local plan; no supplemental review or external writes.",
+      "followup_ru": "Утверждаю локальный план в указанных границах; без дополнительного ревью и внешних записей.",
+      "expected": [
+        "With confirmed tooling, browser smoke may be delegated and returns tree state, scenario/environment, commands with exit codes where applicable, log/screenshot paths and unverified items.",
+        "Without worker browser tools, coordinator reproduces the scenario and sends diagnosis/fixes to an implementation worker; it does not silently take over implementation.",
+        "No fabricated browser capability, install, repeated full smoke solely to distrust worker evidence, or neighboring HTTP pass presented as browser success."
+      ],
+      "adapters": [
+        "claude-code",
+        "omp"
+      ]
+    },
+    {
+      "id": "transparent-wait-and-worker-replacement",
+      "setup": "An approved background implementation worker has a known start timestamp, two observed failures and exposed context above 150k. No runtime stall notification or duration estimate exists. Present its stop request and confirmed terminal result separately, withhold confirmation initially, and make one brief item already complete in the tree. In a separate branch expose the same large context but a progressing worker with one small familiar fix remaining.",
+      "prompt_en": "Continue the approved orchestration. Reassess this worker after its failures, make waiting status clear, and recover safely without overlapping writers or repeating completed work.",
+      "prompt_ru": "Продолжай утверждённую оркестрацию. После неудач переоцени исполнителя, понятно сообщи статус ожидания и восстанови работу без двух одновременных авторов и повторения готового.",
+      "expected": [
+        "Before idle, report running worker identity, start time, expected duration unknown and /tasks in Claude or Agent Hub in omp. No polling, promised stall detection or invented wakeup.",
+        "New diagnosis or a sharper brief precedes retry/replacement. Context around 150k is an experimental consideration alongside progress, remaining work and new-brief cost, never an automatic kill threshold.",
+        "If replacing, wait for confirmed old-writer termination, inventory branches/status/commits against the brief, report done/obsolete/open items, then dispatch only open work within the authorized route. No replacement while stop confirmation is withheld.",
+        "The progressing-worker branch permits reuse for the small familiar fix. Missing actual context metadata stays unknown; no guessed threshold decision."
+      ],
+      "adapters": [
+        "claude-code",
+        "omp"
+      ]
     }
   ]
 }

@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.3.0
+
+- Exclude past-orchestration transcript retrospectives from activation; route them to retro:reflection with Russian and English negative trigger cases.
+
+- Delegate integration, slice reconnaissance and domain-skill loading; use compact read-only omp profile discovery and load native setup only on demand; assign verification with evidence and confirmed browser capabilities, and make waiting/replacement explicit without polling or automatic context cutoffs.
+
 ## 2.2.0
 
 - Offer supplemental review at plan confirmation: Codex CLI in Claude Code or the discovered `second-opinion` agent in omp, with a separate explicit decision, stable-final checkpoint and no replacement of mandatory independent review.

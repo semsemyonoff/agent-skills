@@ -4,7 +4,19 @@ Use this adapter only in omp. Keep the process in the loaded `SKILL.md`; this fi
 
 ## Discover before dispatch
 
-Read the current `task`, `ask`, and `wait` descriptions/schemas and exposed agent roster. Inspect only relevant non-secret native routing information, as described in `references/native-setup.md`. Discovery is not availability: disabled agents, parent spawn policy, recursion depth, plan mode, tools, and extension hooks can block or alter execution. Execution-time discovery/settings reload can differ from the initial description. A missing agent error reports available alternatives; select one only within the approved category and permissions. Do not install agents, enable providers, or change configuration. [1][4]
+Read live `task`/`ask`/`wait` schemas and the exposed roster. In the project cwd, run the read-only
+helper using the loaded skill's resolved directory (pass `--profile` for a named native profile):
+
+```sh
+python3 "$SKILL_ROOT/scripts/omp_profiles.py"
+```
+
+It reads native project/user profiles and five allowlisted config keys. Use needed rows, not the
+whole output, in the plan. Additional confirmed agent directories can be supplied in discovery
+order (`--help`); uninspected sources, missing keys and session-only overrides remain unknown.
+This is a hint: live schemas/roster and observed spawn metadata stay authoritative. Disabled agents,
+spawn/depth limits, plan mode and hooks can block/alter routes. Never install or change settings.
+Read `references/native-setup.md` only for native-profile setup or missing/unexpected routes. [1][4]
 
 | Capability | Native selection after assessment | Boundary |
 | --- | --- | --- |
@@ -14,28 +26,22 @@ Read the current `task`, `ask`, and `wait` descriptions/schemas and exposed agen
 | Review | Separate discovered risk-appropriate `flow-review-*`, reviewer/security specialist or approved equivalent | Assess required pair independently; combine compatible coverage |
 | Optional second opinion | Discovered `second-opinion` agent, explicitly selected by the user | Separate supplemental instance after required review, not its replacement |
 
-Read `references/routing.md` before choosing a profile. Native resources and their role contract are
-in `references/native-setup.md`; files being present here does not mean they are deployed or enabled.
-Missing profiles/aliases are prerequisites. Do not silently omit `agent` and obtain a default task.
-Omission is legal only if the authorized policy expressly includes that effective default pair and
-the plan gives a capability/complexity suitability reason. Discover omission's actual resolution:
-usually task for unrestricted parents, potentially another agent for restricted parents. [1][4]
+Assess with `references/routing.md`; bundled resource files do not prove deployment. Missing
+profiles/aliases are prerequisites. Omitting `agent` requires an explicit permitted effective pair
+and suitability reason; discover its resolution (usually task, different for restricted parents).
+Do not silently obtain a default task or substitute an unapproved alternative. [1][4]
 
-The current task wire exposes per-item `model` (string or ordered nonempty array); never put it
-on the batch container. Use it only when the live schema exposes it and every candidate/known role
-expansion fits the assessed authorized policy. Explicit selection precedes native
-`task.agentModelOverrides`, profile model selectors and configured task/session fallback; role aliases
-expand through `modelRoles`. Use `@default`, not ambiguous literal `default`/`inherit`, for the live
-parent model; reasoning still follows native precedence. Ordered candidates are preferences, not
-a closed allowlist: configured runtime fallback behavior can alter the actual route.
-Current public eval `agent()`/`workpool()` also expose `model`; discover that API independently.
-Older surfaces may not: use an appropriate discovered profile instead, never hidden bridge arguments
-or shared role/agent settings mutations between parallel calls. [1][4][7]
-Choose the profile by assessment and show the accessible effective configured/requested pair first.
-After spawn show actual identity/reasoning only from exposed fields such as `resolvedModelIdentity`,
-`resolvedThinkingLevel`, `resolvedModelIsFallback` and `resolvedModelRoute`; keep unavailable actual
-metadata unknown, not known configuration. Stop unexplained substitutions outside the selected
-authorized route. Never dump private profiles or credentials. [1][4][5][6]
+When exposed, task-item `model` accepts a string or ordered nonempty array, never batch-top model.
+Every candidate/known role expansion needs assessed policy permission. Precedence: explicit model,
+`task.agentModelOverrides`, profile selector, task/session fallback; aliases use `modelRoles`.
+`@default` means the live parent model (not literal `default`/`inherit`); reasoning follows native
+precedence. Candidates are preferences, not a fallback allowlist. Discover public eval
+`agent()`/`workpool()` model support separately. Older surfaces require a discovered suitable profile;
+no hidden bridge fields or shared settings mutations. [1][4][7]
+Show accessible configured/requested pairs before dispatch. Actual identity/reasoning requires
+exposed `resolvedModelIdentity`, `resolvedThinkingLevel`, `resolvedModelIsFallback`, `resolvedModelRoute`;
+unavailable actual stays unknown, not known configuration. Stop unexplained out-of-policy substitutions.
+Never dump private profiles or credentials. [1][4][5][6]
 
 ## Native confirmation UI
 
@@ -103,16 +109,20 @@ For editing slices, follow the native edit protocol: read the ranges to change a
 patches. After a tool rejection, re-read affected ranges and correct the rejected boundary/arguments;
 do not resend the same oversized or invalid payload. This sharpens execution, not the model route.
 
-With `async.enabled`, ordinary spawns return job/agent identifiers and results auto-deliver; blocking agent definitions can instead return inline results, including in mixed batches. Do useful work while waiting. Call `wait` only when blocked with nothing else to do; its native schema has no arguments and no job selector. Do not poll. On a partial/safety-cap return or steering interrupt, process the notice and keep waiting if dependent work is still outstanding. Never report a spawn receipt as a completed result. Full output is available at the returned `agent://<id>`; `history://<id>` exposes the transcript, and `write agent://<id>` can coordinate/resume an existing agent when available. [1][3]
+With `async.enabled`, spawns return job/agent IDs and results auto-deliver; blocking definitions
+return inline, including mixed batches. Do independent work first; use native argument-free `wait`
+only when blocked. No polling. Process partial/safety-cap returns and steering, then keep waiting
+for outstanding dependencies. A receipt is not completion. `agent://<id>` holds full output,
+`history://<id>` the transcript; `write agent://<id>` can coordinate/resume when available. [1][3]
 
-The user can inspect native Agent Hub (`Alt+A`), pinned subagent progress, and transcripts; do not assert that workers are invisible. Report the evidence and material findings in the main response regardless of UI visibility. [4]
+Before idle, follow SKILL.md's waiting notice and point to Agent Hub (`Alt+A`), pinned progress and
+transcripts. These are user-visible; report material evidence in the main response too. [4]
 
-Use a separately instantiated risk-appropriate reviewer profile or approved security specialist,
-never the implementer. One reviewer may cover compatible changed scopes; do not multiply mandatory
-reviews per implementation item. Give acceptance, actual changes, source paths and explicitly
-permitted verification commands. Require observed evidence and limits, not a copied worker summary.
-Missing independent capability remains a blocker; author/coordinator self-checks do not replace it.
-For fix batching and coordinator-only mechanical tails, follow `SKILL.md` §5; preserve review provenance.
+Use one separate risk-appropriate reviewer for compatible scopes, with acceptance, changes, paths
+and permitted checks. It may own gates and return the brief's evidence packet. Discover profile tools
+before delegating browser smoke; do not assume parent browser access. If absent, the coordinator
+reproduces the scenario and delegates diagnosis/fixes. Missing independent capability is a blocker;
+self-checks cannot replace it. Follow SKILL.md §5 for fix batching and review provenance.
 
 Sharpen the failing brief or isolate its genuinely hard part first, then reassess. A stronger profile
 within the already authorized policy/plan needs no redundant question; a new route/budget outside it

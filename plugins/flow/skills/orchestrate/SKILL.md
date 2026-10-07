@@ -1,16 +1,15 @@
 ---
 name: orchestrate
-description: 'Run explicit orchestration requests through recon, capability and complexity assessment, permitted native model/reasoning profiles, approval, delegated execution, independent verification, and a short report in Claude Code or omp. Use for /flow:orchestrate, /skill:orchestrate, "orchestrate this", "you are the orchestrator", "delegate to subagents", "use subagents by complexity", «ты оркестратор», «ты оркестратор и проверяющий», «делегируй на сабагентов», «раздай сабагентам», «сабагенты по сложности», or choosing Orchestrate after a brainstorm. Do not trigger merely because a task is large or mentions workflow; do not substitute for a separate Workflow tool.'
+description: 'Explicit orchestration in Claude Code or omp: recon, native routing by capability/complexity, approval, delegation, independent verification and report. Use for /flow:orchestrate, /skill:orchestrate, "orchestrate this", "you are the orchestrator", "delegate to subagents", "use subagents by complexity", «ты оркестратор», «ты оркестратор и проверяющий», «делегируй на сабагентов», «раздай сабагентам», «сабагенты по сложности», or choosing Orchestrate after a brainstorm. Not for size/workflow mentions alone or the separate Workflow tool. Route past-run/transcript retrospectives («как отработала оркестрация») to retro:reflection.'
 argument-hint: "[task]"
 ---
 
 # Orchestrate
 
-Act as coordinator, not bulk implementer: establish facts, settle the approach, obtain approval,
-delegate, independently verify, and report in the user's language. Use ONE process below in both
-harnesses. Categories describe required capabilities, not model cost. Separately assess each slice's
-remaining decisions, uncertainty, coupling and failure cost; choose the minimum sufficient permitted
-native model/reasoning profile from that assessment, not from the implementation/docs label.
+Own contracts, decisions and acceptance; delegate implementation, including integration, except
+trivial inline work below. Independently verify. Categories express capabilities, not cost;
+assess remaining decisions, uncertainty, coupling and failure cost per slice. Choose the minimum
+sufficient permitted native model/reasoning profile.
 
 ## Select the runtime adapter
 
@@ -24,7 +23,7 @@ Resolve every bundled path from the directory containing this loaded `SKILL.md`.
 installation location or environment variable. Discover available delegation, ask UI, independent
 review, background/wait, permissions, and native routing. If neither adapter matches, describe the
 missing prerequisite instead of inventing compatible APIs. Never edit configuration to make a route
-available. Native setup and source citations are in `references/native-setup.md`.
+available. Read `references/native-setup.md` only for native-profile setup or missing/unexpected routes.
 
 A trivial self-contained change may be done inline when dispatch costs more than the work. Combine
 related simple changes with the same ownership/contract instead of spawning a worker per edit.
@@ -35,10 +34,12 @@ Explicitly requested delegation or independent-review acceptance still applies t
 
 ## 1. Recon
 
-Read the request and every referenced plan, audit, checklist, and artifact. Expand them into the full
-acceptance surface; inspect the relevant current state and pre-existing edits without resetting
-user work. Gather facts before planning. Make a handful of targeted reads inline; delegate broad
-research to the adapter's read-only category. Return source locations and conclusions, not dumps.
+Read the request and referenced plans/audits/checklists/artifacts for acceptance, ownership,
+contracts and seams. Inspect relevant state and pre-existing edits; preserve user work. Delegate
+broad recon to read-only workers; slice workers read their source and return compact facts with
+locations. Read disputed/critical sources as needed to plan, without pre-reading every slice.
+Name language/domain skills in slice briefs; workers load them. Load one yourself only for your
+own contract, routing or acceptance decision.
 
 Discover capabilities and native routes before promising workers or settings. Do not assume workers
 are leaves, inherit this conversation, share every tool, or have identical user visibility. Bound
@@ -68,12 +69,12 @@ Unknown metadata stays unknown; known configuration is not made unknown merely b
 summary. Missing/unapproved profiles block that route. Generic/default dispatch needs an explicit
 policy match and suitability reason; implementation never automatically means default task.
 
-Run independent slices in parallel with disjoint edit ownership; group related simple work first.
-Specify contracts and serialize only real dependencies. Assess review effort by the changed result's
-risk, not by the author's category or a fixed highest model. Use one adequate separate reviewer for
-compatible changed scopes rather than mandatory reviews per worker. Focus security/data/lifecycle
-checks where warranted, plus executable verification. List exact external actions and approvals;
-local implementation approval does not authorize them.
+Group simple work; parallelize disjoint files and serialize dependencies. Assign wiring,
+shared-contract implementation and e2e to an existing slice owner or dedicated integration worker;
+keep it off the coordinator except trivial inline work. Wait for integration inputs.
+Use one separate reviewer for compatible scopes, sized by result risk rather than author/category
+or highest model; focus security/data/lifecycle checks where warranted, plus executable verification.
+Name the verification owner and exact external actions/approvals; local approval excludes those effects.
 
 ## 3. Confirmation
 
@@ -108,11 +109,11 @@ acceptance criteria, checks reserved for the verification owner, and concise out
 Workers must not run shared gates or formatters while edits overlap. No worker commits, pushes,
 installs, changes native routing, or writes externally without exact explicit permission.
 
-Launch all ready independent slices together using the adapter's real schema. For background work,
-continue independent work and accept completion notifications; wait only when blocked. For blocking
-calls consume their returned results. Never claim an unfinished worker's output or assume summaries
-are hidden from the user. Start dependent work only when its inputs have arrived and passed the
-checks assigned to that phase.
+Launch ready independent slices together using the real schema. Consume blocking results; accept
+background notifications and wait only when blocked. Before going idle, name running workers,
+start times, expected duration with a basis (otherwise unknown), and the adapter's status surface.
+This is transparent waiting, not stall detection; runtime stall notifications require harness support.
+Never claim unfinished results. Start dependent work only after inputs pass their assigned checks.
 
 After failure, sharpen the brief or isolate the genuinely hard part before changing the route.
 Reassess with the new evidence; no blind retries or fixed model ladder. Use a stronger native profile
@@ -123,25 +124,26 @@ paid fallback. Compare exposed actual identity/reasoning with the requested/conf
 an unexplained substitution stops affected work until resolved within policy or explicitly approved.
 If no permitted route meets the requirement, report its precise prerequisite, not incomplete success.
 
-Resuming after an interruption (stopped worker, restarted session, commits made meanwhile): before
-any re-dispatch, re-inventory branches, status and commits against every in-flight brief. Tell the
-user which items are already done, obsolete or still open, and re-dispatch only the open ones. An
-explicit user instruction about a worker ("restart it") is answered, not silently dropped: follow
-it, or say why it is unnecessary.
+For reuse/replacement, follow `references/brief.md`: confirm the old writer stopped, inventory the
+tree, then dispatch its replacement; never overlap old and new writers.
+After interruptions/restarts or intervening commits, inventory branches/status/commits against all
+in-flight briefs; report done/obsolete/open items and re-dispatch only open work. Answer explicit
+worker instructions ("restart it"): comply or explain why unnecessary.
 
 ## 5. Independent verification
 
-The implementer cannot act as its own independent reviewer. Dispatch the planned risk-appropriate
-reviewer separately; combine compatible scope coverage and run shared gates once the edits land.
-A worker's passing-check claim is not evidence, and independence does not imply highest-cost routing.
+Use a separate risk-appropriate reviewer; implementers cannot independently review their own work.
+Assign stable-tree gates/smoke to a checker or coordinator; a capable reviewer can also check.
+Require the `references/brief.md` evidence packet, not PASS; implementer claims are not verification.
+The coordinator assesses evidence and spot-checks without repeating whole runs. Delegate browser
+smoke only with confirmed tools; otherwise reproduce in the coordinator and delegate diagnosis/fixes.
+Follow adapter capability limits.
 
-- Code: inspect changed scope, run the relevant project checks, and exercise the changed path with
-  a targeted scenario/smoke run. Record actual results, not inferred success.
-- Research: independently spot-check key claims against their sources.
-- Review: assess every finding; accept and route fixes, or reject with a reason. Verify fixes before
-  continuing. Reviewer output is input to the coordinator, not automatic approval.
-- Boundaries: preserve pre-existing user changes; flag out-of-scope edits and unapproved external
-  actions. Do not conceal them or destructively revert unrelated work.
+- Code: inspect changed scope, run relevant checks and exercise the changed behavior.
+- Research: independently spot-check key claims against sources.
+- Findings: accept and route fixes or reject with reasons; verify fixes before proceeding.
+- Boundaries: preserve user work; disclose out-of-scope edits/unapproved effects, never silently revert.
+Reviewer output informs coordinator acceptance; it is not automatic approval.
 
 For layered smoke checks, record each applicable subcheck and its actual result: browser rendering/
 interaction, HTTP/API, WebSocket/transport and live deployment. HTTP 101 plus a connected protocol

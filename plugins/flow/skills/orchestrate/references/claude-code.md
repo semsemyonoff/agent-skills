@@ -4,7 +4,7 @@ Use this adapter only in Claude Code. Keep the process in the loaded `SKILL.md`;
 
 ## Discover before dispatch
 
-Discover the exposed native delegation tool: some Claude Code surfaces call it `Agent`, others `Task`. Read the actual tool's schema and available subagent descriptions, enabled plugin identity, and applicable native definitions/overrides; absence of the name `Agent` alone is not missing delegation. Plugin agents use scoped identifiers, normally `flow:flow-research`, `flow:flow-mechanics`, `flow:flow-implementation`, and `flow:flow-review`; treat these as expected names, not proof that they loaded. Use the actual discovered `subagent_type` only when supported. The @-mention typeahead exposes loaded scoped names; `/agents` behavior is version-dependent and is not a reliable universal listing UI. See `references/native-setup.md` for native override precedence. [1][3]
+Discover the actual Agent/Task schema, loaded scoped agent names, plugin identity and relevant native overrides; absence of `Agent` alone is not missing delegation. Expected names are `flow:flow-research`, `flow:flow-mechanics`, `flow:flow-implementation`, `flow:flow-review`, not proof of loading. Use discovered `subagent_type` only when supported. @-mention typeahead shows loaded names; `/agents` is version-dependent. Read `references/native-setup.md` only for native-profile setup or diagnosing missing/unexpected routes. [1][3]
 
 | Capability template | Native definition | Historical template default, not routing policy | Capability |
 | --- | --- | --- | --- |
@@ -68,14 +68,19 @@ independent workers/reviewers. [1][2]
 
 Non-fork workers start in separate context windows without the conversation history or previously loaded skills. Native context may include CLAUDE.md files, a git snapshot, explicitly preloaded skills, and a conditional sibling roster; the brief must still be complete. If the discovered delegation schema exposes `name`, avoid using it merely as a label when agent teams are enabled: it can launch a teammate instead. Use ordinary subagent dispatch unless a different native mechanism has been explicitly agreed. [1][4]
 
-Foreground calls block; background calls notify the parent on completion. Availability and defaults vary with runtime version, fork mode, and background-task settings. Do useful independent work while waiting; do not poll, sleep-loop, or claim an unfinished result. There is no omp `wait` API here: use only the waiting/completion mechanism the current tool description exposes. `TaskOutput` is deprecated in current docs; if full output is needed, read the actual output path returned by the runtime, not a guessed path. `/tasks` exposes worker status/transcripts to the user, so do not claim workers are invisible. Relay the material result and evidence in the final report. [1][4]
+Foreground calls block; background calls notify on completion, subject to native version/settings.
+Use only exposed waiting/completion mechanisms; no omp `wait`, polling or sleep loops. Before idle,
+follow SKILL.md's waiting notice and point to `/tasks` for status/transcripts. Read full output only
+at the returned path when needed; `TaskOutput` is deprecated. Report observed results/evidence;
+worker summaries may be visible to the user. [1][4]
 
-Dispatch a separate risk-appropriate review profile or approved equivalent after implementation,
-not automatically the highest default for every worker. One reviewer may cover compatible scopes.
-Give original acceptance, actual changed surface and permitted verification commands. Its Bash
-capability is not a sandbox: prohibit source/config changes and unapproved external effects.
-Missing reviewer/pair/tool capability is a blocker, not permission to self-review.
-For fix batching and coordinator-only mechanical tails, follow `SKILL.md` §5; preserve review provenance.
+Dispatch one separate risk-appropriate reviewer for compatible scopes, with original acceptance,
+changed surface and permitted checks. It may also own gates and return the brief's evidence packet.
+Bundled `flow-review` has Read/Glob/Grep/Bash, no Playwright MCP tools; do not assume the parent's
+browser tools reach it. Delegate smoke only with confirmed browser tooling (including an available
+permitted Bash browser runner); otherwise reproduce in the coordinator and delegate diagnosis/fixes.
+Bash is not a sandbox: prohibit source/config changes and unapproved external effects. Missing
+reviewer/pair/capability blocks independent verification. Follow SKILL.md §5 for batching/provenance.
 
 Sharpen the brief or isolate the hard part and reassess first. Stronger profiles must stay within
 the pre-authorized policy/plan; otherwise ask for the exact route/budget. No fixed ladder, blind

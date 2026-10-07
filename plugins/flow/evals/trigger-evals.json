@@ -78,5 +78,13 @@
   {
     "query": "Слово «оркестрируй» в примере команды написано с ошибкой: исправь только этот пример в help.txt.",
     "should_trigger": false
+  },
+  {
+    "query": "Как отработала оркестрация вчерашнего рефакторинга checkout? Разбери транскрипты координатора и воркеров: расходы, делегирование и повторные исправления.",
+    "should_trigger": false
+  },
+  {
+    "query": "How did orchestration perform on yesterday's checkout refactor? Analyze the coordinator and worker transcripts for cost, delegation and repeated fixes.",
+    "should_trigger": false
   }
 ]

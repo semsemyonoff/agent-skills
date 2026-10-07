@@ -15,7 +15,7 @@ State the settled approach and authorized routing/budget policy, then a compact 
 | 2 | Implement fixed callers | light: API/paths settled, contained effects | permitted light editor | effective configured pair | approved contract; parallel with 3 |
 | 3 | Implement lifecycle ownership | strong: focus/state transitions cross boundaries | permitted strong editor | effective configured pair | lifecycle acceptance; after 1 |
 | 4 | Independent combined review | assess highest relevant boundary risk; one scope set | separate permitted reviewer profile | effective configured pair | actual changes + acceptance; after 2/3 |
-| 5 | Gates and runtime scenario | verification owner, not another model review | coordinator or assigned checker | not a worker-routing choice | actual observed results on stable tree |
+| 5 | Gates and runtime scenario | tools and scenario risk | reviewer/checker or coordinator | effective pair if delegated | stable tree + evidence packet |
 ```
 
 These are examples, not a mandatory five-row decomposition or model benchmark. Inline trivial work
@@ -26,7 +26,8 @@ Actual identity is **not spawned yet**, never a model-name guess. Missing requir
 are prerequisites, not silently replaced by generic/default task. A justified generic choice must
 name its verified effective pair, explicit policy permission and suitability for the assessed class.
 
-Add exact ownership/contracts and dependencies, reviewer independence, and verification owner.
+Assign integration to an existing slice owner or dedicated worker; name ownership, dependencies,
+contracts, reviewer and checker. The trivial-inline exception remains.
 List permitted escalation profile(s), their conditions and budget within the authorized plan; stronger
 routes outside that allowance require a question. Ordinary matching-profile assignment does not.
 Name exact external actions separately. Discover the supplemental route before confirmation:
