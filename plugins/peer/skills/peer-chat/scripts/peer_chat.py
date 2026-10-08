@@ -24,6 +24,9 @@ MIN_WRAPPED_PROBE = 40
 RULE_RE = re.compile(r"^\s*[─━—-]{10,}\s*$")
 TOP_RULE_RE = re.compile(r"^\s*(?:[─━—-]{10,}|[─━]{2,}\s+\S.*[─━]\s*$)")
 CODEX_PROMPT_RE = re.compile(r"^\s*›\s?(.*?)\s*$")
+# Codex dims these hints in an empty composer; plain screen text loses the
+# styling. send()/doctor still require the caret right after the prompt glyph.
+CODEX_PLACEHOLDERS = frozenset({"Ask Codex to do anything", "Ask a follow-up question"})
 BOX_PROMPT_RE = re.compile(r"^\s*❯\s?(.*?)\s*$")
 LABEL_RE = re.compile(r"chat from \w+(?: \([^)]*\))?\s*:\s*", re.IGNORECASE)
 ANSI_RE = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
@@ -402,6 +405,8 @@ def codex_prompt_text(text: str) -> str | None:
             wrapped = following[:separator]
             if any(BOX_PROMPT_RE.match(line) or CODEX_PROMPT_RE.match(line) for line in wrapped):
                 return None
+            if not wrapped and match.group(1).strip() in CODEX_PLACEHOLDERS:
+                return ""
             return " ".join([match.group(1).strip(), *(line.strip() for line in wrapped)]).strip()
     return None
 

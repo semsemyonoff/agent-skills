@@ -1,7 +1,7 @@
 {
   "name": "peer",
   "description": "Shared peer chat and reviews across Claude Code, native Codex CLI and omp in kitty or agterm split panes",
-  "version": "2.0.5",
+  "version": "2.0.6",
   "author": {
     "name": "semsemyonoff"
   }

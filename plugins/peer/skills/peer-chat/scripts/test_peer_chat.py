@@ -351,6 +351,29 @@ class SendSafetyTest(unittest.TestCase):
                     self.deliver(backend)
                 self.assertEqual(backend.writes, [])
 
+    def test_codex_placeholder_hint_is_an_empty_composer(self):
+        for hint in sorted(pc.CODEX_PLACEHOLDERS):
+            with self.subTest(hint=hint):
+                backend = self.tape(
+                    "codex",
+                    before=[composer("codex", hint)],
+                    submitted=[accepted_screen("codex").replace("› ", "› Ask a follow-up question")],
+                )
+                self.deliver(backend)
+                self.assertEqual(len(backend.writes), 2)
+
+    def test_codex_placeholder_lookalikes_never_write(self):
+        for before, cursor in (
+            (composer("codex", "Ask Codex to do anything"), 26),
+            (composer("codex", "Ask Codex to do anything", "and more"), 2),
+            (composer("codex", "Ask Codex to do something"), 2),
+        ):
+            with self.subTest(before=before, cursor=cursor):
+                backend = self.tape("codex", before=[before], cursor=cursor)
+                with self.assertRaises(RuntimeError):
+                    self.deliver(backend)
+                self.assertEqual(backend.writes, [])
+
     def test_empty_screen_with_displaced_cursor_never_writes(self):
         for harness in ("claude", "codex", "omp"):
             with self.subTest(harness=harness):

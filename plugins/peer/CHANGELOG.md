@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.0.6
+
+- Treat Codex's dimmed empty-composer hints as an empty composer, so delivery to
+  an idle Codex no longer refuses as occupied; the caret check still guards drafts.
+
 ## 2.0.5
 
 - Recognize omp's short leading rule before a session-titled composer in either
