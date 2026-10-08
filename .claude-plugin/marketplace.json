@@ -33,7 +33,7 @@
     {
       "name": "retro",
       "source": "./plugins/retro",
-      "description": "Retrospective over selected Claude Code and omp session transcripts: recurring requests, friction, tool errors, native model routing, token usage"
+      "description": "Retrospectives over selected Claude Code, omp and native Codex CLI transcripts: recurring work, friction, errors, routing, usage and plan-run failure/review analysis"
     },
     {
       "name": "ship",

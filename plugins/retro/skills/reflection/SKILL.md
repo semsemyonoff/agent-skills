@@ -1,6 +1,6 @@
 ---
 name: reflection
-description: Retrospective over past Claude Code or omp session transcripts — recurring requests to automate, repeated corrections, tool errors, permission denials, provider/model/effort routing and token spend. Use for "reflect on my sessions", "retro for the week", "analyze transcripts", "what can I automate", "what do I keep repeating", "review how I use Claude/omp", «проанализируй сессии», «проанализируй транскрипты», «рефлексия», «ретро за неделю», «что можно автоматизировать», «что я постоянно повторяю», «где я теряю время с Claude/omp», "how did orchestration perform", «как отработала оркестрация», «экономит ли оркестрация токены». Not for summarizing only the current conversation, a team meeting retrospective, or cost dashboards alone. Native Codex CLI logs are outside scope; Codex models running inside omp use the omp reader.
+description: Retrospectives over Claude Code, omp and native Codex CLI session transcripts: recurring requests, friction, errors, provider/model/effort routing and token spend. Use for "reflect on my sessions", "retro for the week", "analyze transcripts", "what can I automate", "what do I keep repeating", «проанализируй сессии», «проанализируй транскрипты», «рефлексия», «ретро за неделю», «что можно автоматизировать», «что я постоянно повторяю». For a specific plan run, trigger on «почему упал план», «разбери прогон плана», «ретро плана», "why did the plan fail", "review this plan run". Also use for orchestration performance and delegation costs. Not for summarizing only the current conversation, a team meeting retrospective, or cost dashboards alone.
 ---
 
 # Reflection over session transcripts
@@ -13,15 +13,16 @@ redaction is best effort, so paraphrase sensitive evidence even after extraction
 
 - Period: last 7 days unless the user gives another period (`--days N` or `--since YYYY-MM-DD`).
   Project: all projects unless named (`--project <substring>`). State defaults and proceed.
-- Select the **current harness**, not the current model: Claude Code → `--source claude`;
-  omp → `--source omp`. Pass that flag explicitly. An OpenAI/Codex model inside omp is still omp.
-  Never scan both stores automatically. Use `--source both` only when the user requests a combined
-  comparison; use a named source when requested even if it differs from the current harness.
+- Select the **current harness**, not the current model: Claude Code → `--source claude`; omp →
+  `--source omp`; native Codex CLI → `--source codex`. An OpenAI/Codex model inside omp is still
+  omp. Never scan stores automatically. Use `--source both` only for requested Claude+omp
+  comparison; Codex remains explicit.
 - Claude root: `--config-dir <dir>` containing `projects/`; default
   `${CLAUDE_CONFIG_DIR:-~/.claude}`. omp root: `--omp-sessions-dir <dir>` containing project buckets;
-  default `~/.omp/agent/sessions`. For an active named profile, XDG layout, or custom session directory,
-  resolve its actual root from available harness metadata and pass it explicitly. Do not modify
-  profiles/config or inspect credential files to find it. Root mappings: `references/digest-format.md`.
+  default `~/.omp/agent/sessions`. Codex root: `--codex-sessions-dir <dir>`, default
+  `${CODEX_HOME:-~/.codex}`. Resolve active profile/custom roots from available metadata and pass
+  explicitly. Do not modify profiles/config or inspect credential files. Root mappings:
+  `references/digest-format.md`.
 
 ## 2. Extract
 
@@ -32,13 +33,14 @@ not a guessed install path, and not a required Claude environment variable. Run 
 python3 "<skill-dir>/scripts/transcripts.py" --source omp --days 7 --omp-sessions-dir "<active-sessions-root>"
 ```
 
-For Claude Code, use `--source claude --config-dir "<active-Claude-config-root>"`. For an explicitly
-requested combined retrospective, use `--source both` and specify both roots. These are placeholders
-for resolved paths, not literal shell arguments.
+For native Codex CLI, use `--source codex --codex-sessions-dir "<active-Codex-root>"`. For Claude
+Code use `--source claude --config-dir "<active-Claude-config-root>"`. Requested Claude+omp
+comparison uses `--source both` with both roots; `both` does not include Codex.
 
 Shared options: `--since`, `--days`, `--project`, `--include-subagents` (child tools/errors/usage;
 child task prompts are excluded), `--out json|md` (md default), `--max-prompts`, `--max-sessions`,
 `--max-corrections`. Claude-only: `--include-sdk` (sdk-* automation is skipped by default).
+Codex-only: `--include-exec` includes codex-exec automation, skipped by default.
 
 The digest is redacted, truncated and capped. Do not open raw logs to expand a retrospective. Use
 source-qualified session refs, recorded evidence filenames and counts from the digest; if a finding
@@ -84,5 +86,7 @@ edit project rules/skills, install anything, commit, push or modify service conf
 - `sections/analysis.md` — clustering, friction, errors, denials, routing and proposals.
 - `references/digest-format.md` — CLI contract, roots, persisted schemas, counting and blind spots.
 - `sections/orchestration.md` — orchestration retrospective: run, meaning and limits of the numbers, checks.
+- `sections/plan-run.md` — diagnose and retrospect a particular plan run; read it for failure
+  analysis, restart advice, planning review and evidence-backed improvement proposals.
 - `scripts/transcripts.py` — read-only extractor; `scripts/test_transcripts.py` — synthetic behavioral tests.
 - `scripts/orchestration.py` — orchestration metrics on top of the extractor; `scripts/test_orchestration.py`.

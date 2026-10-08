@@ -1,5 +1,20 @@
 # Changelog
 
+## 1.3.2
+
+- Improve English/Russian plan-task selection and completion evidence; distinguish plan iterations from task IDs and preserve attribution completeness separately from source-read and usage coverage.
+- Interpret legacy and custom review markers as logical stages, deriving review source only from uniquely matched journal evidence; document Codex child identification from structured spawn metadata and explicit child inclusion.
+
+## 1.3.1
+
+- Improve plan-run attribution of Claude task execution, natural-language completion evidence, Claude review rounds and external Codex review/evaluation boundaries; keep executor identity, task identity and child activity distinct, preserving unknown attribution where evidence is insufficient.
+
+## 1.3.0
+
+- Add native Codex CLI transcript support and a plan-run review mode for failure diagnosis, planning review and evidence-backed cost improvements.
+- Document Codex cache/fallback accounting, cumulative thread totals, source availability versus read coverage, elapsed call/result timing and plan-run attribution limits; expand bilingual Codex and plan-run trigger coverage.
+- Clarify measured suffix usage for partial histories and snapshot-interval precision limits for fallback window estimates.
+
 ## 1.2.0
 
 - Add an orchestration retrospective: per orchestrated session coordinator usage around the skill load, approximate context-growth attribution, coordinator edits, workers with routing/usage, stall and follow-up signals, a same-call-sequence replay estimate, and redacted plan/report and idle-notice excerpts.

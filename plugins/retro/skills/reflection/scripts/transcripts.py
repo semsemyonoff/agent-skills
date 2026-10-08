@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
-"""Build a redacted retrospective digest from explicitly selected Claude/omp JSONL.
+"""Build a redacted retrospective digest from Claude, omp or native Codex logs.
 
-Read-only, stdlib-only. Select --source claude|omp|both; model names never
-select the parser. Native Codex CLI logs are not supported.
+Read-only, stdlib-only. Select --source claude|omp|both|codex; both retains
+Claude + omp semantics. Codex exec is included only with --include-exec.
 """
 import argparse
 import collections
@@ -99,7 +99,7 @@ def timestamp(value):
 
 def parse_args(argv=None):
     p = argparse.ArgumentParser(description=__doc__)
-    p.add_argument("--source", choices=("claude", "omp", "both"), required=True,
+    p.add_argument("--source", choices=("claude", "omp", "both", "codex"), required=True,
                    help="explicit harness format; both only by request")
     period = p.add_mutually_exclusive_group()
     period.add_argument("--since", help="YYYY-MM-DD (local date, inclusive)")
@@ -109,6 +109,9 @@ def parse_args(argv=None):
                    help="Claude config root containing projects/ (CLAUDE_CONFIG_DIR or ~/.claude)")
     p.add_argument("--omp-sessions-dir", default="~/.omp/agent/sessions",
                    help="exact omp sessions root; pass active profile/XDG/custom root explicitly")
+    p.add_argument("--codex-sessions-dir", default=os.environ.get("CODEX_HOME") or "~/.codex",
+                   help="Codex home containing sessions/ and archived_sessions/")
+    p.add_argument("--include-exec", action="store_true", help="include Codex exec automation")
     p.add_argument("--include-subagents", action="store_true",
                    help="include child tools/errors/usage; delegated tasks are never user prompts")
     p.add_argument("--include-sdk", action="store_true", help="include Claude sdk-* sessions")
@@ -129,6 +132,7 @@ def parse_args(argv=None):
             p.error("--since must be YYYY-MM-DD")
     args.config_dir = os.path.abspath(os.path.expanduser(args.config_dir))
     args.omp_sessions_dir = os.path.abspath(os.path.expanduser(args.omp_sessions_dir))
+    args.codex_sessions_dir = os.path.abspath(os.path.expanduser(args.codex_sessions_dir))
     return args
 
 
@@ -144,8 +148,18 @@ def fingerprint(value):
 
 def read_records(path, diagnostics):
     records = []
+    opener = open
+    read_errors = (OSError,)
+    if path.endswith(".zst"):
+        try:
+            from compression import zstd
+        except ImportError:
+            diagnostics["zst_skipped"] += 1
+            return records
+        opener = zstd.open
+        read_errors += (zstd.ZstdError,)
     try:
-        with open(path, encoding="utf-8", errors="replace") as fh:
+        with opener(path, mode="rt", encoding="utf-8", errors="replace") as fh:
             for number, line in enumerate(fh, 1):
                 try:
                     record = json.loads(line)
@@ -155,25 +169,41 @@ def read_records(path, diagnostics):
                     diagnostics["malformed_records"] += 1
                     continue
                 records.append((number, record))
-    except OSError:
+    except read_errors:
         diagnostics["unreadable_files"] += 1
     return records
 
 
-def load_sessions(args, diagnostics):
+def load_sessions(args, diagnostics, min_mtime=None):
     sessions = {}
     sources = ("claude", "omp") if args.source == "both" else (args.source,)
     roots = {}
     for source in sources:
-        root = os.path.join(args.config_dir, "projects") if source == "claude" else args.omp_sessions_dir
+        if source == "codex":
+            root = os.path.abspath(os.path.expanduser(args.codex_sessions_dir))
+        else:
+            root = os.path.join(args.config_dir, "projects") if source == "claude" else args.omp_sessions_dir
         roots[source] = root
         if not os.path.isdir(root):
             raise ValueError(f"no {source} transcript directory: {root}")
         pattern = os.path.join(root, "**", "*.jsonl") if source == "omp" else os.path.join(root, "*", "*.jsonl")
         files = glob.glob(pattern, recursive=source == "omp")
+        if source == "codex":
+            files = [path for directory in ("sessions", "archived_sessions")
+                     for suffix in ("jsonl", "jsonl.zst")
+                     for path in glob.glob(os.path.join(root, directory, "**", "rollout-*." + suffix), recursive=True)]
         if source == "claude" and args.include_subagents:
             files += glob.glob(os.path.join(root, "*", "*", "subagents", "*.jsonl"))
         for path in sorted(set(files)):
+            if min_mtime is not None:
+                cutoff = min_mtime.timestamp() if isinstance(min_mtime, dt.datetime) else min_mtime
+                try:
+                    if os.path.getmtime(path) < cutoff:
+                        diagnostics["mtime_skipped"] += 1
+                        continue
+                except OSError:
+                    diagnostics["unreadable_files"] += 1
+                    continue
             diagnostics["files_read"] += 1
             records = read_records(path, diagnostics)
             if not records:
@@ -181,7 +211,16 @@ def load_sessions(args, diagnostics):
             relative = os.path.relpath(path, root)
             parts = relative.split(os.sep)
             header = {}
-            if source == "omp":
+            if source == "codex":
+                header = next((obj(d.get("payload")) for _, d in records if d.get("type") == "session_meta"), {})
+                if not string(header.get("id")):
+                    diagnostics["invalid_headers"] += 1
+                    continue
+                spawn = obj(obj(obj(header.get("source")).get("subagent")).get("thread_spawn"))
+                parent_thread_id = string(spawn.get("parent_thread_id"))
+                child = bool(parent_thread_id and parent_thread_id.strip())
+                sid, parent_file = header["id"], ""
+            elif source == "omp":
                 logical = [d for _, d in records if d.get("type") != "title"]
                 header = logical[0] if logical else {}
                 if header.get("type") != "session" or not isinstance(header.get("id"), str):
@@ -208,6 +247,38 @@ def load_sessions(args, diagnostics):
             sess["paths"].append(path)
             sess["records"].extend((path, number, d) for number, d in records)
             sess["is_subagent"] |= child
+            if source == "codex":
+                lineage = string(header.get("session_id"))
+                sess["project"] = os.path.basename(sess["cwd"].rstrip(os.sep))
+                # Physical copies may omit metadata; never erase earlier spawn proof.
+                for field in ("originator", "cli_version", "model_provider"):
+                    value = string(header.get(field))
+                    if value is not None and sess.get(field) is None:
+                        sess[field] = value
+                if lineage is not None and sess.get("root_lineage") is None:
+                    sess["root_lineage"] = lineage
+                if child:
+                    if sess.get("parent_thread_id") is None:
+                        sess["parent_thread_id"] = parent_thread_id
+                        sess["codex_source"] = header["source"]
+                    sess["parent_lineage"] = sess["parent_thread_id"]
+                    for field, value in (
+                            ("subagent_depth", spawn.get("depth")),
+                            ("agent_path", string(spawn.get("agent_path"))),
+                            ("agent_nickname", string(spawn.get("agent_nickname"))),
+                            ("agent_role", string(spawn.get("agent_role")))):
+                        if field == "subagent_depth":
+                            value = value if isinstance(value, int) and not isinstance(value, bool) and value >= 0 else None
+                        if value is not None and sess.get(field) is None:
+                            sess[field] = value
+                elif not sess["is_subagent"] and sess.get("parent_lineage") is None:
+                    sess["parent_lineage"] = lineage if lineage != sid else None
+                if sess.get("codex_source") is None and header.get("source") is not None:
+                    sess["codex_source"] = header["source"]
+                sess["partial_history"] = sess.get("partial_history", False) or bool(header.get("history_base"))
+                sess["automation"] = (sess.get("automation", False)
+                                      or header.get("originator") == "codex_exec"
+                                      or header.get("source") == "exec")
             for _, d in records:
                 if not sess["cwd"] and isinstance(d.get("cwd"), str):
                     sess["cwd"] = d["cwd"]
@@ -216,8 +287,10 @@ def load_sessions(args, diagnostics):
     return sessions, roots
 
 
-def normalize(sess):
-    """Yield stable consumer events; effort/model state follows each omp branch."""
+def normalize(sess, diagnostics=None):
+    """Yield stable consumer events; state follows the recorded turn or branch."""
+    if sess["source"] == "codex":
+        return normalize_codex(sess, diagnostics)
     events = {}
     states = {}
     last_state = {"provider": None, "model": None, "effort": None, "configured_effort": None}
@@ -332,6 +405,214 @@ def normalize(sess):
     return list(events.values())
 
 
+def codex_usage(usage):
+    """Partition inclusive input into uncached/read/write; never guess missing caches.
+
+    input_tokens includes cached and cache-write input. Subtract both exactly
+    once; inconsistent negative partitions are unknown. Total is reported only.
+    """
+    usage = obj(usage)
+    read = numeric(usage.get("cached_input_tokens"))
+    write = numeric(usage.get("cache_write_input_tokens"))
+    total_input = numeric(usage.get("input_tokens"))
+    uncached = (total_input - read - write
+                if all(v is not None for v in (total_input, read, write)) else None)
+    return {"input": numeric(uncached), "cache_read": read, "cache_creation": write,
+            "output": numeric(usage.get("output_tokens")), "total": numeric(usage.get("total_tokens"))}
+
+
+def codex_status(item):
+    """Only explicit stored status/result fields prove success or failure."""
+    item = obj(item)
+    code = numeric(item.get("exit_code"))
+    if code is not None:
+        return "error" if code else "success"
+    if isinstance(item.get("exit_code"), int) and not isinstance(item["exit_code"], bool):
+        return "error"  # Negative process return codes are failures too.
+    for field in ("isError", "is_error"):
+        if isinstance(item.get(field), bool):
+            return "error" if item[field] else "success"
+    status = item.get("status")
+    if status in ("failed", "error", "cancelled"):
+        return "error"
+    result = obj(item.get("result"))
+    if "Err" in result or item.get("error"):
+        return "error"
+    if "Ok" in result:
+        nested = codex_status(obj(result["Ok"]))
+        return nested if nested != "unknown" else "success"
+    nested = codex_status(result) if result else "unknown"
+    if nested != "unknown":
+        return nested
+    return "success" if status in ("completed", "success", "succeeded") else "unknown"
+
+
+def normalize_codex(sess, diagnostics=None):
+    diagnostics = diagnostics if diagnostics is not None else collections.Counter()
+    sess["diagnostics"] = {}
+    events, calls, outputs, completions = [], {}, {}, []
+    state = {"provider": string(sess.get("model_provider")), "model": None,
+             "effort": None, "configured_effort": None}
+    # Copies of the same append must not charge the same response twice.
+    records = {}
+    for path, number, record in sess["records"]:
+        records.setdefault(fingerprint(record), (path, number, record))
+    ordered = sorted(records.items(), key=lambda pair: (
+        timestamp(pair[1][2].get("timestamp")) or dt.datetime.min.replace(tzinfo=dt.timezone.utc),
+        pair[1][1], pair[0]))
+    has_usage_records = any(d.get("type") == "token_usage_record" for _, (_, _, d) in ordered)
+    previous_snapshot, previous_snapshot_time = None, None
+    sess["usage_baseline_time"], sess["usage_coverage_end"] = None, None
+    sess["thread_total"], sess["usage_source"] = None, None
+
+    def emit(kind, key, record, raw_fingerprint, **fields):
+        event = {"kind": kind, "key": key, "time": timestamp(record.get("timestamp")),
+                 "entry": key, "fingerprint": raw_fingerprint, **fields}
+        events.append(event)
+        return event
+
+    def usage_event_at(usage, source, key, record, raw_fingerprint, **coverage):
+        emit("usage", key, record, raw_fingerprint, usage=codex_usage(usage),
+             reported_total=numeric(obj(usage).get("total_tokens")) is not None,
+             usage_source=source, **state, **coverage)
+
+    for raw_fingerprint, (path, number, record) in ordered:
+        typ, payload = record.get("type"), obj(record.get("payload"))
+        key = raw_fingerprint
+        if typ == "session_meta":
+            emit("meta", key, record, raw_fingerprint)
+        elif typ == "turn_context":
+            for field in ("model", "effort"):
+                state[field] = string(payload.get(field))
+            state["configured_effort"] = state["effort"]
+            emit("meta", key, record, raw_fingerprint, **state)
+        elif typ == "token_usage_record":
+            if isinstance(payload.get("usage"), dict):
+                usage_event_at(payload["usage"], "token_usage_record", key, record, raw_fingerprint)
+            if isinstance(payload.get("thread_token_usage"), dict):
+                sess["thread_total"] = codex_usage(payload["thread_token_usage"])
+                sess["usage_source"] = "token_usage_record"
+        elif typ == "compacted":
+            checkpoint = obj(payload.get("latest_token_usage_record"))
+            if isinstance(checkpoint.get("thread_token_usage"), dict):
+                sess["thread_total"] = codex_usage(checkpoint["thread_token_usage"])
+                sess["usage_source"] = "token_usage_record"
+        elif typ == "response_item":
+            item_type = payload.get("type")
+            if item_type == "message":
+                text = payload.get("content")
+                text = text if isinstance(text, str) else "\n".join(
+                    b["text"] for b in blocks(text) if isinstance(b.get("text"), str))
+                role = payload.get("role")
+                if role == "user" and text.strip() and not sess["is_subagent"]:
+                    emit("prompt", key, record, raw_fingerprint, text=text, command=False)
+                else:
+                    emit("meta", key, record, raw_fingerprint)
+            elif item_type in ("function_call", "custom_tool_call"):
+                call_id = string(payload.get("call_id"))
+                raw = payload.get("arguments") if item_type == "function_call" else payload.get("input")
+                arguments = raw
+                if isinstance(raw, str) and item_type == "function_call":
+                    try:
+                        arguments = json.loads(raw)
+                    except ValueError:
+                        arguments = {}
+                event = emit("tool", call_id or key, record, raw_fingerprint,
+                             name=payload.get("name") or "?", arguments=obj(arguments),
+                             raw_input=raw, status="unknown", **state)
+                if call_id:
+                    calls[call_id] = event
+            elif item_type in ("function_call_output", "custom_tool_call_output"):
+                if string(payload.get("call_id")):
+                    outputs[payload["call_id"]] = (payload.get("output"), timestamp(record.get("timestamp")))
+            elif item_type not in ("reasoning",):
+                diagnostics["unknown_codex_records"] += 1
+                sess["diagnostics"]["unknown_codex_records"] = sess["diagnostics"].get("unknown_codex_records", 0) + 1
+        elif typ == "event_msg":
+            event_type = payload.get("type")
+            if event_type == "thread_settings_applied":
+                settings = obj(payload.get("settings")) or payload
+                for field in ("model", "effort"):
+                    state[field] = string(settings.get(field, settings.get("reasoning_effort") if field == "effort" else None))
+                state["configured_effort"] = state["effort"]
+                emit("meta", key, record, raw_fingerprint, **state)
+            elif event_type == "token_count":
+                snapshot = obj(payload.get("info")).get("total_token_usage")
+                if isinstance(snapshot, dict) and not has_usage_records:
+                    if previous_snapshot is not None:
+                        delta = {}
+                        for field in ("input_tokens", "cached_input_tokens", "cache_write_input_tokens",
+                                      "output_tokens", "total_tokens"):
+                            before, after = numeric(previous_snapshot.get(field)), numeric(snapshot.get(field))
+                            delta[field] = numeric(after - before) if before is not None and after is not None else None
+                        usage_event_at(delta, "token_count", key, record, raw_fingerprint,
+                                       usage_interval_start=previous_snapshot_time)
+                    else:
+                        first_time = timestamp(record.get("timestamp"))
+                        sess["usage_baseline_time"] = first_time.isoformat() if first_time else None
+                    snapshot_time = timestamp(record.get("timestamp"))
+                    previous_snapshot_time = snapshot_time.isoformat() if snapshot_time else None
+                    previous_snapshot = snapshot
+                    sess["usage_coverage_end"] = previous_snapshot_time
+                    sess["thread_total"], sess["usage_source"] = codex_usage(snapshot), "token_count"
+            elif event_type in ("item_completed", "mcp_tool_call_end"):
+                item = obj(payload.get("item")) or payload
+                completions.append((item, payload, key, record, raw_fingerprint))
+            elif event_type in ("error", "stream_error"):
+                emit("error", key, record, raw_fingerprint, name="session",
+                     text=payload.get("message") or payload.get("error") or event_type)
+            elif event_type not in ("task_started", "task_complete", "turn_started", "turn_complete",
+                                    "user_message", "agent_message", "agent_reasoning",
+                                    "context_compacted", "turn_aborted"):
+                diagnostics["unknown_codex_records"] += 1
+                sess["diagnostics"]["unknown_codex_records"] = sess["diagnostics"].get("unknown_codex_records", 0) + 1
+        else:
+            diagnostics["unknown_codex_records"] += 1
+            sess["diagnostics"]["unknown_codex_records"] = sess["diagnostics"].get("unknown_codex_records", 0) + 1
+
+    result_times = {}
+
+    def record_result_time(call_id, ended):
+        """Recorded call-to-result elapsed time is evidence, not process runtime."""
+        if ended is None:
+            return
+        result_times[call_id] = ended
+        event = calls[call_id]
+        event["result_time"] = ended
+        started = event["time"]
+        if started is not None and ended >= started:
+            event["duration_seconds"] = (ended - started).total_seconds()
+            event["duration_source"] = "call_to_result_elapsed"
+
+    for call_id, (output, ended) in outputs.items():
+        if call_id in calls:
+            calls[call_id]["output"] = output
+            calls[call_id]["status"] = codex_status(obj(output))
+            record_result_time(call_id, ended)
+    for item, payload, key, record, raw_fingerprint in completions:
+        call_id = string(item.get("call_id")) or string(payload.get("call_id"))
+        status = codex_status(item)
+        if call_id in calls:
+            if status != "unknown":
+                calls[call_id]["status"] = status
+            if call_id not in result_times:
+                record_result_time(call_id, timestamp(record.get("timestamp")))
+            if "output" not in calls[call_id] and item.get("result") is not None:
+                calls[call_id]["output"] = item["result"]
+        elif status == "error":
+            diagnostics["unjoined_tool_failures"] += 1
+            sess["diagnostics"]["unjoined_tool_failures"] = sess["diagnostics"].get("unjoined_tool_failures", 0) + 1
+            emit("error", key, record, raw_fingerprint, name="session",
+                 text=item.get("error") or item.get("result") or "Unjoined failed tool item")
+    for call_id, event in calls.items():
+        if event["status"] == "error":
+            ended = result_times.get(call_id) or event["time"]
+            emit("error", "result:" + call_id, {"timestamp": ended.isoformat() if ended else None},
+                 event["fingerprint"], tool_id=call_id, name=event["name"],
+                 text=event.get("output") or "Explicit tool failure")
+    return events
+
+
 def numeric(value):
     if isinstance(value, int) and not isinstance(value, bool) and value >= 0:
         return value
@@ -355,12 +636,16 @@ def usage_event(msg, source, state):
 
 def metric_summary(events):
     result = {"messages": len(events), "known": {}, "missing": {}}
+    coverage_missing = any(e.get("coverage_complete") is False for e in events)
     for key in METRICS:
         values = [e["usage"][key] for e in events]
         known = [v for v in values if v is not None]
-        result[key] = sum(known) if values and len(known) == len(values) else None
+        result[key] = sum(known) if values and len(known) == len(values) and not coverage_missing else None
         result["known"][key] = sum(known) if known else None
         result["missing"][key] = len(values) - len(known)
+    result["coverage_missing"] = coverage_missing
+    result["completeness"] = ("unknown" if not events else
+                              "partial" if coverage_missing or any(result["missing"].values()) else "observed")
     return result
 
 
@@ -390,7 +675,7 @@ def digest(args):
     since = since_time(args)
     diagnostics = collections.Counter()
     sessions, roots = load_sessions(args, diagnostics)
-    normalized = {sid: normalize(sess) for sid, sess in sessions.items()}
+    normalized = {sid: normalize(sess, diagnostics) for sid, sess in sessions.items()}
     # Opaque lineage is used only to prove identical copied records, never child status.
     families = {sid: sid for sid in sessions}
 
@@ -424,6 +709,8 @@ def digest(args):
             continue
         if sess["source"] == "claude" and not args.include_sdk and sess["entrypoint"].startswith("sdk"):
             continue
+        if sess["source"] == "codex" and sess.get("automation") and not getattr(args, "include_exec", False):
+            continue
         if args.project and not any(args.project.lower() in str(value).lower() for value in (sess["project"], sess["cwd"])):
             continue
         names = {e["key"]: e["name"] for e in normalized[sid] if e["kind"] == "tool"}
@@ -435,14 +722,17 @@ def digest(args):
             if event["time"] < since:
                 continue
             # Suppress proven family copies, not unrelated sessions with colliding ids.
-            if sess["source"] == "omp":
-                copy_key = ("omp", family(sid), event["kind"], event["key"], event["fingerprint"])
+            if sess["source"] in ("omp", "codex"):
+                copy_key = (sess["source"], family(sid), event["kind"], event["key"], event["fingerprint"])
             else:
-                copy_key = ("claude", family(sid), event["kind"], event["key"])
+                copy_key = (sess["source"], family(sid), event["kind"], event["key"])
             if copy_key in seen_copies:
                 diagnostics["copied_events_skipped"] += 1
                 continue
             seen_copies.add(copy_key)
+            if event.get("usage_source") == "token_count":
+                baseline = timestamp(sess.get("usage_baseline_time"))
+                event = {**event, "coverage_complete": baseline is not None and baseline <= since}
             selected.append(event)
         if not selected:
             continue
@@ -452,6 +742,13 @@ def digest(args):
                "agent": sess.get("agent"), "model_role": sess.get("model_role"), "resolved_model": sess.get("resolved_model"),
                "start": min(e["time"] for e in selected).isoformat(), "end": max(e["time"] for e in selected).isoformat(),
                "prompts": 0, "first_prompt": None, "tools": 0, "errors": 0, "denials": 0, "agents": 0, "interrupts": 0}
+        if sess["source"] == "codex":
+            row.update({key: sess.get(key) for key in (
+                "automation", "originator", "codex_source", "cli_version", "partial_history",
+                "parent_lineage", "parent_thread_id", "root_lineage", "subagent_depth",
+                "agent_path", "agent_nickname", "agent_role",
+                "model_provider", "thread_total", "usage_source",
+                "usage_baseline_time", "usage_coverage_end")})
         previous_prompt = False
         session_usage = []
         for event in selected:
