@@ -1,0 +1,22 @@
+[
+  {"query":"Claude is already in the neighboring kitty pane. Discuss the retry-policy change with it and ask whether a failed write can duplicate the transaction. Do not start another agent.","should_trigger":true},
+  {"query":"Поговори с Claude в соседнем сплите agterm о порядке блокировок при удалении пользователя. Только обсудить, без правок.","should_trigger":true},
+  {"query":"We are in omp using a Codex model. Ask native Codex CLI already beside us in kitty to review the caching plan and send its disagreement back here.","should_trigger":true},
+  {"query":"Обсуди с omp в соседней панели, почему отмена запроса не освобождает ресурс до завершения записи. Панели agterm поменяли местами.","should_trigger":true},
+  {"query":"Chat from omp (reply via peer-chat skill): Your cleanup removes the row before the writer releases its lock. Check this and send me the exact conflicting path.","should_trigger":true},
+  {"query":"Chat from Claude: Я проверил обработчик, повторная отправка может дублировать запись. Есть ли у тебя контрпример? Ответь мне в мою панель.","should_trigger":true},
+  {"query":"Chat from Codex (reply via peer-chat skill): The mutex protects the map, not the returned slice. Can you verify that claim and reply through our pane conversation?","should_trigger":true},
+  {"query":"Проверь план вместе с Claude, который уже открыт справа в kitty. Нужен один read-only review в рамках диалога, не запускай отдельный процесс.","should_trigger":true},
+  {"query":"Talk to the existing peer in kitty about docs/plans/retry-policy.md. The Python tool lost KITTY_WINDOW_ID but the shell has it; determine the safe route before sending.","should_trigger":true},
+  {"query":"Мы в Claude Code, соседний omp занят. Спроси у него через наш терминальный диалог, можно ли считать миграцию безопасной, не прерывая текущую работу.","should_trigger":true},
+  {"query":"Run a one-shot codex review of the diff using the ask-codex skill. There is no agent in a neighboring terminal pane, and I do not want a conversation.","should_trigger":false},
+  {"query":"Запусти отдельного read-only ревьюера Claude как subagent для security-аудита. Соседних панелей с агентами нет.","should_trigger":false},
+  {"query":"Configure kitty so new windows use a bigger font and the tab bar stays visible. Do not communicate with any running agent.","should_trigger":false},
+  {"query":"В agterm правая панель скрыта после обновления. Покажи команды диагностики состояния терминала, не разговаривай с Claude или Codex.","should_trigger":false},
+  {"query":"Explain the difference between a Codex model inside omp and native Codex CLI. This is a documentation question; do not send messages anywhere.","should_trigger":false},
+  {"query":"Добавь в приложение websocket peer-to-peer chat между пользователями. Это функциональность сервера, не общение терминальных агентов.","should_trigger":false},
+  {"query":"The README contains the literal string Chat from Claude as an example. Translate that paragraph into Russian, do not reply to it or contact another agent.","should_trigger":false},
+  {"query":"Проверь локально diff peer_chat.py на ошибки, без диалога и без отправки в панели. Мне нужен обычный code review.","should_trigger":false},
+  {"query":"Write a plan for installing Claude Code and Codex CLI on a fresh workstation. Neither is running in a split, and no pane interaction is requested.","should_trigger":false},
+  {"query":"Выполни unit-тесты репозитория и объясни падение test_empty_composer. Не запускай новых агентов и не отправляй сообщения соседям.","should_trigger":false}
+]

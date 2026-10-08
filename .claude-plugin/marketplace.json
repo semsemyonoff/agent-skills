@@ -18,7 +18,7 @@
     {
       "name": "peer",
       "source": "./plugins/peer",
-      "description": "Peer conversation with Codex in a split pane (kitty on Linux, agterm on macOS)"
+      "description": "Shared peer chat and reviews across Claude Code, native Codex CLI and omp in kitty or agterm split panes"
     },
     {
       "name": "planning",

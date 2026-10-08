@@ -1,7 +1,7 @@
 # Repository Guidelines
 
-Personal skills for Claude Code (plugin marketplace), omp (compatible plugin skill directories), and
-native Codex CLI (the separate `codex/` tree via skills.sh).
+Personal skills for Claude Code (plugin marketplace), omp and native Codex CLI (shared plugin skill
+directories installed via skills.sh).
 
 ## Layout
 
@@ -16,7 +16,6 @@ plugins/<plugin>/
     sections/*.md                   # scenarios, read only when the situation applies
     references/*.md                 # conventions, API gotchas, templates
     scripts/                        # deterministic helpers (lookups, builders, validators)
-codex/<skill>/                      # Codex-only skills, installed via skills.sh subpath
 scripts/check.py                    # repo validation, run locally and in CI
 ```
 
@@ -26,19 +25,17 @@ setup, so keep machine- and account-specific details out of it.
 
 Claude gets the plugin workflows. Harness-compatible plugin skills also reach native Codex and omp
 through skills.sh (`-a codex`), installed into `~/.agents/skills`, which both harnesses read.
-Ship is one shared skill with harness-specific confirmation and waiting instructions, not a separate
-native Codex adapter.
-A Codex model running inside omp uses omp's tools and session format, not native Codex CLI's.
-The `codex/` tree is only for Codex-only skills such as peer-chat; do not duplicate plugin skill names
-there, because they share the same installation directory. To install the Codex-only tree, use:
-`npx skills add semsemyonoff/agent-skills/codex -a codex -g`.
+Ship and peer-chat are shared skills with harness-specific behavior, not separate native Codex
+adapters. A Codex model running inside omp uses omp's tools and session format, not native Codex CLI's.
+Do not duplicate plugin skill names in a harness-specific tree: they share the same installation
+directory. Install peer-chat with `npx skills add semsemyonoff/agent-skills/plugins/peer -a codex -g`.
 
 ## Writing skills
 
 Draft and tune Claude skills with the official `skill-creator` (installed from `claude-plugins-official`):
 it runs evals and optimizes the description for triggering — do that step for every skill, bilingual
 triggers are the fragile part. Keep eval cases in `plugins/<plugin>/evals/` so `claude plugin eval`
-can run them. For `codex/` skills follow Codex's built-in `skill-creator` (incl. `agents/openai.yaml`).
+can run them. Shared skills must be exercised in every supported harness.
 
 - Write skills in English. Users prompt in Russian and English: descriptions carry trigger phrases in
   both languages, and the skill answers in the user's language.

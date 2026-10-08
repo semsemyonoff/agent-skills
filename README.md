@@ -13,8 +13,8 @@ written in English and react to prompts in English and Russian. Conventions for 
 claude plugin marketplace add semsemyonoff/agent-skills
 claude plugin install <plugin>@semsemyonoff
 
-# Codex (only the skills in codex/)
-npx skills add semsemyonoff/agent-skills/codex -a codex -g
+# Shared peer-chat for native Codex CLI and omp (~/.agents/skills)
+npx skills add semsemyonoff/agent-skills/plugins/peer -a codex -g
 ```
 
 ## Plugins
@@ -187,10 +187,30 @@ documents, so later sessions read the snapshot instead of going back to Drive.
 
 ### peer — `peer-chat`
 
-A peer conversation between Claude Code and Codex running side by side in a
-kitty tab (Linux, remote control enabled) or an agterm split (macOS). The Codex side lives in
-`codex/peer-chat`; in kitty that Codex needs `-c sandbox_workspace_write.network_access=true`
-to reach kitty's socket.
+A single shared skill for chatting, discussing or reviewing with Claude Code, native Codex CLI or
+omp already running in a neighboring kitty tab pane or agterm split. Either pane can run any
+supported harness; an omp session sends as omp even when its model is Codex or Claude.
+The bundled Python 3 standard-library script discovers recipients, offers a read-only doctor and
+refuses unsafe composers/dialogs. Replies go through the script; no agent launching or reply watchers.
+
+Claude Code: install `peer@semsemyonoff` using the marketplace commands above and invoke
+`/peer:peer-chat`. Native Codex CLI and omp: use the shared install command above, sourced from
+`plugins/peer`, to place `peer-chat` in `~/.agents/skills`. In omp invoke `/skill:peer-chat`, or point
+native skill discovery at `plugins/peer/skills` instead. Do not enable two copies in one harness.
+
+Before replacing an older package, remove its old installed `peer-chat` skill (including any
+harness-specific copy or symlink) from that harness's skill search path, then install the shared
+package and reload skills/restart the session. These are operator instructions; this repository
+does not install or remove anything on your behalf.
+
+kitty requires remote control plus `KITTY_WINDOW_ID` and `KITTY_LISTEN_ON`; agterm requires known
+source-session/pane identity and a visible split. The default recipient keys are Claude Return
+(may interrupt), Codex Tab (queues), and omp Ctrl+Q (follow-up, or normal submit when idle).
+Customized mappings must match these defaults; do not bypass a refusal with alternate keys.
+Native Codex CLI's sandbox may need user-selected
+`-c sandbox_workspace_write.network_access=true` to reach kitty's socket; this is not an omp
+setting or authorization for an unsandboxed retry. See the
+[shared skill](plugins/peer/skills/peer-chat/SKILL.md) for prerequisites and safe handling.
 
 ## Task flow
 
