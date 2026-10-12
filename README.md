@@ -13,7 +13,7 @@ written in English and react to prompts in English and Russian. Conventions for 
 claude plugin marketplace add semsemyonoff/agent-skills
 claude plugin install <plugin>@semsemyonoff
 
-# Shared peer-chat for native Codex CLI and omp (~/.agents/skills)
+# Shared peer-chat and ask-other for native Codex CLI and omp (~/.agents/skills)
 npx skills add semsemyonoff/agent-skills/plugins/peer -a codex -g
 ```
 
@@ -185,18 +185,19 @@ Turns Google Docs/Sheets (for example, the spec linked from a Redmine issue) int
 in the repository, with an index README, extracted JSON examples and a list of discrepancies between
 documents, so later sessions read the snapshot instead of going back to Drive.
 
-### peer — `peer-chat`
+### peer — `peer-chat`, `ask-other`
 
-A single shared skill for chatting, discussing or reviewing with Claude Code, native Codex CLI or
+`peer-chat` is a shared skill for chatting, discussing or reviewing with Claude Code, native Codex CLI or
 omp already running in a neighboring kitty tab pane or agterm split. Either pane can run any
 supported harness; an omp session sends as omp even when its model is Codex or Claude.
 The bundled Python 3 standard-library script discovers recipients, offers a read-only doctor and
 refuses unsafe composers/dialogs. Replies go through the script; no agent launching or reply watchers.
 
 Claude Code: install `peer@semsemyonoff` using the marketplace commands above and invoke
-`/peer:peer-chat`. Native Codex CLI and omp: use the shared install command above, sourced from
-`plugins/peer`, to place `peer-chat` in `~/.agents/skills`. In omp invoke `/skill:peer-chat`, or point
-native skill discovery at `plugins/peer/skills` instead. Do not enable two copies in one harness.
+`/peer:peer-chat` or `/peer:ask-other`. Native Codex CLI and omp: use the shared install command above,
+sourced from `plugins/peer`, to place both skills in `~/.agents/skills`. In omp invoke
+`/skill:peer-chat` or `/skill:ask-other`, or point native skill discovery at `plugins/peer/skills`
+instead. Do not enable two copies in one harness.
 
 Before replacing an older package, remove its old installed `peer-chat` skill (including any
 harness-specific copy or symlink) from that harness's skill search path, then install the shared
@@ -211,6 +212,29 @@ Native Codex CLI's sandbox may need user-selected
 `-c sandbox_workspace_write.network_access=true` to reach kitty's socket; this is not an omp
 setting or authorization for an unsandboxed retry. See the
 [shared skill](plugins/peer/skills/peer-chat/SKILL.md) for prerequisites and safe handling.
+
+`ask-other` performs one explicitly authorized consultation—cross-vendor by default—for
+debugging, adversarial code review or plan review, without requiring a neighboring pane.
+Route by author provider, not harness: Codex author → existing Claude CLI; Claude author →
+existing Codex CLI. Ask when the author is unknown or a named consultant conflicts with that
+route; never silently reroute. An explicitly confirmed same-provider target uses the same helper
+and is labelled honestly; a fresh process does not imply a different model. A four-failure
+escalation offers consultation, not permission to launch it. An already-authorized exact peer
+route remains an option, not a fallback.
+
+The Python 3 stdlib helper preserves native model/effort/auth configuration, restricts Claude
+to Read/Grep/Glob, uses Codex's native read-only shell sandbox and disables ordinary inherited
+external/nested capabilities. Native CLI authorization and administrative policy are a
+**trusted deployment prerequisite**, not a promise that the whole CLI process has zero side
+effects. Codex's read/search-only command instructions are not a shell syntax allowlist.
+`--check` inspects CLI controls without a model request; it does not certify login, provider
+quota, model identity or a completed consultation.
+Requests use finite stdin, honest JSON status/model/result fields, one deadline and process-group cleanup; no
+helper retries, model/provider changes, permission bypass or peer fallback. Code-review JSON and
+project-relative evidence coordinates are validated, while the driver still proves findings.
+Standalone use returns findings and uncertainties and stops; it does not authorize implementation.
+See [ask-other](plugins/peer/skills/ask-other/SKILL.md) and its
+[runtime guarantees](plugins/peer/skills/ask-other/references/runtime.md).
 
 ## Task flow
 

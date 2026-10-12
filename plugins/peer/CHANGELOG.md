@@ -1,5 +1,30 @@
 # Changelog
 
+## 2.1.1
+
+- Clarify instruction-only Codex command restrictions and require runtime references before
+  proposing technical guarantees; preflight does not certify authentication or provider quota.
+- Preserve explicitly confirmed same-provider targets through the existing helper without
+  claiming that a separate process necessarily uses a different model.
+- Add behavioral evals for these proposal, confirmation and preflight boundaries.
+
+## 2.1.0
+
+- Add shared `ask-other` for one user-authorized cross-vendor debug, adversarial
+  code-review or plan-review consultation through existing native Claude/Codex CLI routing.
+- Constrain Claude to read/search tools and Codex to its native read-only sandbox;
+  suppress normal external/nested customizations while documenting trusted native
+  authorization/administrative effects separately from model-tool guarantees.
+- Bundle deterministic JSON preflight/results, finite stdin, deadline/process-group
+  cleanup, structured review/evidence validation and permanent synthetic boundary tests.
+- Add bilingual behavior/trigger evals without changing peer-chat or planning workflows.
+- Reject native Codex model-reroute notices without rejecting unrelated warnings;
+  suppress automatic skill instructions and active code-mode execution, and safely
+  disable inherited MCP servers with one exact-name, transport-preserving TOML value overlay.
+- Preserve original stream and nonzero-exit auth/provider/interruption failures when
+  teardown encounters denied signals; separately report unconfirmed cleanup and
+  refuse successful consultation results when cleanup remains unresolved.
+
 ## 2.0.6
 
 - Treat Codex's dimmed empty-composer hints as an empty composer, so delivery to

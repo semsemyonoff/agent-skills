@@ -1,0 +1,22 @@
+[
+  {"query": "I'm in omp using an OpenAI model. Ask Claude through its external CLI to investigate why src/cache.ts still serves the old value after invalidation. Send only the cache evidence and our failed attempts, not my whole chat.", "should_trigger": true},
+  {"query": "Мы сейчас в Claude Code. спроси кодекс через внешний CLI про изменения в internal/payments/retry.go: хочу независимое adversarial review в JSON, особенно на повторное списание. Только анализ, без исправлений.", "should_trigger": true},
+  {"query": "check with codex whether the cancellation branch in worker.py leaks the file handle; use a fresh external run, not the terminal neighbor. I'm authoring this with Claude and the CLI is already set up.", "should_trigger": true},
+  {"query": "спроси модель другого вендора через CLI о плане миграции из docs/rollout.md. Мы в native Codex, значит нужен Claude; пусть ищет пропущенные rollback шаги, только читает и ищет доказательства.", "should_trigger": true},
+  {"query": "Can you consult the other model on the deadlock? This omp session is backed by Claude. We have permission for one external Codex consultation and I want hypotheses grounded in locks.go, not another edit.", "should_trigger": true},
+  {"query": "спроси клода через внешний CLI, выдержит ли diff в auth/session.ts гонку при refresh. Я работаю моделью Codex в omp, соседа нет и создавать панель не надо.", "should_trigger": true},
+  {"query": "We've tried four distinct fixes for the flaky reconnect and none helped. We're out of ideas; offer me an external other-provider escalation, but don't send the logs or start a consultant until I agree.", "should_trigger": true},
+  {"query": "Четыре попытки починить утечку в consumer.go провалились. Предложи эскалацию к другой модели; разрешения на внешний вызов пока нет, сначала объясни что передашь.", "should_trigger": true},
+  {"query": "Ask-other: review the release plan with the external provider once. The UI says omp but I don't know the active author model; resolve that before choosing Claude versus Codex.", "should_trigger": true},
+  {"query": "проверь у другого провайдера через CLI план удаления legacy таблиц. Я явно выбрал Claude CLI, но автор тоже Claude — сначала разберись с конфликтом, не подменяй мой выбор Codex без вопроса.", "should_trigger": true},
+  {"query": "Claude Code is already beside me in kitty. Ask that peer for a second opinion on the cache diff and send it our question; don't launch an external reviewer.", "should_trigger": false},
+  {"query": "Мы в omp, справа уже открыт Codex в agterm. Обсуди с соседом, стоит ли делать retry после timeout; нужна переписка в панели, не новый процесс.", "should_trigger": false},
+  {"query": "Chat from Claude (reply via peer-chat skill): I found a possible ordering bug in queue.go. Please inspect it and reply to my existing pane with the conflicting paths.", "should_trigger": false},
+  {"query": "Chat from omp (reply via peer-chat skill): Посмотри мой план rollback и ответь сюда, мы оба уже в этом split. Внешний CLI не запускай.", "should_trigger": false},
+  {"query": "Use omp's native second-opinion agent to check migrations/017.sql within this harness. I want that built-in agent, not a fresh external Claude or Codex CLI process; keep the review read-only.", "should_trigger": false},
+  {"query": "В omp вызови штатного агента second-opinion для docs/migration.md. Нужно его второе мнение внутри текущего harness, не внешний Claude/Codex CLI и не соседняя панель.", "should_trigger": false},
+  {"query": "Review this implementation plan against the acceptance criteria and tell me what dependencies are missing. There is no request to ask an external model; use the local plan review workflow.", "should_trigger": false},
+  {"query": "Мы назвали HTTP клиент codex в src/codex/client.ts. Проверь с codex timeout handling — я имею в виду unit tests этого клиента, не AI-провайдера.", "should_trigger": false},
+  {"query": "I'm adding ask-codex trigger phrases to our documentation. Translate 'ask codex' and 'consult claude' into Russian and keep them as quoted examples; do not actually consult anything.", "should_trigger": false},
+  {"query": "После первой ошибки lint просто исправь import в service.ts. Решение понятно, никаких эскалаций и внешнего ревью не нужно.", "should_trigger": false}
+]
