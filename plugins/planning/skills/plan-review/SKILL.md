@@ -31,8 +31,10 @@ review. Reply in the user's language. Resolve bundled references from the direct
 3. Give a genuinely separate available read-only reviewer a complete brief: worker branch, resolved
    skill/reference paths, plan path, original task, validated decisions, actual project root, loaded
    rule path/provenance/content, relevant source locations, exact scope and uncertainty. Specify no
-   shell/tests/writes/commits/config changes and no nested spawns. Discover native availability and
-   dispatch schema; do not install an agent, invent model fields or secretly switch routing.
+   tests/writes/commits/config changes, no nested spawns and no shell beyond the read-only inspection
+   fallback in `references/runtime.md` when the reviewer lacks native search tools. Discover native
+   availability and dispatch schema; do not install an agent, invent model fields or secretly switch
+   routing.
 4. Wait using the native completion mechanism for the actual report. A spawn receipt or unfinished
    worker is not a review. If unavailable, report that prerequisite and stop; the author's self-check
    cannot count as independent review. Preserve the actual verdict, reviewed plan text/sections,
@@ -80,8 +82,9 @@ correction/choice resolution; a new independent review or execution needs an exp
 
 ## Worker branch
 
-Use only read/search/discovery tools. No helper execution, shell, tests, writes or configuration
-changes. Read the plan and original request; inspect just the relevant source/patterns and already
+Use read/search/discovery tools. Only when the harness exposes no native search or listing tool, use
+the read-only shell inspection fallback in `references/runtime.md`; otherwise no shell. Never helper
+execution, tests, writes or configuration changes. Read the plan and original request; inspect just the relevant source/patterns and already
 provided project guidance. Do not demand a CLAUDE.md file or search unrelated context files.
 Read `references/criteria.md` and evaluate the actual solution, not conformance to a rigid template.
 
@@ -109,7 +112,8 @@ test-count requirements. Stop after this pass; corrections and choices belong to
 
 - `references/rules.md` — first-nonempty planning rules and driver/worker boundaries.
 - `references/criteria.md` — evidence-based review criteria.
-- `references/runtime.md` — native reviewer dispatch, decision buttons and truthful unavailable paths.
+- `references/runtime.md` — native reviewer dispatch, read-only shell fallback, decision buttons and
+  truthful unavailable paths.
 - `agents/omp.md` — optional native omp plan-review resource, not automatically installed.
 - `scripts/load_rules.py` and `scripts/test_rules.py` — driver-only resolver and offline tests.
 

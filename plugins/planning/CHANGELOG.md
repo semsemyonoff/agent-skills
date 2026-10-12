@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.3 (Unreleased)
+
+- Let the plan reviewer inspect files through a narrow read-only shell fallback when the harness has no native search or listing tool (Claude Code exposes Bash instead of Grep/Glob); writes, helpers, tests and network stay forbidden, and the fallback is reported in the review limits.
+
 ## 1.0.2 (Unreleased)
 
 - Keep one separate plan reviewer read-only; after its actual report, the driver checks evidence and automatically corrects only the target plan for unambiguous task/decision/rule-consistent findings, unless explicit review-only/no-edits was requested.

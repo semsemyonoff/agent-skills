@@ -25,7 +25,8 @@ whitespace is nonempty. User-rule symlinks are read normally. No candidate is a 
 as absent rules or fall through to weaker rules. The helper never edits files or configuration.
 
 Plan-review's **driver** may invoke only this bundled resolver once before dispatch. Its read-only
-**worker** never invokes a helper, shell, or tests: receive the selected path/provenance/content and
+**worker** never invokes a helper or tests, and uses shell only under the read-only inspection
+fallback in `runtime.md`: receive the selected path/provenance/content and
 actual project root in the brief, then re-read that selected file using its permitted read tool.
 If the file changed or cannot be read, report the exact uncertainty; do not silently certify stale rules.
 
