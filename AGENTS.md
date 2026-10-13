@@ -19,7 +19,7 @@ plugins/<plugin>/
 scripts/check.py                    # repo validation, run locally and in CI
 ```
 
-Plugins are grouped by theme (`planning`, `flow`, `vikunja`, `redmine`, `retro`, `gdocs`, `peer`, `ship`). Which plugins a
+Plugins are grouped by theme (`planning`, `flow`, `vikunja`, `retro`, `peer`, `ship`). Which plugins a
 given Claude setup enables is up to whoever installs them; nothing in this repo assumes a particular
 setup, so keep machine- and account-specific details out of it.
 

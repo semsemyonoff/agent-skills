@@ -1,8 +1,7 @@
 # agent-skills
 
 Skills for everyday agent work in Claude Code, omp and native Codex CLI: running a task through
-subagents, keeping a task tracker in order, writing to Redmine without surprises, learning from past
-sessions. Skills are
+subagents, keeping a task tracker in order, learning from past sessions. Skills are
 written in English and react to prompts in English and Russian. Conventions for contributors:
 [AGENTS.md](AGENTS.md).
 
@@ -143,21 +142,6 @@ the session. The skill discovers actual tool names/schemas and supports omp's `x
 Claude Code's deferred ToolSearch remains supported. Bundled references resolve relative to the
 loaded `SKILL.md`, with no required Claude environment variables. Set `VIKUNJA_URL` for clickable task links; no tokens belong in skill files.
 
-### redmine — `redmine`
-
-For work that lives in Redmine issues. Two scenarios:
-
-- `/redmine:intake <issue>` — read the issue with its journal, related issues and attachments, and
-  summarise: what is asked, what was already decided, who waits for what, open points. Read-only; ends
-  with a choice of brainstorm, reply or plan.
-- `/redmine:reply <issue>` — for comments a manager or client will read: a Textile draft in an
-  `<id>-drafts.md` file, a plain house style (first person, no salutation, numbered questions, options with
-  consequences, estimates as an upper bound), an independent fact-check of every claim, and sending only
-  after an explicit "send it".
-
-Project specifics — where specs and documents live, what may be checked on a stand, where drafts go — are
-described by the project itself in `.claude/redmine-rules.md`.
-
 ### retro — `reflection`
 
 A retrospective over explicitly selected Claude Code sessions, omp sessions, or both. A script
@@ -178,12 +162,6 @@ python3 plugins/retro/skills/reflection/scripts/transcripts.py --source both --d
 Use `--config-dir` for another Claude configuration and `--omp-sessions-dir` for the exact omp
 sessions root, including profile/custom roots. See the [digest contract](plugins/retro/skills/reflection/references/digest-format.md)
 for normalized evidence references, deduplication, partial metric accounting and reader limits.
-
-### gdocs — `gdoc-import`
-
-Turns Google Docs/Sheets (for example, the spec linked from a Redmine issue) into normalized markdown
-in the repository, with an index README, extracted JSON examples and a list of discrepancies between
-documents, so later sessions read the snapshot instead of going back to Drive.
 
 ### peer — `peer-chat`, `ask-other`
 

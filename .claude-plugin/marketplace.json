@@ -1,6 +1,6 @@
 {
   "name": "semsemyonoff",
-  "description": "Personal workflow skills: planning, orchestration, Vikunja, Redmine, session reflection, docs import, branch shipping",
+  "description": "Personal workflow skills: planning, orchestration, Vikunja, session reflection, branch shipping",
   "owner": {
     "name": "semsemyonoff"
   },
@@ -11,11 +11,6 @@
       "description": "Orchestrate Claude Code/omp work by capability and complexity with permitted native model/reasoning profiles, plan approval and independent verification"
     },
     {
-      "name": "gdocs",
-      "source": "./plugins/gdocs",
-      "description": "Collect project documentation for agents from Google Docs/Sheets into the repo as markdown"
-    },
-    {
       "name": "peer",
       "source": "./plugins/peer",
       "description": "Shared neighboring-pane peer chat and cross-vendor CLI consultation for debugging, code and plan reviews across Claude Code, native Codex CLI and omp"
@@ -24,11 +19,6 @@
       "name": "planning",
       "source": "./plugins/planning",
       "description": "Portable brainstorm, compact planning and independent read-only plan review, preserving project/user custom rules"
-    },
-    {
-      "name": "redmine",
-      "source": "./plugins/redmine",
-      "description": "Redmine issues through the MCP: study and summarise an issue, write replies safely (Textile drafts, fact-check, send only on approval), project rules from .claude/redmine-rules.md"
     },
     {
       "name": "retro",
