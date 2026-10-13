@@ -1,0 +1,22 @@
+[
+  {"query":"Before we touch billing, review docs/plans/invoice-cutover.md against the zero-double-charge requirement and the migration notes in billing/README.md. Flag blockers and make only unambiguous plan corrections; don't implement it.","should_trigger":true},
+  {"query":"проверь план docs/plans/cache-ttl.md: после смены TTL старые значения не должны пережить сутки. Сравни с описанием cache API, покажи реальные пробелы и что осталось неизвестным, код не трогай","should_trigger":true},
+  {"query":"We finished drafting the webhook migration. I want an independent sanity check of rollout, rollback and scope before approving implementation, not another brainstorming round. The target is plans/webhooks.md.","should_trigger":true},
+  {"query":"Сделай review-only для docs/plans/export.md. Нужен независимый вердикт по готовности к реализации, никаких правок даже в самом плане и никаких внешних моделей.","should_trigger":true},
+  {"query":"Run the opt-in review chain for plans/queue.md, capped at three total reviewer attempts. Preserve the agreed Redis choice; ask me before any new disclosure to an external provider.","should_trigger":true},
+  {"query":"Для plans/search.md выбираю следующий шаг «ревью плана», а не реализацию. Проверь полноту и переусложнение по требованиям из issue-notes.md; максимум один независимый проход.","should_trigger":true},
+  {"query":"Can you assess whether the existing tenant deletion plan in docs/plans/delete.md actually covers retention exceptions and safe rollback? Don't pad the report with formatting nits; unknown policy decisions should stay unknown.","should_trigger":true},
+  {"query":"Я делегированный reviewer плана plans/backfill.md. Вот снимок и согласованные требования: оцени только эти байты, верни APPROVE или NEEDS REVISION с доказательствами, никого больше не запускай.","should_trigger":true},
+  {"query":"Our selected planning rules opt into the review chain. Check docs/plans/token-rotation.md, but my explicit restriction still stands: no external consultations. Tell me if this blocks the chain rather than picking another route.","should_trigger":true},
+  {"query":"ревью plans/orders.md вернул APPROVE, но файл уже изменён и digest другой. Разбери этот результат проверки плана: можно ли продолжать цепочку и какие выводы действительно относятся к текущему тексту? Повторный вызов не разрешён.","should_trigger":true},
+  {"query":"Implement the approved docs/plans/invoice-cutover.md now. Independent plan review was completed yesterday; this request is execution only, don't reopen the review.","should_trigger":false},
+  {"query":"Составь с нуля компактный план переноса cache TTL на сервер. Пока нет ни файла плана, ни выбранного подхода; сначала обсудим два варианта, ревью не запускай.","should_trigger":false},
+  {"query":"Review the code diff in billing/retry.ts for duplicate charging, using the committed patch as evidence. There is no implementation plan to review; I need code findings with line numbers.","should_trigger":false},
+  {"query":"Посмотри сам план запроса EXPLAIN ANALYZE в reports/slow-query.txt: почему PostgreSQL выбирает seq scan и какой индекс поможет? Это database query plan, не план реализации.","should_trigger":false},
+  {"query":"Please proofread docs/plans/export.md for English grammar and heading consistency only. Preserve every technical decision; no independent technical review or readiness verdict.","should_trigger":false},
+  {"query":"Обнови статус уже согласованного плана в Vikunja #842: первый этап выполнен, второй заблокирован поставщиком. Не оценивай дизайн и не меняй сам план.","should_trigger":false},
+  {"query":"Ask the existing Claude peer in the neighboring pane for their latest review of plans/search.md. I only want to retrieve that message; do not dispatch a new reviewer or launch a CLI.","should_trigger":false},
+  {"query":"Сделай ревью нашего квартального плана продаж из sales/q4.csv: воронка, выручка и распределение регионов. Не относится к software implementation, нужен финансовый анализ.","should_trigger":false},
+  {"query":"Explain the difference between a one-pass plan review and a three-pass cross-provider chain for our onboarding FAQ. This is a documentation question, not permission to review a project plan.","should_trigger":false},
+  {"query":"Сравни прошлые grading.json для plan-review и baseline, посчитай pass rate по двум harness. Не запускай ни skill, ни модели: нужен анализ результатов evals.","should_trigger":false}
+]

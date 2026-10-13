@@ -24,11 +24,11 @@ whitespace is nonempty. User-rule symlinks are read normally. No candidate is a 
 `path: null`, `provenance: null`, `content: ""`, exit 0. Read/encoding errors exit 2; do not hide them
 as absent rules or fall through to weaker rules. The helper never edits files or configuration.
 
-Plan-review's **driver** may invoke only this bundled resolver once before dispatch. Its read-only
-**worker** never invokes a helper or tests, and uses shell only under the read-only inspection
-fallback in `runtime.md`: receive the selected path/provenance/content and
-actual project root in the brief, then re-read that selected file using its permitted read tool.
-If the file changed or cannot be read, report the exact uncertainty; do not silently certify stale rules.
+Plan-review's **driver** invokes this resolver once before dispatch; its other narrow read-only helper
+exceptions are bundled snapshot/validate and opt-in consult (runtime.md). Its **worker** never invokes
+helpers/tests and uses shell only under runtime.md's inspection fallback. Receive selected
+path/provenance/content and actual project root, then re-read the selected file with the read tool.
+Changed/unreadable rules are uncertainty; never silently certify stale rules.
 
 Treat historical names in rules as workflow intent. `/planning:make` means creating the plan;
 `/flow:orchestrate` means approved orchestration. The current runtime adapter maps them to a genuinely
@@ -37,6 +37,11 @@ workflow but cannot authorize unrequested execution, installs, commits, pushes o
 Apply project-specific restrictions only from loaded rules when their own stated conditions are
 confirmed. Do not infer conditions from a project's name; report unknown conditions as unknown,
 not checked. No project-specific policy belongs in the shared skill or its bundled resources.
+
+An explicit selected-rule opt-in can select sections/chain.md, not external disclosure or editing
+authority. Ordinary review stays one native pass. Explicit no-edits/review-only/no-external dominates
+rules; preserve real permission grants and obtain a real answer before an unapproved outward call.
+No rule enables retry-until-approval, voting, recursive drivers or stale-version approval.
 
 Ordinary invocation only reads rules. If the user explicitly asks to show/change/clear rules, identify
 the selected file/provenance first. Edit only the exact authorized rules file, not this skill, installed

@@ -1,6 +1,6 @@
-# One-pass review criteria
+# Evidence-based single-pass criteria
 
-Read the actual plan, original request/validated design, selected planning rules and relevant source.
+Read the supplied exact snapshot, original request/validated design, selected rules and relevant source.
 A finding needs a specific plan section, evidence, consumer/execution impact and minimal correction.
 Unknowns are not findings. Do not edit the plan or run its commands to prove a review point.
 
@@ -30,8 +30,9 @@ universal backwards compatibility, tests for every touched function, or mandator
 Reasonable existing abstractions, necessary test infrastructure and inherent problem complexity
 are not overengineering merely because the reviewer prefers a different style.
 
-Report only prioritized proven issues. A clean pass is a concise APPROVE plus checked scope/limits;
-a blocked or materially flawed plan is NEEDS REVISION with concrete corrections or prerequisites.
-The reviewer does not implement fixes, invoke another reviewer, or start a retry loop. Its verdict
-covers only the examined text; later driver corrections and unresolved choices are reported separately,
-not promoted to independent approval of the revised plan.
+Report only prioritized proven issues in the canonical JSON schema from SKILL.md, copying supplied
+plan_path/version. APPROVE means no blocker finding or blocking unknown; NEEDS REVISION requires one.
+Nonblocking improvements alone do not force revisions. No duplicate keys, prose wrapper or invented
+evidence. Changed/missing rule or source facts remain unknown with their actual blocking impact.
+The reviewer never fixes, invokes helpers/reviewers or retries. Its verdict covers only the supplied
+snapshot; driver changes are not approval of revised text. Opt-in sequencing belongs to the driver.

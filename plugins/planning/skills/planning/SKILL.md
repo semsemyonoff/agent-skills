@@ -61,10 +61,12 @@ silently replace blocked requirements with a smaller scope.
 ## 3. Select a next step and stop
 
 Report the created path, goal and unresolved prerequisites. Offer only relevant next steps:
-- **One independent plan-review**, only on explicit selection. Pass the plan path, original request,
-  design/decisions, project root, rule path/provenance/content, source evidence and permissions,
-  including any review-only/no-edits restriction. Its reviewer stays read-only; its driver may correct
-  only the target plan for evidenced unambiguous findings and must ask before decision-dependent edits.
+- **Independent plan-review**, only on explicit selection: one native pass by default. Carry any
+  explicit chain request or selected planning-rule chain opt-in to plan-review's sections/chain.md
+  (maximum three attempts), not an automatic approval loop. Pass plan path, original request,
+  decisions, project root, rule packet, evidence and exact permissions, including review-only/no-edits
+  and no-external. The read-only worker receives a fresh exact snapshot; only the driver may fix the
+  target plan for evidenced unambiguous findings and must ask before decision-dependent edits.
 - **Ready for ralphex**, when it is the configured execution owner: give the completed plan path.
   Give an invocation only after inspecting its actual help/schema; no invented flags or automatic run.
 - **Orchestrate**, only if the user selects a compatible one-session route. Pass the full plan/design;
@@ -72,10 +74,11 @@ Report the created path, goal and unresolved prerequisites. Offer only relevant 
 - **Stop**, leaving the plan without further action.
 
 No exec workflow, implementation launch, automatic review/retry loop, installs, commits or push.
-Selecting review includes bounded target-plan driver corrections unless **review only**, **no edits**,
-**только review** or **без правок** was requested. Choices need a real answer; it is not permission to
-expand scope, edit other artifacts or execute the plan. The review handoff reports the original
-reviewer verdict separately from applied changes and unresolved choices, with no automatic re-review.
+Selecting review includes bounded target-plan driver corrections unless review-only/no-edits was
+requested. Choices require a real answer; rules/chain selection cannot create external disclosure
+permission or override explicit prohibitions. Preserve original verdict/version, applied changes and
+unresolved choices separately. Default has no re-review; only selected chain enables its bounded
+native -> other-provider -> conditional fresh native sequence, with failure/stale results stopping.
 
 ## Resources
 

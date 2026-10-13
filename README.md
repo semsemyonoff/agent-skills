@@ -21,10 +21,11 @@ npx skills add semsemyonoff/agent-skills/plugins/peer -a codex -g
 ### planning — `brainstorm`, `planning`, `plan-review`
 
 Portable adaptations of [umputun/cc-thingz](https://github.com/umputun/cc-thingz): incremental design,
-compact `docs/plans/YYYYMMDD-name.md` creation, and one independent read-only plan review followed
-by bounded driver corrections to that plan. Each skill is self-contained, with its own rule
-resolver/resources and upstream MIT notice. No exec workflow, automatic implementation, commit,
-install or review loop.
+compact `docs/plans/YYYYMMDD-name.md` creation, and one independent read-only plan review by default,
+followed by bounded target-plan corrections. An explicit opt-in chain allows at most three attempts:
+native review, one other-provider review, and a conditional fresh native re-review. Each skill is
+self-contained, with its own resources and upstream MIT notice. No automatic implementation,
+commit, installation or unbounded approval loop.
 
 In omp, load these three skills from the shared `.agents/skills` tree via skills.sh, or point native
 skill discovery at `plugins/planning/skills`. Invoke `/skill:brainstorm`, `/skill:planning` or
@@ -44,8 +45,10 @@ The optional omp agent resource is
 [`plugins/planning/skills/plan-review/agents/omp.md`](plugins/planning/skills/plan-review/agents/omp.md):
 native name `plan-review`, model role `@plan_review`, tools `read`, `grep`, `glob`, no spawns.
 An operator can expose that file through native agent discovery and route `modelRoles.plan_review`
-to an approved selector/role; the skill never installs it or changes models. The driver may call its
-bundled read-only resolver once; the reviewer worker never runs a shell, helper or tests.
+to an approved selector/role; the skill never installs it or changes models. Driver shell exceptions
+are limited to the bundled rules resolver, exact snapshot/validation helpers and an authorized
+external consultation. Workers never run helpers or tests; shell inspection is allowed only under
+the documented fallback when native search/listing is unavailable.
 
 Brainstorm preserves loaded next-step rules and passes validated decisions/files without re-design.
 Planning honors the loaded execution owner (including ralphex when selected), fast targeted
@@ -63,9 +66,11 @@ ambiguity get 2–5 concrete options with tradeoffs and one recommendation: nati
 Claude `AskUserQuestion` only if exposed, otherwise text options and a real answer before dependent
 edits. Timeout, redirect, cancellation, silence and defaults are not consent. Independent safe fixes
 may precede the question; dependent findings remain unapplied. No code, other plans, rules/config
-changes, project gates, implementation or automatic second review. The driver re-reads changed plan
-text for local consistency and reports the **original reviewer verdict**, **actual applied changes**
-and **unresolved choices** separately, never attributing reviewer approval to unseen revisions.
+changes, project gates or implementation. Default review never dispatches a second pass; the opt-in
+chain preserves explicit no-edits/no-external restrictions, stops on failed or invalid results, and
+never retries or votes. The driver reports the **original reviewer verdict**, **actual applied changes**
+and **unresolved choices** separately. Every verdict is bound to the reviewed plan path and exact
+SHA-256 snapshot; earlier approval never covers unseen edits.
 An absent independent reviewer remains a blocker, not a successful author self-review.
 
 ### flow — `orchestrate`
@@ -229,7 +234,7 @@ Portable omp chain:
 /skill:brainstorm            validated decisions + files + rules provenance
   → /skill:orchestrate       explicit one-session choice; retains execution approval
   → /skill:planning         explicit durable-plan choice; writes docs/plans/YYYYMMDD-name.md
-      → /skill:plan-review  one read-only reviewer + target-plan driver fixes/choices; only when selected
+      → /skill:plan-review  one pass by default; opt-in bounded chain; target-plan fixes/choices only
       → ralphex             completed plan path/instructions; no automatic launch
 ```
 

@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.1.0 (Unreleased)
+
+- Add an opt-in plan-review driver section: native independent review, one other-provider consultation, then conditional fresh native re-review, with at most three attempts and no retry/vote/recursive approval loop. Default remains one independent native pass.
+- Bind canonical verdicts to exact UTF-8 plan snapshots and validate schema/current path/version before accepting reports or fixing; stop on unavailable, failed, empty, invalid or stale results and never approve unseen corrections.
+- Bundle a self-contained native external adapter, preserving native routing/auth and documenting trusted deployment limits, read-only tool boundaries and truthful unavailable routes without another skill's runtime dependency.
+- Preserve explicit no-edits/no-external restrictions, real disclosure/choice approval, target-only safe corrections, read-only workers and the conditional shell inspection fallback through planning handoffs.
+- Add bilingual behavioral/trigger evals and isolated baseline comparison tooling; atomically consume each session attempt and stop owned CLI process groups on timeout or cancellation. Regression tests cover finite-file stdin, stale verdicts, cancellation and duplicate attempts.
+
 ## 1.0.3 (Unreleased)
 
 - Let the plan reviewer inspect files through a narrow read-only shell fallback when the harness has no native search or listing tool (Claude Code exposes Bash instead of Grep/Glob); writes, helpers, tests and network stay forbidden, and the fallback is reported in the review limits.

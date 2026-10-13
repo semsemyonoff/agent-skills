@@ -14,15 +14,16 @@ No mandatory EnterPlanMode, Skill tool, or shell slash-command API.
 
 - `/planning:make` in historical rules means plan creation. In omp, the discovered `planning` skill
   serves it (`/skill:planning` for manual invocation). Claude may retain its actual upstream command.
-- Plan review means one separately delegated read-only review, not the author's consistency check.
-  Load the discovered `plan-review` skill with the complete plan/request/rules packet and any explicit
-  review-only/no-edits restriction. By default its driver corrects only the reviewed plan for
-  evidenced unambiguous findings consistent with the task/decisions/rules; architectural/product or
-  agreement changes and ambiguity require options and a real answer before dependent edits.
-  Review-only disables autofix. Original verdict, applied changes and unresolved choices stay separate;
-  no implementation or automatic second review follows. In omp, a reader that supports `skill://`
-  can load `skill://plan-review`; this URI is confined to the omp adapter. In Claude, use the real
-  exposed Skill/command mechanism, never an assumed identity.
+- Plan review means one separately delegated read-only native review by default, not author
+  consistency checking. Load discovered plan-review with plan/request/decisions/rules/evidence and
+  exact permissions, including no-edits/review-only/no-external. Carry explicit chain selection or
+  selected-rule opt-in to its sections/chain.md; maximum three attempts, no retries/voting/recursion.
+  Each reviewer receives a fresh exact snapshot and returns version-bound canonical JSON. The
+  driver alone applies target-plan evidenced unambiguous corrections; architecture/product/conflict/
+  scope/route/budget decisions need options and a real answer. Rules do not grant external disclosure;
+  ask before required unapproved outward calls. Preserve verdict/version, changes and unresolved
+  state; no stale approval or automatic implementation. In omp, an exposed reader may load
+  skill://plan-review; Claude uses its real Skill/command mechanism, never an assumed identity.
 - `/flow:orchestrate` means the discovered orchestrate workflow (`/skill:orchestrate` manually in omp).
   Pass the full validated design/plan, decisions, files, dependencies, acceptance, rule provenance,
   protected actions and exact permissions. The destination retains its execution approval contract.
