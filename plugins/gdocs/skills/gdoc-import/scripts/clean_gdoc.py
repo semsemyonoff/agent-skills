@@ -39,11 +39,27 @@ def fix_tables(lines):
     return out
 
 
-def find_json_blocks(lines):
+FENCE = re.compile(r'^```(\w*)\s*$')
+
+
+def find_json_blocks(lines, passes=1):
     """Yield (start, end_exclusive, parsed_obj, cleaned_lines)."""
     i = 0
     n = len(lines)
     while i < n:
+        fence = FENCE.match(lines[i])
+        if fence:
+            j = next((k for k in range(i + 1, n) if lines[k].strip() == '```'), n)
+            if fence.group(1) in ('', 'json'):
+                try:
+                    obj = json.loads('\n'.join(lines[i + 1:j]))
+                    if isinstance(obj, (dict, list)):
+                        yield (i, j + 1, obj, lines[i + 1:j])
+                except json.JSONDecodeError:
+                    if fence.group(1) == 'json':
+                        print(f'  ! JSON parse failed at line {i+1}', file=sys.stderr)
+            i = j + 1
+            continue
         if lines[i].strip() in ('{', '['):
             depth = 0
             collected = []
@@ -53,7 +69,7 @@ def find_json_blocks(lines):
                 raw = lines[j]
                 stripped = raw.strip()
                 if stripped:
-                    collected.append(unescape(raw.rstrip()))
+                    collected.append(unescape(raw.rstrip(), passes))
                     depth += stripped.count('{') + stripped.count('[')
                     depth -= stripped.count('}') + stripped.count(']')
                     if depth <= 0:
@@ -118,11 +134,14 @@ def insert_toc(lines):
     return lines
 
 
-def process(path, out_md, examples_dir, big=40, header=''):
+def process(path, out_md, examples_dir, big=40, header='', source='drive'):
     lines = Path(path).read_text().split('\n')
-    lines = fix_tables(lines)
+    # api_to_md.py output is verbatim text with well-formed tables: nothing to unescape
+    raw = source == 'docs-api'
+    if not raw:
+        lines = fix_tables(lines)
 
-    blocks = list(find_json_blocks(lines))
+    blocks = list(find_json_blocks(lines, passes=0 if raw else 1))
     print(f'{path}: {len(blocks)} json blocks')
 
     # section name for each block = nearest preceding heading with latin words
@@ -172,8 +191,10 @@ if __name__ == '__main__':
     p.add_argument('dst')
     p.add_argument('--examples', help='directory for extracted large JSON blocks')
     p.add_argument('--header', default='', help='text prepended to the result')
+    p.add_argument('--source', choices=('drive', 'docs-api'), default='drive',
+                   help='drive: Drive read_file_content markdown; docs-api: api_to_md.py output')
     a = p.parse_args()
     ex = Path(a.examples) if a.examples else None
     if ex:
         ex.mkdir(parents=True, exist_ok=True)
-    process(a.src, a.dst, ex, header=(a.header + '\n\n' if a.header else ''))
+    process(a.src, a.dst, ex, header=(a.header + '\n\n' if a.header else ''), source=a.source)
