@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.3
+
+- Quote the `reflection` skill description so strict YAML parsers (skills.sh) no longer skip the skill for Codex and omp.
+
 ## 1.3.2
 
 - Improve English/Russian plan-task selection and completion evidence; distinguish plan iterations from task IDs and preserve attribution completeness separately from source-read and usage coverage.

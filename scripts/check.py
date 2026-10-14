@@ -70,6 +70,10 @@ def parse_frontmatter(path: Path) -> dict[str, str] | None:
             value = " ".join(b for b in block if b) if value.startswith(">") or value == "" else "\n".join(block)
         elif len(value) >= 2 and value[0] == value[-1] and value[0] in "\"'":
             value = value[1:-1]
+        elif ": " in value or " #" in value or value.endswith(":") or value[0] in "[]{},&*!|>'\"%@`#" \
+                or value.startswith(("- ", "? ", ": ")):
+            # Claude Code tolerates these; strict YAML parsers (skills.sh) reject the skill.
+            err(path, f"plain value of {key!r} is invalid strict YAML; quote it")
         result[key] = value
     return result
 

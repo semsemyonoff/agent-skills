@@ -1,7 +1,7 @@
 {
   "name": "retro",
   "description": "Retrospectives over Claude Code, omp and native Codex CLI transcripts: recurring work, friction, errors, routing and usage; review a plan run, diagnose failures and propose quality-preserving improvements / Ретроспективы по транскриптам Claude Code, omp и native Codex CLI: повторы, ошибки, маршрутизация и расход; разбор прогона плана, причин сбоев и улучшений без потери качества",
-  "version": "1.3.2",
+  "version": "1.3.3",
   "author": {
     "name": "semsemyonoff"
   }
