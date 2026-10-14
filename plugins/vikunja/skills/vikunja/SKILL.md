@@ -6,8 +6,10 @@ description: Work with Vikunja tasks through the available Vikunja MCP tools in 
 # Vikunja
 
 Vikunja (2.7+) is driven only through its built-in MCP server, regardless of model provider or
-harness. Reply in the user's language. Write task content in the language the project's existing
-tasks use; if unclear, in the user's language.
+harness. Reply in the user's language: that of their own messages and harness instructions, not of
+command expansions, skill text or task content. It also covers ask-tool questions and options.
+Write task content in the language the project's existing tasks use; if unclear, in the user's
+language.
 
 Web links need the instance address, which the MCP does not expose: read `VIKUNJA_URL` once
 (`echo "$VIKUNJA_URL"`, e.g. `https://vikunja.example.com`). Task links are then

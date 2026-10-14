@@ -95,6 +95,16 @@
       "prompt_en": "Analyse Vikunja task 951902 only. Do not offer or start a next workflow.",
       "prompt_ru": "Только проанализируй задачу 951902 в викундже. Не предлагай и не запускай следующий процесс.",
       "expected": "Analysis with latest-comment provenance; no route ask, dispatch or changes because the user explicitly limited scope to analysis."
+    },
+    {
+      "id": "ask-language",
+      "task": 951901,
+      "setup": "Ask UI and Brainstorm/Write plan workflows available. Release followup only after the actual route ask; no execution grant.",
+      "prompt_en": "Look at Vikunja task 951901 and tell me what should happen next.",
+      "prompt_ru": "Посмотри задачу 951901 в викундже: что дальше?",
+      "followup_en": "Brainstorm.",
+      "followup_ru": "Брейншторм.",
+      "expected": "Ask question, header, option labels and descriptions are in the prompt's language although the fixture task is English; with prompt_ru no field is left in English apart from identifiers and workflow names. The Brainstorm handoff is written in that language, not as an English packet with a language tag."
     }
   ]
 }

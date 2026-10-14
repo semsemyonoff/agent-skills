@@ -1,7 +1,7 @@
 {
   "name": "vikunja",
   "description": "Vikunja task workflows: backlog, intake, progress reports, through Vikunja's built-in MCP server",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "author": {
     "name": "semsemyonoff"
   }

@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.1
+
+- Write ask-tool questions, options and workflow handoffs in the user's language, taken from their own messages rather than command expansions, skill text or task content.
+
 ## 1.2.0
 
 - Intake now makes an actual structured next-action ask for both open and settled designs, with explicit-route, unavailable-workflow, chat-only and cancellation/timeout handling.

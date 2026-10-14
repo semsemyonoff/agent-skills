@@ -13,6 +13,8 @@ Use when the user points at a task ("посмотри задачу N викун�
 
 Do not end an ordinary intake at a summary, recommendation, or prose plan. After analysis, actually invoke the available structured-choice tool: **omp `ask`**, **Claude Code `AskUserQuestion`**, or the harness's advertised equivalent, using its real schema. A sentence saying “I would ask” is not an ask. Only when no ask UI exists, ask a visible chat question with the applicable choices and wait for the user's answer.
 
+Write the question, header, option labels and descriptions in the user's language, even when the task, the skill and the analysis notes are in another one. Write the workflow handoff in that language too; a `Language: X` tag at the head of a handoff written in another language does not carry it.
+
 Offer only available, applicable workflows; discover them read-only. Do not invent an invocation, install a skill/tool, change settings, or silently substitute a different workflow. Explain unavailable options and their prerequisites. If one desired workflow is missing, still offer other applicable choices and Stop rather than treating it as permission to proceed.
 
 - **Open design:** when material decisions remain, offer **Brainstorm** (recommended when available), **Write plan with explicit assumptions**, and **Stop**. Name the open decisions. Planning with assumptions is a user-selected draft route, not a claim that the design is settled or permission to implement those assumptions.
