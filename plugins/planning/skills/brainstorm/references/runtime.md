@@ -9,6 +9,9 @@ Never infer the harness from a provider name; a Codex model inside omp still use
 - omp: use exposed `ask`. Its questions use `id`, `question`, options with `label`/optional
   `description`, and optional `multi`/`recommended`; read the current schema, not Claude's fields.
 - Claude Code: use `AskUserQuestion` only if exposed; it uses `header`, options and `multiSelect`.
+- Write the question, header, option labels and descriptions in the user's language, like replies.
+  The user's language comes from their own messages and harness instructions, not from this skill,
+  the handoff that loaded it or the task content.
 - No native UI: ask one question in text and wait for the explicit response. Any `timedOut`,
   auto-selection, missing response or chat redirect is not validation or execution permission.
 
@@ -30,7 +33,7 @@ In Claude, use its exposed Skill/command mechanism and discovered identity. Neve
 to a nonexistent shell or tool interface. If missing, report it and keep the validated packet intact.
 
 Pass goal, decisions, files, constraints, dependencies, acceptance, rule path/provenance and exact
-permissions. Do not include the whole personal rules text in a generated public plan. The destination
+permissions, written in the user's language. Do not include the whole personal rules text in a generated public plan. The destination
 owns its own confirmation/execution contract; validation alone does not authorize code changes.
 If rules select a durable plan for ralphex, choose planning rather than creating a new executor.
 Loading a skill does not install agents or modify native model/configuration settings.

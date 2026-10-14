@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.1.1
+
+- Brainstorm writes native ask questions, options and handoffs in the user's language, not the language of the skill, its handoff or the task.
+
 ## 1.1.0 (Unreleased)
 
 - Add an opt-in plan-review driver section: native independent review, one other-provider consultation, then conditional fresh native re-review, with at most three attempts and no retry/vote/recursive approval loop. Default remains one independent native pass.
