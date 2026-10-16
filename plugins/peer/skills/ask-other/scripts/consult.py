@@ -119,7 +119,8 @@ def cleanup(process):
     return "; ".join(errors + group_errors) or None
 
 
-def run_process(argv, project, env, deadline, data=b"", on_line=None, failure_status="error"):
+def run_process(argv, project, env, deadline, data=b"", on_line=None, failure_status="error",
+                accept_exit=False):
     """Never inherit stdin, invoke a shell, or leave a timed-out process group alive."""
     remaining(deadline)
     try:
@@ -175,7 +176,7 @@ def run_process(argv, project, env, deadline, data=b"", on_line=None, failure_st
             if pending.strip() and on_line is not None:
                 on_line(bytes(pending))
             code = process.wait(timeout=remaining(deadline))
-        if code:
+        if code and not accept_exit:
             raise Failure(failure_status, failure_category(bytes(output), bytes(diagnostics)))
         return code, bytes(output), bytes(diagnostics)
     except subprocess.TimeoutExpired:
@@ -265,16 +266,20 @@ def unconfirmed_features(raw):
 def ignored_keys(binary, project, env, deadline):
     ignored = []
     for key, _, _ in CODEX_KEYS:
-        try:
-            run_process(
-                [binary, "features", "list", *codex_config(invalid=key)], project, env, deadline,
-                failure_status="rejected",
-            )
-        except Failure as failure:
-            if failure.status != "rejected":
-                raise
-        else:
+        # Rejection counts only as the native config-load exit 1 with the type/variant
+        # diagnostic for this exact key path; any other failure (auth, panic, signal)
+        # proves nothing.
+        code, _, diagnostics = run_process(
+            [binary, "features", "list", *codex_config(invalid=key)], project, env, deadline,
+            failure_status="unavailable", accept_exit=True,
+        )
+        if code == 0:
             ignored.append(key)
+        elif code != 1 or not re.search(
+            rf"^\s*(?:invalid type|unknown variant)\b[^\n]*\n\s*in `{re.escape(key)}`\s*$",
+            diagnostics.decode("utf-8", errors="replace"), re.MULTILINE,
+        ):
+            raise Failure("unavailable", f"Codex config key probe failed unexpectedly: {key}")
     return ignored
 
 

@@ -144,9 +144,14 @@ checks, so it can still be unavailable. The native CLI silently ignores unknown
   or `deprecated`) and `false`. Native config skips `removed` flags entirely, and an
   unknown stage, duplicate or malformed row is unconfirmed.
 - Each plain key is probed alone with a wrongly typed value through
-  `codex features list`; a recognized key fails config loading, so a probe that
-  succeeds means the key is ignored. This proves recognition, not the effective
-  value: managed policy above the CLI layer remains a trusted prerequisite.
+  `codex features list`. A probe that succeeds means the key is ignored. A failed
+  probe counts as recognition only as the native config-load exit 1 with the
+  `invalid type`/`unknown variant` diagnostic followed by ``in `<exact key path>` ``;
+  any other failure (auth, panic, signal, another exit code or key path) is
+  unavailable, and diagnostics are never echoed.
+  Incomplete process-group cleanup is unavailable in every case. This proves
+  recognition, not the effective value: managed policy above the CLI layer remains
+  a trusted prerequisite.
 - Inherited MCP servers are inventoried and confirmed disabled as described below.
 
 Any unconfirmed control returns unavailable before a model request. None of these

@@ -79,7 +79,13 @@ flat = {key: cli_layer.get(key) for key in valid if "." not in key}
 flat["skills.include_instructions"] = cli_layer.get("skills", {}).get("include_instructions")
 for key, check in valid.items():
     if key != os.environ.get("FAKE_IGNORED_KEY") and flat[key] is not None and not check(flat[key]):
-        print(f"invalid type in `{key}`", file=sys.stderr)
+        if key == os.environ.get("FAKE_PROBE_CRASH_KEY"):
+            print("thread 'main' panicked; do-not-print", file=sys.stderr)
+            sys.exit(101)
+        path = "notify" if key == os.environ.get("FAKE_PROBE_OTHER_PATH_KEY") else key
+        print(f"Error: failed to load bootstrap configuration\n\nCaused by:\n    invalid type: fixture\n    in `{path}`\n", file=sys.stderr, flush=True)
+        if key == os.environ.get("FAKE_PROBE_SIGNAL_KEY"):
+            os.kill(os.getpid(), signal.SIGKILL)
         sys.exit(1)
 for name in names:
     assert effective["mcp_servers"][name]["command"] == "fixture-read-only-launcher"
@@ -265,6 +271,31 @@ class ConsultationTest(unittest.TestCase):
             with self.subTest(env=env):
                 process, result = self.run_consult("codex", **env)
                 self.assert_failed(process, result, "unavailable")
+                self.assertFalse(self.attempts.exists())
+
+    def test_codex_key_probe_requires_the_expected_diagnostic(self):
+        for env in ({"FAKE_PROBE_CRASH_KEY": "web_search"},
+                    {"FAKE_PROBE_OTHER_PATH_KEY": "allow_login_shell"},
+                    {"FAKE_PROBE_SIGNAL_KEY": "project_doc_max_bytes"}):
+            with self.subTest(env=env):
+                process, result = self.run_consult("codex", **env)
+                self.assert_failed(process, result, "unavailable")
+                self.assertIn(next(iter(env.values())), result["error"])
+                self.assertNotIn("do-not-print", process.stdout + process.stderr)
+                self.assertFalse(self.attempts.exists())
+
+    def test_codex_key_probe_cleanup_failure_is_never_accepted(self):
+        binary = str(self.bin / "codex")
+        # The first probe decides: approval_policy is CODEX_KEYS[0], so ignoring it
+        # exercises cleanup after a successful exit rather than after a rejection.
+        self.assertEqual(consult.CODEX_KEYS[0][0], "approval_policy")
+        for env in ({}, {"FAKE_IGNORED_KEY": "approval_policy"}):
+            with self.subTest(env=env):
+                with mock.patch.object(consult.os, "killpg", side_effect=PermissionError(1, "Denied")):
+                    with self.assertRaises(consult.Failure) as caught:
+                        consult.ignored_keys(binary, self.project, dict(self.env, **env), time.monotonic() + 10)
+                self.assertEqual(caught.exception.status, "unavailable")
+                self.assertIn("errno=1", caught.exception.cleanup_error)
                 self.assertFalse(self.attempts.exists())
 
     def test_unrecognized_codex_key_is_unavailable(self):

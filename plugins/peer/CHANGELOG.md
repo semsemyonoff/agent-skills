@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.1.3
+
+- Count an `ask-other` Codex config key probe as recognized only on the native type/variant
+  diagnostic for that key, and never accept a probe whose process cleanup failed.
+
 ## 2.1.2
 
 - Drop the exact codex-cli version pin in `ask-other`: compatible newer Codex releases are
