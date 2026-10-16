@@ -70,9 +70,36 @@ for index, arg in enumerate(args):
         current = current.setdefault(segment, {})
     current[segments[-1]] = value
 effective = deep_merge(base, cli_layer)
+# Native loading rejects a recognized key of the wrong type and ignores unknown keys.
+valid = {"approval_policy": lambda v: v in ("untrusted", "on-failure", "on-request", "never"),
+         "default_permissions": lambda v: type(v) is str, "web_search": lambda v: type(v) is str,
+         "notify": lambda v: type(v) is list, "allow_login_shell": lambda v: type(v) is bool,
+         "project_doc_max_bytes": lambda v: type(v) is int, "skills.include_instructions": lambda v: type(v) is bool}
+flat = {key: cli_layer.get(key) for key in valid if "." not in key}
+flat["skills.include_instructions"] = cli_layer.get("skills", {}).get("include_instructions")
+for key, check in valid.items():
+    if key != os.environ.get("FAKE_IGNORED_KEY") and flat[key] is not None and not check(flat[key]):
+        print(f"invalid type in `{key}`", file=sys.stderr)
+        sys.exit(1)
 for name in names:
     assert effective["mcp_servers"][name]["command"] == "fixture-read-only-launcher"
     assert effective["mcp_servers"][name]["env"] == {"SECRET": "never-display-this"}
+if args[:2] == ["features", "list"]:
+    if os.environ.get("FAKE_FEATURES_FAIL"):
+        sys.exit(1)
+    if "FAKE_FEATURE_ROWS" in os.environ:
+        print(os.environ["FAKE_FEATURE_ROWS"])
+        sys.exit(0)
+    registry = ("hooks", "apps", "plugins", "remote_plugin", "multi_agent", "multi_agent_v2", "code_mode",
+                "shell_snapshot", "shell_snapshot_v2", "goals", "memories", "skill_mcp_dependency_install",
+                "shell_tool")
+    missing = os.environ.get("FAKE_UNKNOWN_FEATURE")
+    stuck = os.environ.get("FAKE_STUCK_FEATURE")
+    for name in registry:
+        if name != missing:
+            state = name == stuck or effective["features"].get(name, True)
+            print(f"{name:<40} under development  {str(state).lower()}")
+    sys.exit(0)
 if args[:2] == ["mcp", "list"]:
     if os.environ.get("FAKE_BAD_INVENTORY"):
         print(os.environ["FAKE_BAD_INVENTORY"])
@@ -207,10 +234,46 @@ class ConsultationTest(unittest.TestCase):
         self.assert_failed(process, result, "unavailable")
         self.assertFalse(self.attempts.exists())
 
-    def test_unknown_codex_config_version_is_unavailable(self):
+    def test_new_codex_version_is_not_pinned_out(self):
         process, result = self.run_consult("codex", FAKE_VERSION="9.9.9")
-        self.assert_failed(process, result, "unavailable")
-        self.assertFalse(self.attempts.exists())
+        self.assertEqual(process.returncode, 0)
+        self.assertEqual(result["cli_version"], "9.9.9")
+
+    def test_codex_feature_rows_must_be_unique_applied_and_false(self):
+        rows = {name: f"{name}  stable  false" for name in consult.CODEX_DISABLED}
+        for name, bad in (("hooks", "hooks  removed  false"), ("hooks", "hooks  sunset  false"),
+                          ("hooks", "hooks  stable  true\nhooks  stable  false"),
+                          ("hooks", "hooks  stable  false\nhooks  stable  true"),
+                          ("hooks", "hooks  false"), ("hooks", "hooks  stable  off")):
+            with self.subTest(bad=bad):
+                output = "\n".join(bad if key == name else row for key, row in rows.items())
+                self.assertEqual(consult.unconfirmed_features(output.encode()), [name])
+        multiword = dict(rows, code_mode="code_mode  under development  false")
+        self.assertEqual(consult.unconfirmed_features("\n".join(multiword.values()).encode()), [])
+        self.assertEqual(consult.unconfirmed_features(b""), list(consult.CODEX_DISABLED))
+
+    def test_unconfirmed_codex_feature_is_unavailable(self):
+        for env in ({"FAKE_UNKNOWN_FEATURE": "code_mode"}, {"FAKE_STUCK_FEATURE": "hooks"}):
+            with self.subTest(env=env):
+                process, result = self.run_consult("codex", **env)
+                self.assert_failed(process, result, "unavailable")
+                self.assertIn(next(iter(env.values())), result["error"])
+                self.assertFalse(self.attempts.exists())
+
+    def test_codex_feature_inventory_failure_is_unavailable(self):
+        for env in ({"FAKE_FEATURES_FAIL": "1"}, {"FAKE_FEATURE_ROWS": ""}):
+            with self.subTest(env=env):
+                process, result = self.run_consult("codex", **env)
+                self.assert_failed(process, result, "unavailable")
+                self.assertFalse(self.attempts.exists())
+
+    def test_unrecognized_codex_key_is_unavailable(self):
+        for key, _, _ in consult.CODEX_KEYS:
+            with self.subTest(key=key):
+                process, result = self.run_consult("codex", FAKE_IGNORED_KEY=key)
+                self.assert_failed(process, result, "unavailable")
+                self.assertIn(key, result["error"])
+                self.assertFalse(self.attempts.exists())
 
     def test_codex_disables_inherited_mcp_and_does_not_guess_model(self):
         names = ["writer", "tracker", "team.service", "org/tool", "team:service", "service@org"]

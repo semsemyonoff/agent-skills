@@ -25,6 +25,19 @@ CODEX_DISABLED = (
     "code_mode", "shell_snapshot", "shell_snapshot_v2", "goals", "memories",
     "skill_mcp_dependency_install",
 )
+# Stages whose flag is still applied; native config skips removed flags entirely.
+CODEX_APPLIED_STAGES = ("stable", "experimental", "under development", "deprecated")
+# (key, value, wrongly typed value). A recognized key fails config loading on the
+# wrong type; an unrecognized one is silently ignored.
+CODEX_KEYS = (
+    ("approval_policy", '"never"', '"invalid"'),
+    ("default_permissions", '":read-only"', "1"),
+    ("web_search", '"disabled"', "1"),
+    ("notify", "[]", "1"),
+    ("allow_login_shell", "false", '"invalid"'),
+    ("project_doc_max_bytes", "0", '"invalid"'),
+    ("skills.include_instructions", "false", '"invalid"'),
+)
 TRUST = (
     "Native CLI authentication, credential helpers, administrative policy and CLI "
     "state/cache effects are trusted deployment prerequisites, not sandboxed by this helper."
@@ -223,17 +236,46 @@ def failure_category(stdout, stderr):
     return "Native CLI failed; no retry or fallback was attempted"
 
 
-def codex_config():
+def codex_config(invalid=None):
     args = []
     for feature in CODEX_DISABLED:
         args.extend(("--config", f"features.{feature}=false"))
-    for value in (
-        'approval_policy="never"', 'default_permissions=":read-only"',
-        'web_search="disabled"', 'notify=[]', 'allow_login_shell=false',
-        'project_doc_max_bytes=0', 'skills.include_instructions=false',
-    ):
-        args.extend(("--config", value))
+    for key, value, wrong in CODEX_KEYS:
+        args.extend(("--config", f"{key}={wrong if key == invalid else value}"))
     return args
+
+
+def unconfirmed_features(raw):
+    # Rows are "<name> <stage, may contain spaces> <true|false>". A required
+    # feature is confirmed only by exactly one well-formed, applied, false row.
+    rows = {}
+    for line in raw.decode("utf-8", errors="replace").splitlines():
+        fields = line.split()
+        if fields and fields[0] in CODEX_DISABLED:
+            rows.setdefault(fields[0], []).append(fields)
+    return [
+        feature for feature in CODEX_DISABLED
+        if len(rows.get(feature, ())) != 1
+        or len(rows[feature][0]) < 3
+        or " ".join(rows[feature][0][1:-1]) not in CODEX_APPLIED_STAGES
+        or rows[feature][0][-1] != "false"
+    ]
+
+
+def ignored_keys(binary, project, env, deadline):
+    ignored = []
+    for key, _, _ in CODEX_KEYS:
+        try:
+            run_process(
+                [binary, "features", "list", *codex_config(invalid=key)], project, env, deadline,
+                failure_status="rejected",
+            )
+        except Failure as failure:
+            if failure.status != "rejected":
+                raise
+        else:
+            ignored.append(key)
+    return ignored
 
 
 def mcp_entries(raw):
@@ -283,11 +325,19 @@ def prepare(target, project, env, deadline):
             "--no-session-persistence", "--no-chrome", "--disable-slash-commands",
             "--output-format", "stream-json", "--verbose",
         ], {"cli_version": version, "requested_tools": sorted(READ_TOOLS)}
-    # Config keys below are source-verified for this release. Unknown releases must
-    # be researched rather than silently accept ignored safety settings.
-    if version != "0.162.1":
-        raise Failure("unavailable", "Codex config controls are supported for 0.162.1 only")
     config = codex_config()
+    # Native CLI silently ignores unknown feature names, so a renamed or removed
+    # feature is caught only by its effective state, not by the override itself.
+    _, raw, _ = run_process(
+        [binary, "features", "list", *config], project, env, deadline,
+        failure_status="unavailable",
+    )
+    enabled = unconfirmed_features(raw)
+    if enabled:
+        raise Failure("unavailable", "Codex did not confirm disabled features: " + ", ".join(enabled))
+    ignored = ignored_keys(binary, project, env, deadline)
+    if ignored:
+        raise Failure("unavailable", "Codex does not recognize config keys: " + ", ".join(ignored))
     inventory = [binary, "mcp", "list", "--json", *config]
     _, raw, _ = run_process(inventory, project, env, deadline, failure_status="unavailable")
     entries = mcp_entries(raw)

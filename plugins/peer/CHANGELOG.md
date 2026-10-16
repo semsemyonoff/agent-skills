@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.1.2
+
+- Drop the exact codex-cli version pin in `ask-other`: compatible newer Codex releases are
+  not rejected solely by version. Instead confirm each disabled feature's stage and state
+  and probe that every config key is still recognized.
+
 ## 2.1.1
 
 - Clarify instruction-only Codex command restrictions and require runtime references before

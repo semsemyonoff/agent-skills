@@ -93,8 +93,8 @@ Invalid CLI arguments use argparse's normal exit 2 and usage diagnostics.
 - For `--check`, `result=null`, `model=null`, `consultation_completed=false` even
   when `status=ok`. This says the required CLI controls were found, **not** that
   authentication, provider capacity, source access or a review succeeded.
-- `unavailable` covers missing/unstartable CLI, unsupported flags/version and
-  inability to inspect/disable inherited MCP. An existing-neighbor route is not
+- `unavailable` covers missing/unstartable CLI, unsupported flags/version,
+  unconfirmed Codex features or keys and inability to inspect/disable inherited MCP. An existing-neighbor route is not
   implemented by this helper: missing peer never authorizes switching transport.
 - Failure, refusal, invalid/truncated/ambiguous JSON, missing final completion,
   empty final text, contradictory runtime capability and provider/auth failures
@@ -133,9 +133,25 @@ and records its evidence version separately.
 
 ## Codex controls
 
-The source-verified supported build is **codex-cli 0.162.1**. Another version returns
-unavailable until its config keys and result semantics are researched; the helper
-does not guess a key or ignore unsupported constraints.
+The helper does not pin a Codex release; sources were researched on codex-cli
+0.162.1 and 0.163.0. A newer build is accepted only when it passes the same local
+checks, so it can still be unavailable. The native CLI silently ignores unknown
+`-c` keys and feature names, so no override is trusted by being passed:
+
+- Required flags must appear in `exec --help`.
+- `codex features list` with the exact overrides must list each disabled feature
+  exactly once, at an applied stage (`stable`, `experimental`, `under development`
+  or `deprecated`) and `false`. Native config skips `removed` flags entirely, and an
+  unknown stage, duplicate or malformed row is unconfirmed.
+- Each plain key is probed alone with a wrongly typed value through
+  `codex features list`; a recognized key fails config loading, so a probe that
+  succeeds means the key is ignored. This proves recognition, not the effective
+  value: managed policy above the CLI layer remains a trusted prerequisite.
+- Inherited MCP servers are inventoried and confirmed disabled as described below.
+
+Any unconfirmed control returns unavailable before a model request. None of these
+checks is replaced by the read-only sandbox or event rejection: `notify` commands
+run outside the sandbox, and a JSONL event reports an action after it happened.
 
 The helper uses `codex exec --sandbox read-only --json --ephemeral --ignore-rules
 --strict-config` with invocation-only documented overrides:
@@ -175,7 +191,7 @@ Read/Grep/Glob. The packet expressly forbids tests/builds, project-code executio
 nesting and arbitrary commands. This instruction is not a shell syntax allowlist
 or proof that every possible read-only command is harmless. The enforced boundary
 is native read-only command execution with no approval escalation and ordinary
-external/nested capabilities disabled. The helper rejects observed MCP/web/write/
+external/nested capabilities disabled through the confirmed controls above. The helper rejects observed MCP/web/write/
 collaboration events and the native `item.completed` error-item notice
 `model rerouted: ...`, even if a subsequent replacement model provides a valid
 approval. Other nonfatal configuration/deprecation warnings do not imply rerouting
