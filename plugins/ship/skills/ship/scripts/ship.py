@@ -31,6 +31,7 @@ CI_DIRS = (".forgejo/workflows", ".gitea/workflows", ".github/workflows")
 SSH_TIMEOUT = 5.0
 HEX40_RE = re.compile(r"^[0-9a-fA-F]{40}$")
 TASK_BRANCH_RE = re.compile(r"^(\d+)(?:[-_/]|$)")
+URI_SCHEME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*://")
 USERINFO_RE = re.compile(r"^([A-Za-z][A-Za-z0-9+.-]*://)[^@/]+@")
 
 SCP_RE = re.compile(r"^(?:[^@/\s]+@)?([^:/\s]+):(?!//)/?(.+)/([^/]+?)(?:\.git)?/?$")
@@ -163,12 +164,21 @@ def select_handoff(comments: list) -> dict:
     return result
 
 
+def reject_uri(flag: str, value: str) -> None:
+    """Harness-internal URIs (e.g. omp local://) are not files the helper process can open."""
+    if URI_SCHEME_RE.match(value):
+        raise UsageError(f"{flag} must be a path to a real file readable by this process "
+                         f"(e.g. a temp file), not a URI: {value}")
+
+
 def cmd_handoff(args) -> dict:
     try:
         if args.argument:
+            reject_uri("--argument", args.argument)
             return parse_handoff(Path(args.argument).read_text(encoding="utf-8"), {"source": "argument"})
         if not args.comments:
             raise UsageError("handoff requires --comments or --argument")
+        reject_uri("--comments", args.comments)
         comments = json.loads(Path(args.comments).read_text(encoding="utf-8"))
     except (OSError, ValueError) as e:
         raise UsageError(str(e)) from e

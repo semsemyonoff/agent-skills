@@ -170,6 +170,62 @@ Not verified: CI
             self.assertEqual(proc.returncode, 0, proc.stderr)
             self.assertEqual(json.loads(proc.stdout)["status"], "ok")
 
+    def run_handoff(self, **flags):
+        args = ship.build_parser().parse_args(
+            ["handoff", *[x for k, v in flags.items() for x in (f"--{k}", v)]])
+        return ship.cmd_handoff(args)
+
+    def test_comments_uri_is_rejected_with_actionable_error(self):
+        with self.assertRaises(ship.UsageError) as cm:
+            self.run_handoff(comments="local://x.json")
+        self.assertIn("--comments", str(cm.exception))
+        self.assertIn("real file", str(cm.exception))
+
+    def test_argument_uri_is_rejected_even_with_valid_comments(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "comments.json"
+            path.write_text(json.dumps([comment()]), encoding="utf-8")
+            with self.assertRaises(ship.UsageError) as cm:
+                self.run_handoff(argument="local://x.txt", comments=str(path))
+        self.assertIn("--argument", str(cm.exception))
+        self.assertIn("real file", str(cm.exception))
+
+    def test_other_schemes_are_rejected(self):
+        for flag in ("comments", "argument"):
+            with self.assertRaises(ship.UsageError) as cm:
+                self.run_handoff(**{flag: "file:///tmp/x.json"})
+            self.assertIn(f"--{flag}", str(cm.exception))
+
+    def test_plain_path_with_colon_is_not_a_uri(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "local:x.json"
+            path.write_text(json.dumps([comment()]), encoding="utf-8")
+            result = self.run_handoff(comments=str(path))
+        self.assertEqual(result["status"], "ok")
+
+    def test_valid_argument_wins_and_comments_uri_is_not_read(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            argument = Path(tmp) / "argument.txt"
+            argument.write_text(BODY, encoding="utf-8")
+            result = self.run_handoff(argument=str(argument), comments="local://x.json")
+        self.assertEqual(result["source"], "argument")
+        self.assertEqual(result["status"], "ok")
+
+    def test_cli_uri_exit_code_2(self):
+        proc = subprocess.run([sys.executable, str(Path(ship.__file__)), "handoff",
+                               "--comments", "local://ship-1-comments.json"],
+                              capture_output=True, text=True)
+        self.assertEqual(proc.returncode, 2)
+        self.assertIn("--comments", proc.stderr)
+
+    def test_comment_handoff_target_presence(self):
+        no_target = ship.select_handoff([comment(body=BODY.replace("- Цель: `integration`\n", ""))])
+        self.assertEqual(no_target["status"], "ok")
+        self.assertIsNone(no_target["base"])
+        main_target = ship.select_handoff([comment(body=BODY.replace("`integration`", "`main`"))])
+        self.assertEqual(main_target["status"], "ok")
+        self.assertEqual(main_target["base"], "main")
+
 
 if __name__ == "__main__":
     unittest.main()

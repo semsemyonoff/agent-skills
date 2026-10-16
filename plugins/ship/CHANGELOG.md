@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.1
+
+- Reject URI-scheme values (such as omp `local://`) for `handoff --comments`/`--argument` with an actionable error; task flow now requires real temp files for helper input.
+- Align the duplicated handoff contract with producers that always write `Цель` (including the default branch); handoffs without it stay valid but the target must still be clarified.
+- Add behavioral scenarios for handoff `Цель: main`, legacy handoffs without `Цель`, and omp file materialization.
+
 ## 0.5.0
 
 - Resolve task destinations explicitly instead of falling back to the repository default: unresolved task plans expose a null base, and task push/wait/sync require `--base`.

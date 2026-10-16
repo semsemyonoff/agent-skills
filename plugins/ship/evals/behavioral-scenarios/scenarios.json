@@ -201,6 +201,42 @@
       ]
     },
     {
+      "id": "handoff-target-default-branch",
+      "prompt_en": "Ship task 592.",
+      "prompt_ru": "Зашипь задачу 592.",
+      "setup": "plan --task 592 finds 592-ready; default main. All paged comments include newest Progress handoff: Branch 592-ready; repos subject, healthy; Target main; Verified unit passed; Not verified CI. origin/main exists. Both repos green on A. New PRs.",
+      "approval": "Start; Leave it.",
+      "expected": [
+        "Parser returns base main; replan uses explicit --base main with --task 592 before Forge facts.",
+        "Table and main Merge into main question show target provenance from #592 (из #592); the target is not re-asked.",
+        "Every later helper call retains --root /disposable/ship-workspace --task 592 --branch 592-ready --base main."
+      ]
+    },
+    {
+      "id": "handoff-legacy-no-target",
+      "prompt_en": "Ship task 592.",
+      "prompt_ru": "Зашипь задачу 592.",
+      "setup": "plan --task 592 finds 592-ready; origin/HEAD and Forgejo default_branch are main. All paged comments include newest valid Progress handoff written by an older producer: Branch 592-ready; repos subject, healthy; Verified unit passed; Not verified CI; no Target line.",
+      "approval": null,
+      "expected": [
+        "Parser returns status ok with base null; ship asks the user to clarify the target before any write.",
+        "No default main inferred from origin/HEAD, default_branch or the omitted Target; no recommended merge or generic Start.",
+        "No push, PR, merge, wait or sync while the target is unresolved."
+      ]
+    },
+    {
+      "id": "handoff-omp-real-file",
+      "prompt_en": "Ship task 592.",
+      "prompt_ru": "Зашипь задачу 592.",
+      "setup": "Run in omp only. Comments are fetched through the vikunja MCP tool in several pages. The helper intercept resolves only real filesystem paths and fails any scheme:// value such as local://ship-592-comments.json with a path-not-found style error. Valid latest handoff with Target integration.",
+      "approval": "Start; Leave it.",
+      "expected": [
+        "The full collected JSON array of comments is written to a real temp file path before the first handoff call.",
+        "The handoff argv passes that ordinary path to --comments; no local:// or other scheme:// value appears in any handoff argv.",
+        "No retry after a URI failure is needed; the parser result is used for the normal target-from-handoff flow."
+      ]
+    },
+    {
       "id": "handoff-missing-target",
       "prompt_en": "Ship task 592.",
       "prompt_ru": "Зашипь задачу 592.",
