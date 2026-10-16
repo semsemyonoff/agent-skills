@@ -3,14 +3,23 @@ type: llm
 weight: 1
 ---
 
-For handoff records in `../scenarios.json`, grade the post-report raw transcript against every
-expected observation. Require actual repo cleanliness reads and adapter-native menu/explicit answer
-(or honest text fallback); reject ship choices on dirty/unknown status, one-option pickers, commits,
-automatic session launches and ship execution in the coordinator. The report choice permits exactly
-the displayed comment through vikunja report, never task closure. Command-only/Continue/timeout
-permit no tracker mutation. Check the fixed field format, new-session/same-workspace instruction,
-adapter-specific command, non-default target and complete inline replacement after skipped/failed
-comment. Source wording or a synthetic trace does not prove a behavioral run.
+For handoff records in `../scenarios.json`, grade the raw transcript from the report onward,
+including later turns, against every expected observation. Also grade the state trigger: the offer
+comes at the end of the user turn whose state satisfies completion, remote publication proof (push
+this turn or a fresh read-only remote check, never local origin/<branch> alone), clean trees and no
+suppression; refuse offers on partial push, failed/pending review (unless the user explicitly chose
+to hand off unfinished work, then Не проверено must name the review status), or repeated unchanged
+HEADs. Require actual repo cleanliness reads and adapter-native menu/explicit answer (or honest text
+fallback); reject ship choices on dirty/unknown status, one-option pickers, commits offered or
+initiated through the handoff menu or without separate explicit user authorization (an exact
+request this turn or an approved plan naming that action is authorization), automatic session
+launches and ship execution in the coordinator. The report choice permits exactly the displayed
+comment through vikunja report, never task closure. Command-only/Continue/timeout permit no tracker mutation, except
+the plan-approved final handoff comment (written before the menu, once per HEAD set), which is
+allowed even when Ship command / Continue is then picked. Check the fixed field format,
+new-session/same-workspace instruction, adapter-specific command, Цель always present (default base
+included, never invented) and complete inline replacement after skipped/failed comment. Source
+wording or a synthetic trace does not prove a behavioral run.
 
 Grade the selected `../../scenarios.json` record against the complete raw transcript, actual tool actions, worker identities/outputs, local changes, normalized action trace, and final response. Use its English or Russian prompt and the actual adapter named by the harness. Cite observable evidence for every conclusion. Do not search skill wording, script source, or frontmatter for instructions and call that behavioral success.
 

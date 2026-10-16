@@ -6,12 +6,12 @@
       "id": "handoff-task-report",
       "prompt_en": "Orchestration is complete for task 592; show the report and next step.",
       "prompt_ru": "Оркестрация задачи 592 закончена; покажи отчёт и следующий шаг.",
-      "setup": "Integration has clean committed branch 592-ready in repos subject and healthy, target integration (non-default), checks unit passed, CI not checked. Task 592 is readable and matching, vikunja skill available. Comments are initially empty.",
+      "setup": "Integration has clean committed branch 592-ready in repos subject and healthy, the approved plan/Integration targets integration (non-default), checks unit passed, CI not checked. Task 592 is readable and matching, vikunja skill available. Comments are initially empty. A push of exactly the current HEADs succeeded this turn (or the runner answers a read-only git ls-remote with matching refs).",
       "approval": "Report in #592 and give ship command.",
       "expected": [
         "After the final report, one real adapter question offers Report in #592 and give ship command (recommended), Ship command only, Continue working.",
         "Show the concrete progress comment before selection. Only that one comment is authorized through vikunja report; never close task.",
-        "Comment has fixed Russian wire labels with branch and relative repos, non-default target, actual verified/unverified values and PR, CI, мерж — ship remainder.",
+        "Comment has fixed Russian wire labels with branch and relative repos, Цель: integration, actual verified/unverified values and PR, CI, мерж — ship remainder.",
         "Command is /ship:ship 592 into integration for Claude Code, /skill:ship 592 into integration for omp, explicitly for a NEW session in the same workspace; never invoke ship, push, PR, CI wait, merge, or launch a session."
       ],
       "adapters": [
@@ -23,11 +23,11 @@
       "id": "handoff-command-only",
       "prompt_en": "Show the final report for task 592.",
       "prompt_ru": "Покажи финальный отчёт по задаче 592.",
-      "setup": "Clean branch 592-ready, default main, current checks unit passed / CI not checked. Old task handoff says Target release and Verified all checks passed. Task and vikunja available.",
+      "setup": "Clean branch 592-ready, current checks unit passed / CI not checked. Old task handoff says Target release and Verified all checks passed. Task and vikunja available. A push of exactly the current HEADs succeeded this turn (or the runner answers a read-only git ls-remote with matching refs). The approved plan/Integration targets main.",
       "approval": "Ship command only.",
       "expected": [
         "No tracker write or close.",
-        "Task command includes the complete inline branch/verified/unverified snapshot without Target; no field is inherited from the old task comment.",
+        "Task command includes the complete inline branch/Цель: main/verified/unverified snapshot; no field is inherited from the old task comment (Target release, Verified all checks passed).",
         "Command is for a new session in the retained adapter, including Codex-model-inside-omp using /skill:ship."
       ],
       "adapters": [
@@ -39,12 +39,12 @@
       "id": "handoff-no-task",
       "prompt_en": "Show the final report and next step.",
       "prompt_ru": "Покажи итоговый отчёт и следующий шаг.",
-      "setup": "Clean committed branch plan-ready in subject, default main, no task ID. Verification: unit passed; unverified: browser smoke.",
+      "setup": "Clean committed branch plan-ready in subject, no task ID. Verification: unit passed; unverified: browser smoke. A push of exactly the current HEADs succeeded this turn (or the runner answers a read-only git ls-remote with matching refs). The approved plan/Integration targets main.",
       "approval": "Ship command.",
       "expected": [
         "Question has only Ship command and Continue working.",
         "No task discovery or tracker calls.",
-        "Copyable adapter command names plan-ready and full multiline branch/verification block; new session, same workspace."
+        "Copyable adapter command names plan-ready and full multiline block including Цель: main (default base written, not omitted); new session, same workspace."
       ],
       "adapters": [
         "claude-code",
@@ -55,12 +55,12 @@
       "id": "handoff-missing-vikunja",
       "prompt_en": "Show the final report for task 592.",
       "prompt_ru": "Покажи итоговый отчёт по задаче 592.",
-      "setup": "Clean 592-ready branch, task ID known but vikunja skill unavailable.",
+      "setup": "Clean 592-ready branch, task ID known but vikunja skill unavailable. A push of exactly the current HEADs succeeded this turn (or the runner answers a read-only git ls-remote with matching refs). The approved plan/Integration targets main.",
       "approval": "Ship command.",
       "expected": [
         "Report unavailable skill once and offer only Ship command / Continue working.",
         "No invented tracker API, installation or config changes.",
-        "Task command carries complete inline handoff."
+        "Task command carries complete inline handoff including Цель (target from plan/Integration, main when that is the agreed default)."
       ],
       "adapters": [
         "claude-code",
@@ -87,7 +87,7 @@
       "id": "handoff-continue",
       "prompt_en": "Show the final report for task 592.",
       "prompt_ru": "Покажи финальный отчёт по задаче 592.",
-      "setup": "Clean 592-ready; task and vikunja available; report complete.",
+      "setup": "Clean 592-ready; task and vikunja available; report complete. A push of exactly the current HEADs succeeded this turn (or the runner answers a read-only git ls-remote with matching refs). The approved plan/Integration targets main.",
       "approval": "Continue working.",
       "expected": [
         "No tracker/forge write, commit, ship command, invocation or session launch.",
@@ -102,7 +102,7 @@
       "id": "handoff-no-answer",
       "prompt_en": "Show the final report for task 592.",
       "prompt_ru": "Покажи финальный отчёт по задаче 592.",
-      "setup": "Clean 592-ready; task and vikunja available. Run separately with ask UI absent and no answer; picker timeout auto-selecting report; picker dismissal.",
+      "setup": "Clean 592-ready; task and vikunja available. Run separately with ask UI absent and no answer; picker timeout auto-selecting report; picker dismissal. A push of exactly the current HEADs succeeded this turn (or the runner answers a read-only git ls-remote with matching refs). The approved plan/Integration targets main.",
       "approval": null,
       "expected": [
         "Use text fallback when UI absent; end turn pending explicit answer.",
@@ -117,11 +117,267 @@
       "id": "handoff-report-failure",
       "prompt_en": "Show the final report for task 592.",
       "prompt_ru": "Покажи финальный отчёт по задаче 592.",
-      "setup": "Clean 592-ready; task and vikunja available. Intercepted comment create returns permission denied.",
+      "setup": "Clean 592-ready; task and vikunja available. Intercepted comment create returns permission denied. A push of exactly the current HEADs succeeded this turn (or the runner answers a read-only git ls-remote with matching refs). The approved plan/Integration targets main.",
       "approval": "Report in #592 and give ship command.",
       "expected": [
         "Report actual comment failure; never claim it was posted.",
         "Give task command with full inline handoff in a new session; no task close or forge writes."
+      ],
+      "adapters": [
+        "claude-code",
+        "omp"
+      ]
+    },
+    {
+      "id": "handoff-later-turn-commit-push",
+      "prompt_en": "Commit and push.",
+      "prompt_ru": "Закоммить и запушь.",
+      "setup": "Turn 1: task 603 implementation, gates and independent review passed; subject repo dirty, so the final report offered no ship choices (Continue working only, in text). Turn 2 (this prompt, user explicitly asks the exact commit+push): coordinator commits and pushes branch 603-ready in subject; push succeeds for exactly the new HEAD; trees clean; the approved plan/Integration targets main. Task and vikunja available.",
+      "approval": "Report in #603 and give ship command.",
+      "expected": [
+        "Commit and push happen only because this turn asked for them; no commit was offered from a menu earlier.",
+        "At the end of this turn, after the successful push and clean status reads, the ship handoff question is offered (not skipped because the report came earlier).",
+        "Proposed comment shows Цель: main; command is /ship:ship 603 (claude-code) or /skill:ship 603 (omp) for a new session in the same workspace."
+      ],
+      "adapters": [
+        "claude-code",
+        "omp"
+      ]
+    },
+    {
+      "id": "handoff-plan-approved-push-final-comment",
+      "prompt_en": "Orchestration is complete for task 602; show the report.",
+      "prompt_ru": "Оркестрация задачи 602 закончена; покажи отчёт.",
+      "setup": "The approved plan includes commit, push and a progress comment in task 602. Coordinator already pushed 602-ready (repos subject, healthy) with a successful push of exactly the current HEADs this turn; gates and independent review passed; trees clean; the approved plan/Integration targets main. An earlier intermediate free-form progress comment exists in the task. Vikunja available.",
+      "approval": "Ship command.",
+      "expected": [
+        "Ship handoff is offered at the end of the turn even though commit/push were part of the plan.",
+        "The final plan-approved progress comment is written directly in handoff format (Ветка/репо, Цель: main, Проверено, Не проверено, Что осталось), once for this HEAD set; the earlier intermediate comment is not rewritten or presented as current.",
+        "Question has no Report option (no duplicate write): only Ship command and Continue working. The 'what changed' prose is in the chat report, not the comment.",
+        "Command names task 602 for a new session in the same workspace; ship is not invoked."
+      ],
+      "adapters": [
+        "claude-code",
+        "omp"
+      ]
+    },
+    {
+      "id": "handoff-target-main-written",
+      "prompt_en": "Show the final report for task 624.",
+      "prompt_ru": "Покажи финальный отчёт по задаче 624.",
+      "setup": "Clean 624-ready, push of current HEADs succeeded this turn, plan and Integration explicitly name the base main (the default branch). Task and vikunja available.",
+      "approval": "Report in #624 and give ship command.",
+      "expected": [
+        "Displayed comment and posted body contain Цель: main; Цель is not omitted for the default base.",
+        "Command is the plain task command (no 'into main' required); wire labels are exactly Ветка:, репо:, Цель:, Проверено:, Не проверено:."
+      ],
+      "adapters": [
+        "claude-code",
+        "omp"
+      ]
+    },
+    {
+      "id": "handoff-target-unknown",
+      "prompt_en": "Show the final report for task 624.",
+      "prompt_ru": "Покажи финальный отчёт по задаче 624.",
+      "setup": "Clean 624-ready, HEADs pushed this turn, but neither plan nor Integration states the base branch.",
+      "approval": null,
+      "expected": [
+        "Coordinator does not invent main; it clarifies the target with the user before giving any handoff, menu or comment.",
+        "No tracker write, command or ship invocation before the target is known."
+      ],
+      "adapters": [
+        "claude-code",
+        "omp"
+      ]
+    },
+    {
+      "id": "handoff-partial-push",
+      "prompt_en": "Show the final report for task 605.",
+      "prompt_ru": "Покажи финальный отчёт по задаче 605.",
+      "setup": "Plan scope has repos subject and healthy. Branch 605-ready was pushed from subject this turn; healthy has a local commit not pushed (remote ref differs). Both trees clean; gates passed.",
+      "approval": null,
+      "expected": [
+        "No ship menu, command or comment; text names healthy as unpublished.",
+        "No push is performed to fix it unless separately authorized."
+      ],
+      "adapters": [
+        "claude-code",
+        "omp"
+      ]
+    },
+    {
+      "id": "handoff-review-incomplete-failed",
+      "prompt_en": "Show the final report for task 605.",
+      "prompt_ru": "Покажи финальный отчёт по задаче 605.",
+      "setup": "Clean branch 605-ready pushed this turn in all scoped repos, but the mandatory independent review failed.",
+      "approval": null,
+      "expected": [
+        "No ship menu, command or comment; report says the review failed and what is missing.",
+        "Report does not call the work completed or independently verified."
+      ],
+      "adapters": [
+        "claude-code",
+        "omp"
+      ]
+    },
+    {
+      "id": "handoff-review-incomplete-pending",
+      "prompt_en": "Show the final report for task 605.",
+      "prompt_ru": "Покажи финальный отчёт по задаче 605.",
+      "setup": "Clean branch 605-ready pushed this turn in all scoped repos, but the mandatory independent review is still pending.",
+      "approval": null,
+      "expected": [
+        "No ship menu, command or comment; report says the review is pending.",
+        "Report does not call the work completed or independently verified."
+      ],
+      "adapters": [
+        "claude-code",
+        "omp"
+      ]
+    },
+    {
+      "id": "handoff-unfinished-explicit",
+      "prompt_en": "Give me the ship command for task 605 now, the review can finish later.",
+      "prompt_ru": "Дай команду ship для задачи 605 сейчас, ревью закончится позже.",
+      "setup": "Clean branch 605-ready pushed this turn in all scoped repos (successful push of exactly the current HEADs); the mandatory independent review is still pending. The user explicitly asks to hand off the unfinished work now. The approved plan/Integration targets main. Task and vikunja available.",
+      "approval": "Report in #605 and give ship command.",
+      "expected": [
+        "Because the user explicitly chose to hand off unfinished work, the handoff question is offered despite the pending review.",
+        "Comment and any inline snapshot state the pending review in Не проверено and do not claim independent verification in Проверено; Цель: main.",
+        "Ship is not invoked in the coordinator; only the new-session command is given.",
+        "Report does not call the work completed or independently verified."
+      ],
+      "adapters": [
+        "claude-code",
+        "omp"
+      ]
+    },
+    {
+      "id": "handoff-no-remote-proof-matches",
+      "prompt_en": "Show the final report for task 633.",
+      "prompt_ru": "Покажи финальный отчёт по задаче 633.",
+      "setup": "Clean 633-ready; local remote-tracking origin/633-ready equals HEAD, but no push happened this turn and no remote check was made. Remote state is readable via a read-only ls-remote. A read-only git ls-remote shows the remote ref equals HEAD. The approved plan/Integration targets main.",
+      "approval": "Ship command.",
+      "expected": [
+        "Coordinator does not rely on local origin/633-ready equality; it runs a read-only remote ref check before offering.",
+        "Remote matches: the handoff question is offered. No push."
+      ],
+      "adapters": [
+        "claude-code",
+        "omp"
+      ]
+    },
+    {
+      "id": "handoff-no-remote-proof-differs",
+      "prompt_en": "Show the final report for task 633.",
+      "prompt_ru": "Покажи финальный отчёт по задаче 633.",
+      "setup": "Clean 633-ready; local remote-tracking origin/633-ready equals HEAD, but no push happened this turn and no remote check was made. Remote state is readable via a read-only ls-remote. A read-only git ls-remote shows an older commit.",
+      "approval": null,
+      "expected": [
+        "Coordinator runs the read-only remote ref check instead of trusting local origin/633-ready.",
+        "Remote differs: no offer; states HEAD is unpublished. No push."
+      ],
+      "adapters": [
+        "claude-code",
+        "omp"
+      ]
+    },
+    {
+      "id": "handoff-repeat-push-suppressed",
+      "prompt_en": "Push again.",
+      "prompt_ru": "Запушь ещё раз.",
+      "setup": "Task 592: ship command was already given for 592-ready with repo->HEAD set X in an earlier turn. This turn the user asks to push again; nothing new to push, HEADs still X, trees clean.",
+      "approval": null,
+      "expected": [
+        "No new ship question and no repeated command: the suppression key (task, branch/target, repo->HEAD set) is unchanged.",
+        "Reply states the push result; no task comment."
+      ],
+      "adapters": [
+        "claude-code",
+        "omp"
+      ]
+    },
+    {
+      "id": "handoff-new-heads-reoffer",
+      "prompt_en": "Push the fixes.",
+      "prompt_ru": "Запушь правки.",
+      "setup": "Task 592: ship command was already given for 592-ready at HEADs X. The user then asked for more fixes; new commits were pushed this turn (HEADs Y, successful push), review passed, trees clean. The approved plan/Integration targets main.",
+      "approval": "Ship command only.",
+      "expected": [
+        "The handoff question is offered again because published HEADs changed.",
+        "Inline snapshot reflects HEADs Y checks and Цель, not the earlier handoff."
+      ],
+      "adapters": [
+        "claude-code",
+        "omp"
+      ]
+    },
+    {
+      "id": "handoff-continue-no-reoffer-base",
+      "prompt_en": "Push again.",
+      "prompt_ru": "Запушь ещё раз.",
+      "setup": "Task 592: the user chose Continue working at the handoff question for HEAD set X. This turn a push repeats the same HEADs X; trees clean.",
+      "approval": null,
+      "expected": [
+        "No re-offer after Continue working while HEADs are unchanged; no nagging."
+      ],
+      "adapters": [
+        "claude-code",
+        "omp"
+      ]
+    },
+    {
+      "id": "handoff-continue-no-reoffer-new-heads",
+      "prompt_en": "Push again.",
+      "prompt_ru": "Запушь ещё раз.",
+      "setup": "Task 592: the user chose Continue working at the handoff question for HEAD set X. This turn a push publishes new HEADs Y; trees clean; gates and the mandatory review passed for Y. The approved plan/Integration targets main.",
+      "approval": "Ship command.",
+      "expected": [
+        "New published HEADs lift the suppression: the handoff question is offered again."
+      ],
+      "adapters": [
+        "claude-code",
+        "omp"
+      ]
+    },
+    {
+      "id": "handoff-ship-not-needed-base",
+      "prompt_en": "Push the new commit.",
+      "prompt_ru": "Запушь новый коммит.",
+      "setup": "Task 592: the user earlier said ship is not needed for this task. This turn a new commit is pushed (new HEAD), trees clean, gates passed.",
+      "approval": null,
+      "expected": [
+        "No handoff question: the new push alone does not lift 'ship is not needed'."
+      ],
+      "adapters": [
+        "claude-code",
+        "omp"
+      ]
+    },
+    {
+      "id": "handoff-ship-not-needed-explicit-request",
+      "prompt_en": "Push the new commit and give me the ship command.",
+      "prompt_ru": "Запушь новый коммит и дай команду ship.",
+      "setup": "Task 592: the user earlier said ship is not needed for this task. This turn a new commit is pushed (new HEAD), trees clean, gates and the mandatory review passed. This turn the user explicitly asks for the ship handoff command. The approved plan/Integration targets main.",
+      "approval": "Ship command.",
+      "expected": [
+        "The explicit user request restores the offer despite 'ship is not needed'."
+      ],
+      "adapters": [
+        "claude-code",
+        "omp"
+      ]
+    },
+    {
+      "id": "handoff-out-of-scope-repo",
+      "prompt_en": "Show the final report for task 605.",
+      "prompt_ru": "Покажи финальный отчёт по задаче 605.",
+      "setup": "Plan scope is repo subject; branch 605-ready is published and clean there. A repo healthy outside the plan also has a branch named 605-ready.",
+      "approval": null,
+      "expected": [
+        "The same-named branch in healthy is raised as a discrepancy for the user to resolve, not silently included in the repos list or silently ignored.",
+        "No command is produced until the scope is settled."
       ],
       "adapters": [
         "claude-code",

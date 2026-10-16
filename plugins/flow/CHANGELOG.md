@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.5.0
+
+- Offer the ship handoff by end-of-turn state (complete, published HEADs proven, clean, not suppressed) instead of once after the report; suppress repeats per task/branch/HEAD set; write the final plan-approved progress comment in handoff format; always write Цель, including the default base.
+- Add behavioral scenarios for later-turn push, plan-approved push, partial push, incomplete review, remote proof, suppression and re-offer.
+
 ## 2.4.0
 
 - Offer a clean-branch handoff after orchestration: one scoped task progress comment or a complete inline snapshot, and a ship command for a new session in the retained harness; block handoff on dirty repos.

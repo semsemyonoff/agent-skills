@@ -5,17 +5,20 @@ allowed_tools: [Read, Glob, Grep, Skill, ToolSearch, AskUserQuestion, Agent, Tas
 
 # Portable behavioral evaluation
 
-For the post-report ship handoff, use the records in this directory's `scenarios.json` instead of
-the full-orchestration records below. Start from the supplied completed implementation/review/check
-transcript and Integration state; do not fabricate earlier verification or rerun implementation.
-The isolated runner supplies read-only git status plus discovered vikunja skill/tool interfaces,
-intercepts all tracker/forge/session actions, and releases `approval` only after the actual menu.
-A null approval means no answer. Report-comment scenarios authorize only the simulated single
-comment, never a live tracker write. Exercise Claude Code and omp (also with a Codex model), both
-languages, missing-UI/timeout cases and every stated variant. Record actual status reads, report,
-menu, user answer, report-skill invocation, comment payload and copyable command. Grade this tail
-against its raw transcript; the existing orchestration trace checker ends at report and does not
-validate handoff actions. Missing isolation means unexercised, never a live-write fallback.
+For the end-of-turn ship handoff (state trigger, including later commit/push turns), use the records
+in this directory's `scenarios.json` instead of the full-orchestration records below. Start from the
+supplied completed implementation/review/check transcript and Integration state; do not fabricate
+earlier verification or rerun implementation. The isolated runner supplies read-only git status,
+this turn's push results, read-only `git ls-remote` answers, plus discovered vikunja skill/tool
+interfaces, intercepts all tracker/forge/session actions, and releases `approval` only after the
+actual menu. A null approval means no answer. Report-comment scenarios authorize only the simulated
+single comment, never a live tracker write (a plan-approved final handoff comment, written before
+the menu once per HEAD set, is also permitted whatever option is then picked). Exercise Claude Code
+and omp (also with a Codex model), both languages, missing-UI/timeout cases and every stated
+variant. Record actual status reads, report, menu, user answer, report-skill invocation, comment
+payload and copyable command. Grade this tail against its raw transcript; the existing orchestration
+trace checker ends at report and does not validate handoff actions. Missing isolation means
+unexercised, never a live-write fallback.
 
 Choose one record in `../scenarios.json`, one adapter (`claude-code` or `omp`), and one language (`prompt_en` or `prompt_ru`). Run it against the actually installed adapter in a disposable local repository using the scenario's fixture setup (checkout rounding by default). The fixture setup is harness context, not a new runtime configuration. The harness must provide the recorded capability limitations and release followup messages only at their indicated gates. Do not synthesize a user's approval when a followup is absent. Never change a real user's settings, install software, commit, push, or publish to run this evaluation.
 

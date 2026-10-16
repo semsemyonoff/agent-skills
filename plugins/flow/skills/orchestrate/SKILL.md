@@ -188,9 +188,9 @@ pending PR, CI or merge work.
 Do not stop at a phase boundary unless phase-by-phase execution was requested or an actual blocker
 requires a decision.
 
-After the report, when Integration identifies a branch still to ship, follow the **Ship handoff**
-in `references/templates.md`: inspect cleanliness, offer the next step through the retained adapter,
-and give a command for a new session in the same workspace. Do not run ship in this coordinator.
+At the end of any user turn, offer the **Ship handoff** in `references/templates.md` when its state
+trigger holds (not only after the report; a later commit/push turn counts). Give a command for a new
+session; run ship here only on an explicit user request.
 
 ## Permission boundaries
 
