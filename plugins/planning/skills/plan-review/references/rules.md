@@ -24,9 +24,10 @@ whitespace is nonempty. User-rule symlinks are read normally. No candidate is a 
 `path: null`, `provenance: null`, `content: ""`, exit 0. Read/encoding errors exit 2; do not hide them
 as absent rules or fall through to weaker rules. The helper never edits files or configuration.
 
-Plan-review's **driver** invokes this resolver once before dispatch; its other narrow read-only helper
-exceptions are bundled snapshot/validate and opt-in consult (runtime.md). Its **worker** never invokes
-helpers/tests and uses shell only under runtime.md's inspection fallback. Receive selected
+Plan-review's **driver** invokes this resolver once before dispatch; its other narrow helper
+exceptions are bundled snapshot/validate and the opt-in chain's consult or peer packet and peer-chat
+(runtime.md). Its **worker** never invokes helpers/tests and uses shell only under runtime.md's
+inspection fallback; a peer-route worker may additionally send its one peer-chat reply. Receive selected
 path/provenance/content and actual project root, then re-read the selected file with the read tool.
 Changed/unreadable rules are uncertainty; never silently certify stale rules.
 

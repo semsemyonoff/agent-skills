@@ -94,7 +94,8 @@ current-version state from `sections/chain.md`; neither mode automatically start
 
 Use read/search/discovery tools. Only when the harness exposes no native search or listing tool, use
 the read-only shell inspection fallback in `references/runtime.md`; otherwise no shell. Never helper
-execution, tests, writes or configuration changes. Review the supplied exact snapshot, not a newer
+execution, tests, writes or configuration changes; the chain's peer-route reply through peer-chat is
+the only exception (`references/runtime.md`). Review the supplied exact snapshot, not a newer
 file in its place; inspect only relevant source/patterns and provided project guidance. Do not demand
 a CLAUDE.md or search unrelated context. Read `references/criteria.md`; evaluate the actual solution.
 
@@ -113,8 +114,10 @@ Return only the complete canonical JSON object (no fences, prose or duplicate ke
 Each finding has `severity` (`blocker` or `nonblocking`), nonempty `section`, `evidence`, `impact`
 and `fix`. Each unknown has boolean `blocking` and nonempty `detail`. Include checked scope/rule
 provenance and limitations within relevant evidence/unknown details, without invented defects.
-Copy supplied path/version; never compute a substitute or run a helper. APPROVE forbids blockers
-and blocking unknowns. NEEDS REVISION requires at least one blocker or blocking unknown.
+Copy supplied path/version; never compute a substitute or run a helper. A peer reached through the
+chain's peer route reviews the supplied packet file and replies per `references/runtime.md`.
+APPROVE forbids blockers and blocking unknowns. NEEDS REVISION requires at least one blocker or
+blocking unknown.
 
 Use APPROVE only when the examined plan solves the stated problem and no material proven defect or
 blocking unknown remains. NEEDS REVISION is a finding about the examined text, not worker edit
@@ -125,11 +128,12 @@ test-count requirements. Stop after this pass; corrections and choices belong to
 
 - `references/rules.md` — first-nonempty planning rules and driver/worker boundaries.
 - `references/criteria.md` — evidence-based review criteria.
-- `references/runtime.md` — native reviewer dispatch, read-only shell fallback, decision buttons and
-  truthful unavailable paths.
+- `references/runtime.md` — native reviewer dispatch, read-only shell fallback, decision buttons,
+  existing-peer route and truthful unavailable paths.
 - `agents/omp.md` — optional native omp plan-review resource, not automatically installed.
 - `scripts/load_rules.py` and `scripts/test_rules.py` — driver-only resolver and offline tests.
-- `scripts/review_state.py` — driver-only exact snapshot and canonical/current-version validation.
+- `scripts/review_state.py` — driver-only exact snapshot, peer packet and canonical/current-version
+  validation.
 - `sections/chain.md` — opt-in bounded driver protocol, never a worker branch or default loop.
 - `scripts/consult.py` — self-contained driver-only other-provider consultation; runtime constraints
   and result envelope in `references/runtime.md`.

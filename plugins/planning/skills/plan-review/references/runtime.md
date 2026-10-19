@@ -18,7 +18,8 @@ shared `context` and one `tasks[]` item with `agent: "plan-review"`, `task` and 
 The brief selects the worker branch and includes verbatim snapshot plan_text/path/version,
 original request/decisions/rules/evidence and resolved resource paths; prohibit helpers/tests/writes/
 nested dispatch. Read the real schema; flat variants use their actual item fields.
-Do not use agent=task as a pretend specialist reviewer. Each pass needs a fresh separate context.
+Do not use agent=task as a pretend specialist reviewer. Each native pass needs a fresh separate
+context; only the chain's peer-route stage 2 reuses an existing session.
 If the configured agent is absent/disabled/blocked, say so; use a different genuine read-only reviewer
 only after an explicit compatible route choice, never a silent model/configuration change.
 
@@ -51,7 +52,8 @@ not by its name; a command whose effect is unclear is not run, and the gap is re
   `wc`, `sed -n '<range>p'`, and git only as `git --no-pager` with `ls-files`, `grep`, or
   `log`/`show`/`diff` plus `--no-ext-diff --no-textconv`; pipes between these. Configuration can
   otherwise start helpers implicitly (a ripgrep config `--pre`, git textconv, external diff or pager).
-  Scope: the actual project root and the resolved skill/rule paths from the brief.
+  Scope: the actual project root, the resolved skill/rule paths from the brief and, for a peer-route
+  worker, the exact supplied `packet_path`.
 - **Forbidden:** output redirection (`>`, `>>`, `tee`), `sed -i` or `sed` `e`/`w` commands,
   `rg --pre`/`--pre-glob`, `git --output`, `find -exec`/`-execdir`/`-ok`/`-okdir`/`-delete`/
   `-fprint*`, `xargs`, command or process substitution, interpreters, project scripts or helpers,
@@ -59,7 +61,8 @@ not by its name; a command whose effect is unclear is not run, and the gap is re
   change refs, the index or the working tree.
 
 Report the fallback in Scope/limits. It never extends to the driver; the only driver shell/helper
-exceptions are the bundled resolver, snapshot/validate and selected-chain consult described below.
+exceptions are the bundled resolver, snapshot/validate, selected-chain consult or peer packet and
+the peer-chat doctor/send described below.
 
 ## Driver decision buttons
 
@@ -90,7 +93,8 @@ the worker only re-reads the selected file with its read tool. No worker execute
 
 ```sh
 python3 "<skill-dir>/scripts/review_state.py" snapshot "<plan>"
-python3 "<skill-dir>/scripts/review_state.py" validate "<plan>" --version "<expected-sha256>"
+python3 "<skill-dir>/scripts/review_state.py" validate "<plan>" --version "<expected-sha256>" \
+  [--request-id "<pending-peer-request-id>"]
 ```
 
 Snapshot returns absolute original `plan_path` (not symlink-resolved), SHA-256 `plan_version` of exact
@@ -111,12 +115,14 @@ repair review. The validator's successful stdout, not a user's description of a 
 is the correction precondition. Do not relax permissions or change native configuration to continue.
 
 These exceptions permit no arbitrary shell, project scripts, tests/gates, settings changes or edits
-by helpers. `scripts/consult.py` is permitted only for the selected chain and authorized disclosure.
+by helpers. `scripts/consult.py` and `packet` are permitted only for the selected chain stage 2 and
+authorized disclosure.
 
 ## Self-contained external consultation
 
 This skill's bundled adapter is independent at runtime: do not load/import/read another skill to
-consult. The route is one native CLI process, never an existing peer or direct-CLI fallback.
+consult. The route is one native CLI process, never a direct-CLI fallback. The existing-peer route
+below is a separately selected stage-2 transport, never a fallback for this one or the reverse.
 
 The bundled adapter uses Python 3 standard library and POSIX process groups (macOS/Linux);
 synthetic native-control tests require Python 3.11+ for tomllib. Neither helper installs dependencies.
@@ -178,4 +184,45 @@ and reaps its child. Unresolved cleanup is a separate error and cannot accept su
 are outside this boundary. Do not claim every descendant stopped or the CLI had no state effects.
 Native model is unknown unless the stream exposes it; configured model/effort is not observed identity.
 Source controls adapted locally from the repository's native consultation implementation with its
-attribution/license retained; no runtime dependency on ask-other, no peer-chat changes.
+attribution/license retained; consult.py has no runtime dependency on ask-other or peer-chat.
+
+## Existing peer route (chain stage 2)
+
+Selected only by the rule in `sections/chain.md`. The driver uses the available peer-chat skill by its
+own contract (doctor, then send) and never imports, copies or reads that skill's bundled files. No
+peer-chat skill, refused doctor or refused send makes the stage unavailable; the consult route does
+not need peer-chat at all.
+
+```sh
+python3 "<skill-dir>/scripts/review_state.py" packet "<plan>"   # brief on finite stdin
+```
+
+`packet` reads the nonempty UTF-8 brief to EOF (same limits as validate), snapshots the plan, writes
+`{plan_path, plan_version, plan_text, brief, request_id}` once to `packet.json` in a fresh 0700 temp
+directory (file 0600, exclusive create) and prints `request_id`, `plan_path`, `plan_version` and
+`packet_path`. The random `request_id` ties a reply to this packet; a digest alone cannot tell a late
+reply to an earlier packet of the same bytes from the pending one. A temp path
+with whitespace, which peer-chat would alter, fails. On failure it removes only its unfinished
+artifacts and prints no success. This packet is the only artifact besides the target plan the
+driver may create; keep it unchanged until the reply is handled. The peer reads the packet, not the
+mutable plan; a packet unreadable from the peer's workspace means unavailable.
+
+The brief carries everything the CLI packet would except the snapshot, which only the helper takes:
+worker branch and canonical schema, original requirement, settled decisions, rules packet with
+provenance, prior findings and factual change list, approved evidence paths and restrictions.
+Shortening the outgoing chat message never drops them.
+
+**Peer worker exception.** The peer applies the worker branch with its own read tools and may run
+peer-chat doctor plus exactly one send to the driver, nothing else: no further consultations, writes,
+helpers or tests. Read-only is requested by the brief, not enforced. The reply is the canonical object
+on one line, preceded by the packet's `request_id` and one space. peer-chat collapses every whitespace
+run into one space, so inside string values write newlines, tabs and carriage returns as JSON
+escapes, any non-ASCII whitespace as `\uXXXX`, and each space of a run of two or more spaces as
+`\u0020`; single spaces survive unchanged. If the packet
+cannot be read or reviewed, the peer sends a plain failure message with the `request_id` instead of
+inventing a verdict.
+
+The driver strips only the incoming transport label and pipes the rest unchanged to `validate
+--request-id <pending id>`; never re-encode, unescape or repair it. The helper requires the exact id,
+one space, then the report. A reply rejected for a missing or foreign id is not this pass's report:
+report it, accept and start nothing. Any other rejection is a failed stage like any other.

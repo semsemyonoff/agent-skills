@@ -6,6 +6,7 @@ import importlib.util
 import io
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import subprocess
@@ -226,6 +227,95 @@ class ReviewStateTest(unittest.TestCase):
                                  input=b"\xff", capture_output=True, env=self.env, timeout=5)
         self.assertNotEqual(process.returncode, 0)
         self.assertEqual(process.stdout, b"")
+
+    def make_packet(self, brief="Review against the original task.", env=None):
+        return subprocess.run(self.command("packet", self.plan), input=brief, text=True,
+                              capture_output=True, cwd=self.root, env=env or self.env, timeout=5)
+
+    def test_packet_writes_private_exact_snapshot_and_brief(self):
+        env = dict(self.env, TMPDIR=str(self.root))
+        process = self.make_packet("Задача:\n  keep  spacing\t", env)
+        self.assertEqual(process.returncode, 0, process.stderr)
+        result = json.loads(process.stdout)
+        packet = Path(result["packet_path"])
+        self.assertEqual(packet.parent.parent, self.root)
+        self.assertEqual(os.stat(packet.parent).st_mode & 0o777, 0o700)
+        self.assertEqual(os.stat(packet).st_mode & 0o777, 0o600)
+        content = json.loads(packet.read_text(encoding="utf-8"))
+        self.assertRegex(content["request_id"], r"^[0-9a-f]{16}$")
+        self.assertEqual(content, dict(self.collect(), brief="Задача:\n  keep  spacing\t",
+                                       request_id=content["request_id"]))
+        self.assertEqual({key: result[key] for key in ("request_id", "plan_path", "plan_version")},
+                         {key: content[key] for key in ("request_id", "plan_path", "plan_version")})
+        second = json.loads(self.make_packet(env=env).stdout)
+        self.assertNotEqual(second["packet_path"], str(packet))
+        self.assertNotEqual(second["request_id"], content["request_id"])
+        self.assertEqual(json.loads(packet.read_text(encoding="utf-8"))["brief"], content["brief"])
+
+    def test_packet_refuses_empty_brief_whitespace_tmpdir_and_cleans_failures(self):
+        spaced = self.root / "tmp  dir"
+        spaced.mkdir()
+        self.assert_rejected(self.make_packet("  \n", dict(self.env, TMPDIR=str(self.root))))
+        self.assert_rejected(self.make_packet(env=dict(self.env, TMPDIR=str(spaced))))
+        self.assertEqual(list(spaced.iterdir()), [])
+        holder = self.root / "holder"
+        holder.mkdir()
+        output, errors = io.StringIO(), io.StringIO()
+        real_open = os.open
+        def failing_open(path, flags, *args):
+            if os.fspath(path).endswith("packet.json"):
+                raise PermissionError(13, "Denied")
+            return real_open(path, flags, *args)
+        with mock.patch.object(review_state.tempfile, "tempdir", str(holder)), \
+                mock.patch.object(review_state.os, "open", side_effect=failing_open), \
+                mock.patch.object(review_state, "read_result", return_value="brief"):
+            with contextlib.redirect_stdout(output), contextlib.redirect_stderr(errors):
+                code = review_state.main(["packet", str(self.plan)])
+        self.assertEqual(code, 1)
+        self.assertEqual(output.getvalue(), "")
+        self.assertEqual(list(holder.iterdir()), [])
+
+    def test_peer_reply_escaping_survives_whitespace_collapse(self):
+        folder = self.root / "dir  with   runs"
+        folder.mkdir()
+        self.plan = folder / "plan.md"
+        self.plan.write_bytes(b"# Plan\n")
+        evidence = "code:  x\t= 1\nnext   line  end"
+        report = self.report(verdict="NEEDS REVISION", findings=[{
+            "severity": "blocker", "section": "Steps", "evidence": evidence,
+            "impact": "Exact quote matters", "fix": "Keep  it"}])
+        collapse = lambda text: " ".join(text.split())  # what peer-chat delivers
+
+        naive = collapse(json.dumps(report, ensure_ascii=False, separators=(",", ":")))
+        self.assert_rejected(self.check(json.loads(naive)))
+
+        def peer_escape(value):
+            # The rule from runtime.md: JSON-escape newlines/tabs, non-ASCII whitespace,
+            # and each space in a run of two or more spaces.
+            text = json.dumps(value, ensure_ascii=False, separators=(",", ":"))
+            text = "".join(f"\\u{ord(c):04x}" if c.isspace() and c != " " else c for c in text)
+            return re.sub(r" {2,}", lambda run: "\\u0020" * len(run.group()), text)
+
+        delivered = collapse(peer_escape(report))
+        process = self.run_state("validate", self.plan, "--version", report["plan_version"],
+                                 data=delivered)
+        self.assertEqual(process.returncode, 0, process.stderr)
+        self.assertEqual(json.loads(process.stdout), report)
+
+    def test_peer_reply_must_carry_pending_request_id(self):
+        report = self.report()
+        text = json.dumps(report, separators=(",", ":"))
+        pending = "3f9a1c0d5e7b2a46"
+        validate = lambda data, request_id=pending: self.run_state(
+            "validate", self.plan, "--version", report["plan_version"], "--request-id", request_id,
+            data=data)
+        process = validate(f"{pending} {text}")
+        self.assertEqual(process.returncode, 0, process.stderr)
+        self.assertEqual(json.loads(process.stdout), report)
+        for data in (f"c0ffee0000000000 {text}", text, f"{pending}{text}", f" {pending} {text}"):
+            with self.subTest(data=data):
+                self.assert_rejected(validate(data))
+        self.assert_rejected(validate(f"{pending} {text}", "NOT-HEX"))
 
     def test_cold_cached_execution_needs_only_bundled_script(self):
         cached = self.root / "cache" / "skill" / "scripts" / SCRIPT.name

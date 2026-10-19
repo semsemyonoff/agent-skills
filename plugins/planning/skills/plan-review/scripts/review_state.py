@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Read-only plan snapshots and strict current-version reviewer validation (stdlib)."""
+"""Read-only plan snapshots, peer review packets and strict reviewer validation (stdlib)."""
 
 import argparse
 import hashlib
@@ -7,9 +7,11 @@ import json
 import os
 from pathlib import Path
 import re
+import secrets
 import selectors
 import stat
 import sys
+import tempfile
 import time
 
 MAX_RESULT = 32 * 1024 * 1024
@@ -61,9 +63,9 @@ def snapshot(plan):
     return {"plan_path": path, "plan_version": hashlib.sha256(data).hexdigest(), "plan_text": text}
 
 
-def read_result(stream):
+def read_result(stream, label="Reviewer JSON"):
     if stream.isatty():
-        raise InvalidReview("Provide reviewer JSON on finite stdin, not an interactive terminal")
+        raise InvalidReview(f"Provide {label} on finite stdin, not an interactive terminal")
     deadline = time.monotonic() + INPUT_TIMEOUT
     content = bytearray()
     if stat.S_ISREG(os.fstat(stream.fileno()).st_mode):
@@ -73,11 +75,11 @@ def read_result(stream):
             try:
                 poll.register(stream, selectors.EVENT_READ)
             except (OSError, ValueError):
-                raise InvalidReview("Reviewer stdin cannot be monitored") from None
+                raise InvalidReview(f"{label} stdin cannot be monitored") from None
             while True:
                 seconds = deadline - time.monotonic()
                 if seconds <= 0:
-                    raise InvalidReview("Reviewer stdin did not reach EOF within 30 seconds")
+                    raise InvalidReview(f"{label} stdin did not reach EOF within 30 seconds")
                 if not poll.select(seconds):
                     continue
                 chunk = os.read(stream.fileno(), 65536)
@@ -87,11 +89,44 @@ def read_result(stream):
                 if len(content) > MAX_RESULT:
                     break
     if len(content) > MAX_RESULT:
-        raise InvalidReview("Reviewer JSON exceeds the 32 MiB input limit")
+        raise InvalidReview(f"{label} exceeds the 32 MiB input limit")
     try:
         return content.decode("utf-8")
     except UnicodeError:
-        raise InvalidReview("Reviewer JSON must be UTF-8") from None
+        raise InvalidReview(f"{label} must be UTF-8") from None
+
+
+def packet(plan, brief):
+    if not brief.strip():
+        raise InvalidReview("Review brief must be nonempty")
+    # peer-chat collapses whitespace runs in the message that carries this path.
+    if any(char.isspace() for char in tempfile.gettempdir()):
+        raise InvalidReview("Temporary directory path contains whitespace; peer-chat would alter it")
+    # The peer echoes request_id before its report, so a late reply to an earlier
+    # packet for the same bytes cannot be taken for the pending one.
+    content = dict(snapshot(plan), brief=brief, request_id=secrets.token_hex(8))
+    directory = tempfile.mkdtemp(prefix="plan-review-")
+    path = os.path.join(directory, "packet.json")
+    try:
+        descriptor = os.open(path, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
+        with os.fdopen(descriptor, "w", encoding="utf-8") as target:
+            json.dump(content, target, ensure_ascii=False, allow_nan=False)
+    except BaseException:
+        if os.path.lexists(path):
+            os.unlink(path)
+        os.rmdir(directory)
+        raise
+    summary = {key: content[key] for key in ("request_id", "plan_path", "plan_version")}
+    return dict(summary, packet_path=path)
+
+
+def strip_request_id(text, request_id):
+    if not re.fullmatch(r"[0-9a-f]{16}", request_id):
+        raise InvalidReview("Request id must be 16 lowercase hex characters")
+    marker, _, report = text.partition(" ")
+    if marker != request_id:
+        raise InvalidReview("Reply does not start with the pending request id")
+    return report
 
 
 def exact_fields(value, keys, label):
@@ -138,15 +173,23 @@ def main(argv=None):
     commands = parser.add_subparsers(dest="command", required=True)
     collect = commands.add_parser("snapshot", allow_abbrev=False)
     collect.add_argument("plan", type=Path)
+    pack = commands.add_parser("packet", allow_abbrev=False)
+    pack.add_argument("plan", type=Path)
     check = commands.add_parser("validate", allow_abbrev=False)
     check.add_argument("plan", type=Path)
     check.add_argument("--version", required=True)
+    check.add_argument("--request-id")
     args = parser.parse_args(argv)
     try:
         if args.command == "snapshot":
             result = snapshot(args.plan)
+        elif args.command == "packet":
+            result = packet(args.plan, read_result(sys.stdin.buffer, "Review brief"))
         else:
-            review = strict_json(read_result(sys.stdin.buffer))
+            text = read_result(sys.stdin.buffer)
+            if args.request_id is not None:
+                text = strip_request_id(text, args.request_id)
+            review = strict_json(text)
             # Read after finite stdin completes: a report waiting in a pipe must
             # never validate against a snapshot collected before intervening edits.
             result = validate(review, snapshot(args.plan), args.version)

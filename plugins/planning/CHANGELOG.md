@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.2.0
+
+- Plan-review chain: when the task was discussed with a peer of the other provider through peer-chat before planning, stage 2 is reviewed by that peer instead of a fresh `consult.py` CLI. The peer reads an exact snapshot packet (`review_state.py packet`), replies through peer-chat with the packet's request id and whitespace-safe canonical JSON and is reported as review with prior design context, not independent coverage. An unavailable peer stops the stage without falling back to consult.
+
 ## 1.1.1
 
 - Brainstorm writes native ask questions, options and handoffs in the user's language, not the language of the skill, its handoff or the task.
