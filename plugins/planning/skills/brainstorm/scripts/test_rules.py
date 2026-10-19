@@ -13,7 +13,8 @@ SCRIPT = Path(__file__).with_name("load_rules.py")
 class RuleTest(unittest.TestCase):
     def setUp(self):
         self.tmp = tempfile.TemporaryDirectory()
-        self.root = Path(self.tmp.name)
+        # The loader resolves the project dir; macOS temp dirs sit behind the /var symlink.
+        self.root = Path(self.tmp.name).resolve()
         self.project = self.root / "project"
         self.project.mkdir()
         self.home = self.root / "home"
