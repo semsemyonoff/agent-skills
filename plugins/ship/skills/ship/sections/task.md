@@ -1,5 +1,9 @@
 # Tracker task
 
+This section applies only to shipping or separately authorized delivered-work reporting. A standalone
+CI/publication/deployment watch, even one mentioning a task or numeric branch, uses `wait-ci.md`
+without tracker discovery, reporting or closure. Its read-only result is not task completion evidence.
+
 Applies when the run has a Vikunja task: the user named it (`#587`, «задача 587», "task 587", a
 `.../tasks/587` link) or plan `task` came from a `<id>-<slug>` or `task/<id>-<slug>` branch. Also read the handoff rules
 for multiline arguments without a task; those need no tracker discovery. Only Vikunja is supported.

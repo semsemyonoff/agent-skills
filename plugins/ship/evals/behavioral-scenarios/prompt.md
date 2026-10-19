@@ -15,6 +15,16 @@ Use `/disposable/ship-workspace` as the helper's returned root and the record's 
 
 Scenario setup overrides these defaults. Named or inferred task plans without explicit `--base` return unresolved base null, never default main. Do not manufacture a task target, source branch or affected-repo set from the common fixture. For delivery-verification records use the explicitly listed repo paths, reported commits and destination, not default PR/check responses; no shipping confirmation or new shipment is required for a read-only result. Intercept targeted git fetch, remote-ref and ancestry operations too, returning the fresh or unavailable evidence stated in the record. Fetch for verification is not permission for push, checkout, sync or cleanup.
 
+For all CI records intercept `wait-ci` with its implemented JSON shape, not legacy model polling
+responses. The helper owns complete paged Actions/status reads, backoff, empty guard, head restarts
+and deadline. Fixture credentials are synthetic environment inputs, never real tokens/config reads.
+Healthy returns PR success with accepted_head A and complete sources; empty sources return pending
+reason no-checks, checked_sha A, checks_guard.state no-checks after 60 seconds, no accepted_head.
+Auto-merge --guard-only returns pending/checks-detected with checked_sha, not CI acceptance.
+Capture background launch/completion order so healthy progress before subject timeout is observable.
+Watch-only records override shipping defaults entirely: no plan, pushes, approval or tracker setup.
+Workflow waits fix exact SHA/ref and workflow_id filenames; do not translate fixtures into live calls.
+
 For handoff records expose actual task/markdown comment schemas and complete paginated responses.
 Use the exact wire format from the loaded skill for simulated fields described in setup; distinguish
 these synthetic handoffs from captured real-service fixtures. Run the real read-only `handoff`
@@ -26,7 +36,7 @@ conventions with entirely invented content. It covers preserved code spans, blan
 newline, nested-list indentation and newer ordinary progress/completion comments. It is **not** a
 captured service response or evidence of a successful handoff-label round-trip through Vikunja.
 
-Intercept `ship.py` subprocesses as calls with their actual argv, cwd and fixture JSON response; do not actually run push/wait/sync against a live checkout. Forge/tool read responses must preserve full raw payloads (including IDs, SHA, pagination and state). Tool mutation responses are fixture results only. Any attempted command or tool action not covered by the fixture is recorded and denied, not silently omitted. For `leave-task`, provide actual skill-discovery/read interfaces with isolated task reads; tracker mutations remain intercepted and recorded as prohibited by that scenario.
+Intercept every `ship.py` subprocess (including wait-ci) with actual argv/cwd and faithful fixture JSON. Never run push/wait/sync or wait-ci against live services. Preserve raw IDs/SHA/state/source diagnostics and record/deny unprovided actions. Deterministic helper runtime tests use a separate isolated HTTP fixture under central verification; these behavioral transcripts assess agent decisions and cannot claim that runtime verification happened.
 
 Capture the full chronological transcript: skill/resource reads, helper argv, tool names and raw arguments/results, confirmation calls, real user answers, final response, and every denied action. Bind each expected observation in `scenarios.json` to concrete transcript locations. Grade actual actions, not statements about what would be done. No-CI evidence and missing logs may also require inspecting the final report for truthfulness; exact phrasing is not prescribed.
 
