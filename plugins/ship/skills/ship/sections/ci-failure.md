@@ -1,10 +1,11 @@
 # CI failure
 
-Applies to any failing check source for the checked PR head (`CI failed`): Actions
-`failure`/`cancelled` or a latest external status `failure`/`error`/`warning`. Use the gate's
-actual source, SHA and state, not an assumed failed Actions job.
+Applies to failing check sources from a PR gate or selected workflow wait: Actions
+`failure`/`cancelled`, or latest PR external status `failure`/`error`/`warning`. Use helper JSON's
+actual source, SHA and state, not an assumed failed job. Watch-only diagnosis remains read-only.
 
-1. For an Actions source, retain the run ID/state/URL from `list_workflow_runs` for that SHA.
+1. For an Actions source, retain database run `id`, state and `url` from helper evidence for that
+   SHA (`url` is sanitized from API `html_url`). Web number `index_in_repo` is not necessarily the ID.
    `list_action_run_jobs(owner, repo, run_id)` -> inspect actual failed or cancelled jobs.
    Fetch `get_action_job_logs(owner, repo, job_id)` only for an existing relevant job, with default
    `max_bytes` (32768), no `offset` (tail); page backward only if needed. A cancelled run may have
@@ -21,7 +22,7 @@ actual source, SHA and state, not an assumed failed Actions job.
    Reading evidence is not permission for those writes. Other repos continue independently.
 
 After an explicitly requested fix is pushed, clear acceptance and re-check the PR with
-`get_pull_request_by_index`. `gated` repos: restart the checks guard/gate on the new head.
+`get_pull_request_by_index`. `gated` repos: restart `wait-ci` guard/gate on the new head.
 `auto-merge` repos: check whether auto-merge remains scheduled, retain the new candidate head
 before a new `ship.py wait`, and accept it only on same-head confirmed server-enforced merge.
 If auto-merge was dropped, report it and ask before scheduling it again. Continue only through

@@ -1,10 +1,13 @@
 ---
 name: ship
-description: 'Bring an implemented plan branch or the branch of a Vikunja task to the base branch (main, or a named integration branch) in every repo of a workspace on Forgejo - push, open PR, merge once CI is green, sync the base locally, delete branches, report per repo, then optionally report into the task and close it. Use after a plan or task was implemented (e.g. by ralphex) and the code sits in a branch. Triggers - /ship:ship, /skill:ship, "ship the plan branch", "merge the plan branch into main in all repos", "ship X into release-branch", "open PRs and merge when green", "land this branch", "ship task 587", «доведи ветку до main», «смержи план во всех репо», «открой PR и смержи после CI», «зашипь ветку», «влей ветку в общую ветку», «зашипь задачу 587», «доведи задачу 587 до main». Not for - just creating a PR without merging, reviewing a PR, reporting or closing a task without shipping, GitHub/GitLab repos, deploys.'
-argument-hint: "[branch | task] [into <base>]"
+description: 'Ship implemented plan/task branches across Forgejo workspace repos: push, PR, safe CI-gated merge, sync, cleanup and optional task report. Also use for read-only waiting on Forgejo PR CI or explicitly selected publish/deploy workflows for an exact SHA/ref, without shipping. Triggers: /ship:ship, /skill:ship, "ship task 587", "land this branch", "merge when green", "watch CI for PR 12", "wait for deployment on this commit", «зашипь задачу», «доведи ветку до main», «смержи после CI», «дождись CI у PR», «последи за деплоем», «дождись публикации». Not for GitHub, standalone PR creation, CI configuration, deployment execution, service-health checks or failure diagnosis without waiting.'
+argument-hint: "[branch | task] [into <base>] | watch CI/deploy <target>"
 ---
 
 # Ship
+
+For a request only to watch CI, publication or deployment, read `sections/wait-ci.md` and take its
+watch-only path **before** task discovery or shipping preflight. Do not turn watching into shipping.
 
 Take a finished plan branch to the base branch in every repo of the workspace that has it:
 push -> PR -> merge when CI is green -> sync base locally -> delete branches -> report -> task.
@@ -13,7 +16,8 @@ fields; read `sections/task.md` before preflight for a task or handoff, includin
 Base: the user's named destination, else valid handoff target. For a named/inferred task, an
 unresolved target requires clarification; never default it to main. Only non-task branch shipping
 defaults to each repo's default branch. A missing named remote target is a question, not a guess.
-Forgejo only, driven through the Forgejo MCP. Reply in the user's language. PR titles/bodies use the
+Forgejo only: mutations use Forgejo MCP; the bounded read-only `wait-ci` API exception is below.
+Reply in the user's language. PR titles/bodies use the
 language of the plan/commits (default: short English title from the branch/commits, body summarises
 the commits). No personal data in PR bodies.
 
@@ -23,16 +27,17 @@ Do not ask separately about pushing; resolved shipping actions use the execution
 
 ## Helper
 
-Run it by the absolute path of this skill's directory (resolved from the loaded `SKILL.md`) with the
-shell cwd set to the user's workspace (or pass `--root`); from any other cwd root/branch detection breaks.
+For `plan|push|wait|sync`, run by the absolute path of this skill's directory (resolved from the
+loaded `SKILL.md`) with shell cwd at the workspace (or pass `--root`). `wait-ci` needs no git
+workspace, branch detection or `--root`; read `sections/wait-ci.md` for its separate interface.
 
 `python3 <skill_dir>/scripts/ship.py <plan|push|wait|sync> [--root DIR] [--branch NAME | --task ID] [--repos PATH...]`
 
-`--base NAME` (all subcommands): the named target; must exist as `origin/NAME`, never replaced by
-the default. Retain `root`, `branch` and `task` from `plan`; pass `--root <root> --branch <branch>`
-and any `--task <id>` to every later helper call, including retries. Task execution requires
-`--base <resolved-target>`; push/wait/sync without it exit 2. Retain named bases for non-task runs
-too. `sync` switches the current branch, so do not re-detect it.
+`--base NAME` (`plan|push|wait|sync`): the named target; must exist as `origin/NAME`, never replaced by
+the default. Retain `root`, `branch` and `task` from `plan`; pass them to every later git helper
+call, including retries. Task `push|wait|sync` requires `--base <resolved-target>` or exits 2.
+Retain named bases for non-task runs too. `sync` switches branches, so do not re-detect it.
+These git-context flags do not apply to the independent `wait-ci` interface.
 
 - JSON to stdout, diagnostics to stderr. Exit 0 = ran (per-repo statuses in JSON); exit 2 =
   usage/environment error (no git, root not found, branch undeterminable, branch is main/master/base).
@@ -88,13 +93,14 @@ Use `host/owner/repo` from `plan`.
   `delete_branch_after_merge=true`; NEVER `force_merge`. `merge_when_checks_succeed=true` only in
   auto-merge mode (below); a gated merge passes `false` after the CI gate.
 - `get_pull_request_by_index(owner, repo, index)` -> `merged`, `mergeable`.
-- `get_commit_statuses(owner, repo, sha)` (40-hex sha); `list_workflow_runs(owner, repo, head_sha)`
-  -> one aggregate status per Actions run (covers jobs that have no commit status yet, e.g. a matrix
-  expanded later); `list_action_run_jobs`, `get_action_job_logs` for failures
-  (see `sections/ci-failure.md`).
+- `list_action_run_jobs`, `get_action_job_logs` for failure evidence (`sections/ci-failure.md`).
+- PR/check snapshots and deterministic waits use `ship.py wait-ci` (`sections/wait-ci.md`), not
+  repeated model calls to `get_commit_statuses` / `list_workflow_runs`.
 
-If the Forgejo MCP tools are absent, report the missing connection and stop before any write. Do not
-substitute gh/glab/fj/REST and do not change MCP configuration.
+If shipping needs absent Forgejo MCP tools, report the missing connection and stop before writes.
+Do not substitute gh/glab/fj/REST or change MCP configuration. The only direct-API exception is
+bundled `wait-ci` making read-only CI/PR GETs with process-environment credentials; it authorizes
+no mutation or credential extraction. Watch-only can use that helper without MCP.
 
 ## Workflow
 
@@ -147,57 +153,10 @@ substitute gh/glab/fj/REST and do not change MCP configuration.
    "Rebase first" is part of this approval: rebase onto `origin/<base>` BEFORE the first push, in
    those repos only; for already-pushed repos this includes the force-with-lease push the label
    named (see `sections/conflict.md` for a failing rebase).
-4. **Execute** (repos independently).
-   1. `ship.py push --repos ...` for non-skipped repos. `failed` -> `push failed`, error verbatim.
-   2. Create the PR (`create_pull_request`; error -> `PR failed`, verbatim) or reuse the existing one.
-      With a valid handoff, append verification only to a new PR (`sections/task.md`); for a reused
-      PR report that verification was not added to existing PR #N, without updating its body.
-      From here on use the PR's `head.sha` (`get_pull_request_by_index`), never plan `head_sha`: it
-      goes stale after an upfront rebase or a CI-fix push.
-      Keep lightweight per-repo run state: target base, candidate head, and `accepted_head` with
-      `evidence_basis` (`CI passed` or `explicit no-CI permission`). Acceptance is tied to a SHA,
-      not a branch name; discard it on a head change. Never call no-CI permission a CI pass.
-   3. "PRs only" (or PR-only repos): no merge, no `wait`/`sync`; status `PR open`.
-   4. Checks guard, every repo (external CI posts statuses without a workflows dir):
-      `get_commit_statuses` and `list_workflow_runs` on the PR `head.sha`; if both are empty,
-      re-check a couple of times with a short sleep (<= ~1 min total; Forgejo creates the run and
-      "Waiting to run" statuses when the run is queued). Still both empty -> no checks on this
-      PR, and an auto-merge would never fire. In `gated` mode only, a repo explicitly approved in
-      the no-CI question may snapshot this checked SHA as `accepted_head` with evidence basis
-      `explicit no-CI permission`; proceed to step 5's shared pre-merge guard, without merging yet.
-      In `auto-merge` mode instead: `not merged: required checks never reported`, even with no-CI
-      permission. Any other repo -> `PR open: no checks`, no merge call: an empty minute does not
-      prove there is no CI, so merging it is the user's call afterwards.
-   5. Merge. Before every merge call and retry re-read the PR: it must be open with `base.ref` equal
-      to the base (retargeted -> `not merged: base changed`, no write). Gated/no-CI head changed ->
-      clear acceptance and restart the checks guard/gate on the new SHA before merging. On a merge error re-read
-      `get_pull_request_by_index`: `mergeable=false` -> `conflict`; a transient "mergeability still
-      being checked" (405/try again later; unverified) -> retry once after a short sleep; else
-      `merge not scheduled` with the error.
-      With valid `explicit no-CI permission` acceptance, plain merge once using
-      `merge_when_checks_succeed=false`; on success go directly to step 7, skipping both mode
-      branches below and `wait`. Never run the CI gate or merge again for that completed merge.
-      a. `auto-merge`: snapshot the re-read PR head as the candidate immediately before scheduling
-         `merge_pull_request` with `merge_when_checks_succeed=true`, then `ship.py wait --repos
-         <auto-merge repos>` using the harness's wait mechanism or foreground `--timeout` described
-         above. When the PR confirms merged on that same candidate, record `accepted_head` and
-         `CI passed` (server-enforced required checks). A changed head is not accepted by this run.
-      b. `gated`: run the CI gate from `sections/ci-gate.md` on the PR `head.sha`, all gated repos
-         per round; it ends in a plain merge, `CI failed`, `timeout` or `merged: ungated head`. Sync
-         each repo as soon as it merges; do not hold it for slower ones.
-   6. `wait` `pending` (auto-merge): re-read the PR, then collect both paged check sources for its
-      current head using `sections/ci-gate.md` source reduction. Any failing run or status ->
-      `CI failed`; pass its actual source/state/context to `sections/ci-failure.md`. Still running ->
-      `timeout`, offer ONE more wait. All success but not
-      merged (approvals required, auto-merge cancelled) -> `not merged` with the reason from the PR;
-      no endless re-wait offer. `mergeable=false` -> `conflict` (`sections/conflict.md`).
-   7. Before sync, per repo: `get_pull_request_by_index` must show `merged: true`, `base.ref` equal
-      to the retained target and `head.sha` equal to `accepted_head`, with its evidence basis
-      retained; then `ship.py sync --repos <confirmed only> --confirmed-merged
-      --head <path>=<accepted_head> ...` (plus `--base`). Closed unmerged -> `PR closed`, no sync.
-      A merged head mismatch or missing acceptance -> `merged: ungated head <sha>`, no sync or
-      cleanup; a base mismatch -> `not merged: base changed`, no sync or cleanup. The helper's
-      branch-deletion check is additional safety, not a substitute for this PR check.
+4. **Execute independently per repo.** Read `sections/execution.md` for push, PR creation/reuse,
+   the shared no-check guard, server auto-merge vs deterministic gated wait, accepted-head/base/open
+   guards, timeout diagnostics and sync. Start all applicable waits without holding healthy repos
+   behind slow ones. Retain each repo's accepted SHA and evidence basis through cleanup.
 5. **Report.** One table `repo | PR | status | next`. Statuses: `merged`, `PR open`,
    `PR open: no checks`, `PR failed`, `merge not scheduled`, `PR closed`, `not merged`,
    `merged: ungated head`, `CI failed`,
@@ -217,6 +176,8 @@ substitute gh/glab/fj/REST and do not change MCP configuration.
 ## Sections
 
 - `sections/task.md` - read for a Vikunja task (named/inferred) or multiline handoff arguments.
-- `sections/ci-gate.md` - read when a repo is in `gated` mode.
+- `sections/execution.md` - read before executing approved shipping.
+- `sections/wait-ci.md` - read for any CI/deploy wait, including standalone watch-only requests.
+- `sections/ci-gate.md` - read for PR check reduction and gated merge safety.
 - `sections/ci-failure.md` - read when any check source fails, including cancellation or external status.
 - `sections/conflict.md` - read when a PR is not mergeable or an upfront "Rebase first" fails.

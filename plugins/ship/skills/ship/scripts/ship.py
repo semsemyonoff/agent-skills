@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Local-git helper for the ship skill: bring a plan branch to base across repos.
 
-Stdlib-only. Subcommands: plan and handoff (read-only), push, wait, sync. JSON on stdout,
+Stdlib-only. Subcommands: plan, handoff and wait-ci (read-only), push, wait, sync. JSON on stdout,
 diagnostics on stderr. Exit 0 when the command ran (per-repo failures are
 statuses), 2 on usage/environment errors. Never resets, stashes, cleans or
 force-pushes. Named or branch-inferred tasks have no default target: plan leaves
@@ -18,6 +18,8 @@ import time
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Dict, List, Optional, Tuple
+
+import ci_wait
 
 MAX_DEPTH = 4
 SKIP_DIRS = {"node_modules", "vendor", ".dwe", ".venv"}
@@ -612,6 +614,7 @@ def build_parser() -> argparse.ArgumentParser:
     h = sub.add_parser("handoff", help="parse read-only handoff data; never runs git or service calls")
     h.add_argument("--comments", metavar="JSON_FILE")
     h.add_argument("--argument", metavar="TEXT_FILE", help="whole snapshot; overrides comments")
+    ci_wait.add_parser(sub)
     for name in ("plan", "push", "wait", "sync"):
         p = sub.add_parser(name)
         p.add_argument("--root")
@@ -638,6 +641,8 @@ def main(argv: Optional[List[str]] = None) -> int:
     try:
         if args.cmd == "handoff":
             result = cmd_handoff(args)
+        elif args.cmd == "wait-ci":
+            result = ci_wait.wait_ci(args)
         else:
             if shutil.which("git") is None:
                 raise UsageError("git not found in PATH")
@@ -647,7 +652,7 @@ def main(argv: Optional[List[str]] = None) -> int:
             if args.cmd != "plan" and task and not args.base:
                 raise UsageError(f"task {task} requires an explicit target: pass --base <target-branch>")
             result = COMMANDS[args.cmd](root, branch, args)
-    except UsageError as e:
+    except (UsageError, ci_wait.UsageError) as e:
         print(f"error: {e}", file=sys.stderr)
         return 2
     json.dump(result, sys.stdout, ensure_ascii=False, indent=2)

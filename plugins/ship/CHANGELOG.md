@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.6.0
+
+- Replace model-driven CI polling with bounded read-only `ship.py wait-ci`: complete Actions/status pagination, exact PR head acceptance, conservative reduction, head-change evidence and one total deadline.
+- Add standalone Russian/English CI/publication/deployment watch requests without shipping or tracker mutations; fixed-SHA/ref waits require explicit workflow filenames and never claim service-health evidence.
+- Require environment-only Forgejo credentials for the narrow read-only API exception; missing capability and incomplete sources fail explicitly without model-polling fallback.
+- Preserve no-check/no-CI permission, independent repo progress, pre-merge/post-merge SHA/base guards and the separate auto-merge remote-branch wait; expand isolated behavioral and bilingual trigger cases.
+
 ## 0.5.2
 
 - Resolve `--task N` and derive the task from `task/<id>-<slug>` branches as well as `<id>-<slug>`; both forms at once stay ambiguous.
