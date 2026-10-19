@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.2
+
+- Resolve `--task N` and derive the task from `task/<id>-<slug>` branches as well as `<id>-<slug>`; both forms at once stay ambiguous.
+
 ## 0.5.1
 
 - Reject URI-scheme values (such as omp `local://`) for `handoff --comments`/`--argument` with an actionable error; task flow now requires real temp files for helper input.

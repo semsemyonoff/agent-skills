@@ -8,7 +8,7 @@ argument-hint: "[branch | task] [into <base>]"
 
 Take a finished plan branch to the base branch in every repo of the workspace that has it:
 push -> PR -> merge when CI is green -> sync base locally -> delete branches -> report -> task.
-The entry is a branch or a Vikunja task (its `<id>-<slug>` branch), optionally with multiline handoff
+The entry is a branch or a Vikunja task (its `<id>-<slug>` or `task/<id>-<slug>` branch), optionally with multiline handoff
 fields; read `sections/task.md` before preflight for a task or handoff, including comment discovery.
 Base: the user's named destination, else valid handoff target. For a named/inferred task, an
 unresolved target requires clarification; never default it to main. Only non-task branch shipping
@@ -38,9 +38,9 @@ too. `sync` switches the current branch, so do not re-detect it.
   usage/environment error (no git, root not found, branch undeterminable, branch is main/master/base).
   Network git calls have timeouts and run with `GIT_TERMINAL_PROMPT=0`.
 - Root: `--root`, else nearest `workspace.yml` upward, else git toplevel. Branch: `--branch` (or the
-  skill argument), else the single `<id>-...` branch for `--task`, else current branch of the cwd repo. Discovery keeps repos that have the local
+  skill argument), else the single `<id>-...`/`task/<id>-...` branch for `--task`, else current branch of the cwd repo. Discovery keeps repos that have the local
   branch.
-- `plan` (read-only, no fetch): `{root, branch, task (`--task`, else `<id>` of an `<id>-...` branch,
+- `plan` (read-only, no fetch): `{root, branch, task (`--task`, else `<id>` of an `<id>-...`/`task/<id>-...` branch,
   else null), repos:[{path, remote_url (userinfo redacted), host
   (ssh-config-resolved hostname; `host_alias` when the remote used an alias), owner, repo, base,
   is_base, has_ci, dirty, ahead, behind, pushed, remote_branch (origin/<branch> exists locally),

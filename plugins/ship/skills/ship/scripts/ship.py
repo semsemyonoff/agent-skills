@@ -30,7 +30,7 @@ LS_REMOTE_TIMEOUT = 60.0
 CI_DIRS = (".forgejo/workflows", ".gitea/workflows", ".github/workflows")
 SSH_TIMEOUT = 5.0
 HEX40_RE = re.compile(r"^[0-9a-fA-F]{40}$")
-TASK_BRANCH_RE = re.compile(r"^(\d+)(?:[-_/]|$)")
+TASK_BRANCH_RE = re.compile(r"^(?:task/)?(\d+)(?:[-_/]|$)")
 URI_SCHEME_RE = re.compile(r"^[A-Za-z][A-Za-z0-9+.-]*://")
 USERINFO_RE = re.compile(r"^([A-Za-z][A-Za-z0-9+.-]*://)[^@/]+@")
 
@@ -323,7 +323,7 @@ def find_root(arg: Optional[str]) -> Path:
 
 
 def task_of(branch: str) -> Optional[str]:
-    """Task id from a `<id>-<slug>` branch name, else None."""
+    """Task id from a `<id>-<slug>` or `task/<id>-<slug>` branch name, else None."""
     m = TASK_BRANCH_RE.match(branch)
     return m.group(1) if m else None
 
@@ -336,7 +336,7 @@ def task_arg(value: str) -> str:
 
 
 def branch_for_task(root: Path, task: str) -> str:
-    """The single local branch named `<task>-...` across the workspace repos."""
+    """The single local branch named `<task>-...` or `task/<task>-...` across the workspace repos."""
     names = set()
     for repo in discover_repos(root):
         r = git(["for-each-ref", "--format=%(refname:short)", "refs/heads"], repo)
@@ -344,7 +344,7 @@ def branch_for_task(root: Path, task: str) -> str:
             raise UsageError(f"cannot list branches in {rel(root, repo)}: {tail(r.stderr)}")
         names.update(n for n in r.stdout.split() if task_of(n) == task)
     if not names:
-        raise UsageError(f"no local branch for task {task} (expected {task}-<slug>), pass --branch")
+        raise UsageError(f"no local branch for task {task} (expected {task}-<slug> or task/{task}-<slug>), pass --branch")
     if len(names) > 1:
         raise UsageError(f"task {task} matches several branches: {', '.join(sorted(names))}; pass --branch")
     return names.pop()

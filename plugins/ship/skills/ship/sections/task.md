@@ -1,7 +1,7 @@
 # Tracker task
 
 Applies when the run has a Vikunja task: the user named it (`#587`, «задача 587», "task 587", a
-`.../tasks/587` link) or plan `task` came from a `<id>-<slug>` branch. Also read the handoff rules
+`.../tasks/587` link) or plan `task` came from a `<id>-<slug>` or `task/<id>-<slug>` branch. Also read the handoff rules
 for multiline arguments without a task; those need no tracker discovery. Only Vikunja is supported.
 Ship never writes to Vikunja itself; the vikunja skill does, with its own comment conventions.
 

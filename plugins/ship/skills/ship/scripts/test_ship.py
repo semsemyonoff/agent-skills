@@ -269,6 +269,9 @@ class TestTask(Fixture):
         self.assertEqual(ship.task_of("587"), "587")
         self.assertIsNone(ship.task_of("feat-587"))
         self.assertIsNone(ship.task_of("5870x"))
+        self.assertEqual(ship.task_of("task/632-seo"), "632")
+        self.assertIsNone(ship.task_of("feat/632-seo"))
+        self.assertIsNone(ship.task_of("task/seo-632"))
 
     def test_branch_from_task(self):
         self.make_repo("a", branch="587-icons")
@@ -277,6 +280,14 @@ class TestTask(Fixture):
         out = run_json("plan", "--root", str(self.ws), "--task", "#587")
         self.assertEqual((out["branch"], out["task"]), ("587-icons", "587"))
         self.assertEqual([r["path"] for r in out["repos"]], ["a", "b"])
+
+    def test_branch_from_task_prefixed(self):
+        self.make_repo("a", branch="task/632-seo")
+        self.make_repo("b", branch="task/632-seo")
+        out = run_json("plan", "--root", str(self.ws), "--task", "632")
+        self.assertEqual((out["branch"], out["task"]), ("task/632-seo", "632"))
+        self.make_repo("c", branch="632-seo")
+        self.assertEqual(run("plan", "--root", str(self.ws), "--task", "632").returncode, 2)  # ambiguous
 
     def test_task_derived_from_branch(self):
         self.make_repo("a", branch="587-icons")
