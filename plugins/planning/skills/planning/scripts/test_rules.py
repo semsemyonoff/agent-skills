@@ -48,7 +48,7 @@ class RuleTest(unittest.TestCase):
                 self.put(agents, "Правило проекта")
                 self.assertEqual(self.run_loader(name), {
                     "name": name, "path": str(agents), "provenance": "project-agents",
-                    "content": "Правило проекта"})
+                    "content": "Правило проекта", "profile": None})
                 self.put(agents, "")
                 self.assertEqual(self.run_loader(name)["content"], "Claude project rule")
                 self.put(claude, "")
@@ -57,7 +57,7 @@ class RuleTest(unittest.TestCase):
 
     def test_missing_rules_and_empty_xdg_use_home_default(self):
         self.assertEqual(self.run_loader(), {
-            "name": "planning", "path": None, "provenance": None, "content": ""})
+            "name": "planning", "path": None, "provenance": None, "content": "", "profile": None})
         self.env["XDG_CONFIG_HOME"] = ""
         self.put(self.home / ".config" / "agent-skills" / "planning-rules.md", "home rule")
         self.assertEqual(self.run_loader()["content"], "home rule")
@@ -81,6 +81,57 @@ class RuleTest(unittest.TestCase):
         self.put(self.project / ".agents" / "planning-rules.md", " \n")
         self.put(self.project / ".claude" / "planning-rules.md", "lower rule")
         self.assertEqual(self.run_loader(explicit=False)["content"], " \n")
+
+    def user_file(self, name="planning", profile=None):
+        suffix = "." + profile if profile else ""
+        return self.home / ".config" / "agent-skills" / (name + "-rules" + suffix + ".md")
+
+    def test_profile_selects_user_file_only(self):
+        self.put(self.user_file(), "common rule")
+        self.put(self.user_file(profile="work"), "work rule")
+        self.env["AGENT_SKILLS_PROFILE"] = "work"
+        self.assertEqual(self.run_loader(), {
+            "name": "planning", "path": str(self.user_file(profile="work")),
+            "provenance": "user", "content": "work rule", "profile": "work"})
+
+    def test_profile_without_file_does_not_fall_back_to_common(self):
+        self.put(self.user_file(), "common rule")
+        self.env["AGENT_SKILLS_PROFILE"] = "work"
+        self.assertEqual(self.run_loader(), {
+            "name": "planning", "path": None, "provenance": None, "content": "",
+            "profile": "work"})
+
+    def test_empty_profile_file_does_not_fall_back_to_common(self):
+        self.put(self.user_file(), "common rule")
+        self.put(self.user_file(profile="work"), "")
+        self.env["AGENT_SKILLS_PROFILE"] = "work"
+        result = self.run_loader()
+        self.assertEqual((result["path"], result["content"], result["profile"]), (None, "", "work"))
+
+    def test_empty_profile_variable_means_no_profile(self):
+        self.put(self.user_file(), "common rule")
+        self.env["AGENT_SKILLS_PROFILE"] = ""
+        result = self.run_loader()
+        self.assertEqual((result["content"], result["profile"]), ("common rule", None))
+
+    def test_project_rules_win_over_profile_file(self):
+        self.put(self.user_file(profile="work"), "work rule")
+        self.put(self.project / ".agents" / "planning-rules.md", "project rule")
+        self.env["AGENT_SKILLS_PROFILE"] = "work"
+        result = self.run_loader()
+        self.assertEqual((result["provenance"], result["content"], result["profile"]),
+                         ("project-agents", "project rule", "work"))
+
+    def test_invalid_profile_exits_2(self):
+        for value in ("Work", "../x", "a b", "a\n", "work_1"):
+            with self.subTest(value=value):
+                self.env["AGENT_SKILLS_PROFILE"] = value
+                result = subprocess.run(
+                    [sys.executable, str(SCRIPT), "--name", "planning", "--project", str(self.project)],
+                    env=self.env, text=True, capture_output=True)
+                self.assertEqual(result.returncode, 2)
+                self.assertEqual(result.stdout, "")
+                self.assertIn("cannot read custom rules", result.stderr)
 
 
 if __name__ == "__main__":

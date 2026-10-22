@@ -52,9 +52,11 @@ can run them. Shared skills must be exercised in every supported harness.
 - A skill is self-contained: no dependency on another skill's files. Duplicate a small piece rather
   than couple two skills.
 - Keep portable planning rules outside skills: first nonempty project `.agents/<name>-rules.md`,
-  then `.claude/<name>-rules.md`, then XDG `agent-skills/<name>-rules.md`; never merge or embed
-  personal rules. Include upstream MIT copyright/license in each separately distributed adapted
-  skill directory. Native agent resources are optional files, not automatic installations.
+  then `.claude/<name>-rules.md`, then XDG `agent-skills/<name>-rules.md` (with
+  `AGENT_SKILLS_PROFILE=<p>` the XDG layer reads `<name>-rules.<p>.md` instead, no fallback to the
+  common file); never merge or embed personal rules. Include upstream MIT copyright/license in each
+  separately distributed adapted skill directory. Native agent resources are optional files, not
+  automatic installations.
 - Anything deterministic (resolving ids, building markup, parsing transcripts) goes to `scripts/`;
   the model interprets results. Scripts use only the standard library of Python 3 or POSIX shell.
 - Writes to external systems (trackers, forges) happen only after explicit user confirmation unless
