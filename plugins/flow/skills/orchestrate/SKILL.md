@@ -188,9 +188,10 @@ pending PR, CI or merge work.
 Do not stop at a phase boundary unless phase-by-phase execution was requested or an actual blocker
 requires a decision.
 
-At the end of any user turn, offer the **Ship handoff** in `references/templates.md` when its state
-trigger holds (not only after the report; a later commit/push turn counts). Give a command for a new
-session; run ship here only on an explicit user request.
+At the end of any user turn, offer the **Ship handoff** in `references/templates.md` when its gate
+and state trigger hold (not only after the report; a later commit/push turn counts). Without the ship
+skill and its Forgejo MCP tools in this session, skip it silently before any git/remote check. Give a
+command for a new session; run ship here only on an explicit user request.
 
 ## Permission boundaries
 

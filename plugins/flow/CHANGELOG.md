@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.6.0
+
+- Gate the ship handoff on the ship skill and its Forgejo MCP tools being in the session catalog, and on no loaded context naming another forge, before any git/remote check; otherwise skip it silently and list only confirmed remaining delivery steps in Integration.
+- Add behavioral scenarios for a missing ship skill, missing Forgejo tools, known GitLab context and an explicit ship request without the prerequisite.
+
 ## 2.5.0
 
 - Offer the ship handoff by end-of-turn state (complete, published HEADs proven, clean, not suppressed) instead of once after the report; suppress repeats per task/branch/HEAD set; write the final plan-approved progress comment in handoff format; always write Цель, including the default base.

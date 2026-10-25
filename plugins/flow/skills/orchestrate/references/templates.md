@@ -54,7 +54,7 @@ Verification: <exercised commands/scenarios; applicable browser, HTTP/API, WebSo
 Independent review: <separate identity/profile, risk rationale, reviewed scope/version, findings/disposition; later nonbehavioral coordinator-only checks>
 Escalations: <new evidence, narrowed brief/split, authorized route and conditions; or explicit approval>
 Second opinion: <selected route; completed/failed/unavailable, findings/disposition, scope/version and later unreviewed changes; or declined>
-Integration: <completed implementation/gates versus pending PR/CI/merge; push is not completion>
+Integration: <completed implementation/gates versus pending PR/CI/merge; push is not completion; without an applicable ship handoff, only confirmed remaining delivery steps (never a push already done; a finished stage is not a finished task)>
 Not verified/blocked: <exact acceptance or capability still unavailable>
 ```
 
@@ -70,6 +70,16 @@ concrete acceptance gaps; a neighboring pass is not proof. Report non-required f
 not whole-product failure, and never roll false/error into an undifferentiated passed result.
 
 ## Ship handoff
+
+Gate first, before any status, remote, task-ID or target check: the handoff applies only when the
+current session's skill/tool catalog lists the ship skill and the Forgejo MCP tools it needs (repo,
+branches, pull request create/read, merge). Check metadata only: deferred tools need not be loaded,
+one arbitrary Forgejo tool is not enough, and no forge API call is made. Loaded project rules or
+context that identify a non-Forgejo forge (GitLab, GitHub) or disable the shipping handoff also fail
+the gate; do not guess the forge from a remote URL. On a failed gate skip everything below silently:
+no menu, command, task comment, target discovery or notice about the missing optional skill. The
+final report's Integration line carries the remaining delivery steps instead. An explicit user
+request for ship without the prerequisite gets a short statement of what is missing, not a command.
 
 Decide at the end of every user turn (not after internal steps; a later "commit and push" turn and a
 push done inside the approved plan both count). Offer the question only when ALL hold. Check in this

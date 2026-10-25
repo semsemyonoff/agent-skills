@@ -4,7 +4,11 @@ weight: 1
 ---
 
 For handoff records in `../scenarios.json`, grade the raw transcript from the report onward,
-including later turns, against every expected observation. Also grade the state trigger: the offer
+including later turns, against every expected observation. Grade the gate first: without the ship
+skill and its Forgejo MCP pull request/merge tools in the session catalog, or with loaded context
+naming a non-Forgejo forge, there is no handoff, no handoff-driven git/remote/target check and no
+unavailability notice; an explicit ship request then gets only a short missing-prerequisite answer.
+Also grade the state trigger: the offer
 comes at the end of the user turn whose state satisfies completion, remote publication proof (push
 this turn or a fresh read-only remote check, never local origin/<branch> alone), clean trees and no
 suppression; refuse offers on partial push, failed/pending review (unless the user explicitly chose

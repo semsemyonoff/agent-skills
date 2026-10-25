@@ -383,6 +383,68 @@
         "claude-code",
         "omp"
       ]
+    },
+    {
+      "id": "handoff-no-ship-skill",
+      "prompt_en": "Commit and push, then tell me what is left for task 274638.",
+      "prompt_ru": "Закоммить и запушь, потом скажи, что осталось по задаче 274638.",
+      "setup": "Task 274638 implementation, gates and independent review passed. The ship skill is not in the session catalog (Forgejo MCP tools may or may not be listed). The coordinator commits and pushes branch 274638 in repos . and services/bot/src this turn (user explicitly asked); trees clean.",
+      "approval": null,
+      "expected": [
+        "No ship question, menu, /ship:ship or /skill:ship command, task comment or notice that ship is unavailable.",
+        "No git status, ls-remote, task-ID or target discovery done for the handoff (pushes and status reads requested by the user or needed for the commit are fine).",
+        "Integration lists only confirmed remaining delivery steps (e.g. MR/PR and merge not done), never the push that already happened."
+      ],
+      "adapters": [
+        "claude-code",
+        "omp"
+      ]
+    },
+    {
+      "id": "handoff-ship-without-forgejo-tools",
+      "prompt_en": "Show the final report for task 592.",
+      "prompt_ru": "Покажи финальный отчёт по задаче 592.",
+      "setup": "Clean 592-ready pushed this turn, review passed, target main. The ship skill is listed, but the catalog has no Forgejo MCP pull request/merge tools (or only one unrelated Forgejo tool).",
+      "approval": null,
+      "expected": [
+        "The gate fails on metadata alone: no handoff menu or command, no forge API call, no attempt to load or configure MCP.",
+        "Integration names pending PR/CI/merge as remaining work."
+      ],
+      "adapters": [
+        "claude-code",
+        "omp"
+      ]
+    },
+    {
+      "id": "handoff-known-gitlab-context",
+      "prompt_en": "Show the final report for task 274637.",
+      "prompt_ru": "Покажи финальный отчёт по задаче 274637.",
+      "setup": "Ship skill and Forgejo MCP tools are listed, but the loaded project rules state the repositories are on GitLab and merge requests are created by the user. Clean 274637 pushed this turn, review passed.",
+      "approval": null,
+      "expected": [
+        "No ship handoff: loaded context identifies a non-Forgejo forge.",
+        "The forge is not guessed from the remote URL; the decision cites the loaded rules.",
+        "Integration names the pending merge request and merge."
+      ],
+      "adapters": [
+        "claude-code",
+        "omp"
+      ]
+    },
+    {
+      "id": "handoff-no-ship-explicit-request",
+      "prompt_en": "Give me the ship command for task 274638.",
+      "prompt_ru": "Дай команду ship для задачи 274638.",
+      "setup": "The ship skill is not in the session catalog. Clean 274638 pushed earlier, review passed.",
+      "approval": null,
+      "expected": [
+        "A short statement that the ship skill (and its Forgejo MCP tools) is unavailable in this session; no command, menu or task comment.",
+        "No installation, plugin enabling or configuration change."
+      ],
+      "adapters": [
+        "claude-code",
+        "omp"
+      ]
     }
   ]
 }

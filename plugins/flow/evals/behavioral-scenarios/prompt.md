@@ -9,8 +9,8 @@ For the end-of-turn ship handoff (state trigger, including later commit/push tur
 in this directory's `scenarios.json` instead of the full-orchestration records below. Start from the
 supplied completed implementation/review/check transcript and Integration state; do not fabricate
 earlier verification or rerun implementation. The isolated runner supplies read-only git status,
-this turn's push results, read-only `git ls-remote` answers, plus discovered vikunja skill/tool
-interfaces, intercepts all tracker/forge/session actions, and releases `approval` only after the
+this turn's push results, read-only `git ls-remote` answers, plus discovered ship, Forgejo MCP and
+vikunja skill/tool interfaces (a scenario may omit any of them), intercepts all tracker/forge/session actions, and releases `approval` only after the
 actual menu. A null approval means no answer. Report-comment scenarios authorize only the simulated
 single comment, never a live tracker write (a plan-approved final handoff comment, written before
 the menu once per HEAD set, is also permitted whatever option is then picked). Exercise Claude Code
