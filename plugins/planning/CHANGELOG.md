@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.1
+
+- Plan-review `consult.py` no longer pins codex-cli 0.162.1: any Codex build is accepted when `codex features list` confirms every disabled feature and each config key is recognized by a wrongly typed probe (ported from peer `ask-other`).
+
 ## 1.3.0
 
 - Rules resolver: optional `AGENT_SKILLS_PROFILE` (`[a-z0-9-]+`) makes the user layer read `<name>-rules.<profile>.md` instead of the common file, with no fallback; the JSON result gains a `profile` field.

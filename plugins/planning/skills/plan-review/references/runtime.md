@@ -164,8 +164,13 @@ deployment stops; no alternate auth directory, install, setting change or bypass
   model/effort/auth. Installed help and live init tools are checked; only Read/Grep/Glob plus a
   non-actionable EndConversation are allowed. Prohibited calls/retry events/incomplete results fail.
   Controls were researched on Claude Code 2.1.296; unsupported observable contracts fail closed.
-- **Codex:** supported source-verified version is codex-cli 0.162.1; other versions are unavailable.
-  Native exec uses read-only sandbox, JSON, ephemeral, ignore-rules and strict-config. Invocation
+- **Codex:** no release is pinned; sources were researched on codex-cli 0.162.1. The native CLI
+  silently ignores unknown `-c` keys and feature names, so a build is accepted only when it passes
+  local checks: required `exec --help` flags; `codex features list` with the exact overrides lists
+  each disabled feature once, at an applied stage and `false`; each plain key probed alone with a
+  wrongly typed value fails config loading with exit 1 and the `invalid type`/`unknown variant`
+  diagnostic for that exact key path (success means ignored; any other failure proves nothing).
+  A failed check is unavailable, never a fallback. Native exec uses read-only sandbox, JSON, ephemeral, ignore-rules and strict-config. Invocation
   overrides forbid approval escalation/web search/login shell; suppress ordinary docs/skill autoload,
   notification commands, hooks/apps/plugins/remote plugins/multi-agent/code-mode/shell snapshots/goals/
   memories/skill MCP dependency installation. Native MCP inventory is used to disable every inherited
