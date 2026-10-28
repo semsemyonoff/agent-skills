@@ -41,6 +41,19 @@ def accepted_screen(harness):
     return transcript + "\n" + composer(harness)
 
 
+def omp_chip_screen(token=" #1", count=1999):
+    # omp 18.13.2 PTY capture: the count is on a card, not in the editor token.
+    card = "\n".join([
+        "╭───  #1 ───╮",
+        "│Chat from C…│",
+        "│            │",
+        "│            │",
+        "│            │",
+        f"╰ {count} chars ╯",
+    ])
+    return composer("omp", token).replace("Prior assistant output", card, 1)
+
+
 
 
 def kitty_window(identity, *argv):
@@ -508,6 +521,46 @@ class SendSafetyTest(unittest.TestCase):
                     with self.assertRaises(RuntimeError):
                         pc.send_with_retry(backend, target, "claude", message)
                     self.assertEqual(len(backend.writes), 1)
+
+    def test_omp_attachment_chip_submits_only_with_matching_card_and_utf16_count(self):
+        message = "Measured evidence 😀 " * 100
+        typed = pc.normalize("claude", message)
+        count = len(typed.encode("utf-16-le")) // 2
+        for glyph in ("", "📄", "txt"):
+            with self.subTest(glyph=glyph):
+                pasted = omp_chip_screen(count=count).replace("", glyph)
+                target = pc.Target("peer", pc.PROFILES["omp"])
+                backend = ScreenTape(target, [composer("omp")], [pasted], [accepted_screen("omp")])
+                pc.send_with_retry(backend, target, "claude", message)
+                self.assertEqual(backend.writes[1:], ["\x11"])
+
+    def test_omp_unverified_attachment_chip_never_submits_or_reinserts(self):
+        message = "Measured evidence 😀 " * 100
+        typed = pc.normalize("claude", message)
+        count = len(typed.encode("utf-16-le")) // 2
+        valid = omp_chip_screen(count=count)
+        for pasted in (
+            composer("omp", " #1"),
+            omp_chip_screen(token=" #2", count=count),
+            omp_chip_screen(token="📄 #1", count=count),
+            omp_chip_screen(count=count + 1),
+            omp_chip_screen(count=len(typed)),
+            omp_chip_screen(token=" #1 and an unrelated draft", count=count),
+            valid.replace("chars ╯\n", "chars ╯\nUnrelated output\n"),
+            valid + "\nAllow this command?",
+        ):
+            with self.subTest(pasted=pasted):
+                target = pc.Target("peer", pc.PROFILES["omp"])
+                backend = ScreenTape(target, [composer("omp")], [pasted], [accepted_screen("omp")])
+                with self.assertRaises(RuntimeError):
+                    pc.send_with_retry(backend, target, "claude", message)
+                self.assertEqual(len(backend.writes), 1)
+
+    def test_existing_omp_attachment_chip_is_an_occupied_composer(self):
+        backend = self.tape("omp", before=[omp_chip_screen()], cursor=2)
+        with self.assertRaises(pc.PromptBlocked):
+            self.deliver(backend)
+        self.assertEqual(backend.writes, [])
 
     def test_idle_codex_and_omp_submit_without_queue_status(self):
         for harness in ("codex", "omp"):

@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.1.4
+
+- Recognize omp's compact text-attachment chips with their matching character-count cards,
+  so long peer messages submit automatically while retaining draft, dialog and UTF-16 length checks.
+
 ## 2.1.3
 
 - Count an `ask-other` Codex config key probe as recognized only on the native type/variant

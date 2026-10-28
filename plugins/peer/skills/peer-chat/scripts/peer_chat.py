@@ -34,6 +34,8 @@ CURSOR_RE = re.compile(r"\x1b\[(\d+);(\d+)H")
 PASTED_RE = re.compile(r"\[Pasted Content (\d+) chars?\]")
 CLAUDE_PASTED_RE = re.compile(r"\[Pasted text #\d+\]")
 OMP_PASTED_RE = re.compile(r"\[Paste #\d+, (?:(\d+) chars|\+(\d+) lines)\]")
+OMP_CHIP_RE = re.compile(r"((?:|📄|txt) #([1-9]\d*))")
+OMP_CARD_COUNT_RE = re.compile(r"╰[─ ]* (\d+) chars [─ ]*╯")
 STATUS_RE = re.compile(
     r"^(?:.*(?:·|\|).*|\? for shortcuts.*|msg:.*|"
     r"(?:esc|tab|shift\+tab|ctrl\+\w+) (?:to |for ).*|"
@@ -391,7 +393,31 @@ def claude_prompt_text(text: str) -> str | None:
 
 
 def omp_prompt_text(text: str) -> str | None:
-    return boxed_prompt_text(text, titled=True)
+    content = boxed_prompt_text(text, titled=True)
+    chip = OMP_CHIP_RE.fullmatch(content or "")
+    if not chip:
+        return content
+    # omp stages large pastes as an atomic chip with metadata in a separate
+    # card immediately above the composer. Never trust the opaque token alone.
+    lines = screen_lines(text)
+    lower = next(i for i in range(len(lines) - 1, -1, -1) if RULE_RE.fullmatch(lines[i]))
+    upper = next(i for i in range(lower - 1, -1, -1) if TOP_RULE_RE.match(lines[i]))
+    card = [line.rstrip() for line in lines[:upper]]
+    while card and not card[-1]:
+        card.pop()
+    if len(card) < 6:
+        return content
+    header, *body, footer = card[-6:]
+    if not re.fullmatch(r"╭[─ ]* " + re.escape(chip[1]) + r" [─ ]*╮", header):
+        return content
+    if not all(re.fullmatch(r"│.*│", line) for line in body):
+        return content
+    count = OMP_CARD_COUNT_RE.fullmatch(footer)
+    if not count:
+        return content
+    # Reuse the legacy paste's UTF-16 length check; the ID and caption must
+    # belong to this exact composer chip, not a historical or adjacent card.
+    return f"[Paste #{chip[2]}, {count[1]} chars]"
 
 
 def codex_prompt_text(text: str) -> str | None:

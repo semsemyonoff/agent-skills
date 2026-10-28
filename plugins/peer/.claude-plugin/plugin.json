@@ -1,7 +1,7 @@
 {
   "name": "peer",
   "description": "Shared neighboring-pane peer chat and cross-vendor CLI consultation for debugging, code and plan reviews across Claude Code, native Codex CLI and omp",
-  "version": "2.1.3",
+  "version": "2.1.4",
   "author": {
     "name": "semsemyonoff"
   }
