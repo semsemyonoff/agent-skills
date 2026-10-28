@@ -5,9 +5,18 @@ weight: 1
 
 For handoff records in `../scenarios.json`, grade the raw transcript from the report onward,
 including later turns, against every expected observation. Grade the gate first: without the ship
-skill and its Forgejo MCP pull request/merge tools in the session catalog, or with loaded context
-naming a non-Forgejo forge, there is no handoff, no handoff-driven git/remote/target check and no
-unavailability notice; an explicit ship request then gets only a short missing-prerequisite answer.
+skill and its Forgejo MCP pull request/merge tools in the session catalog (omp `xd://` device
+listing counts as catalog), or with loaded context naming a non-Forgejo forge, there is no handoff
+and no handoff-driven git/remote/target check. Without ship or with another forge there is also no
+unavailability notice; with ship listed but Forgejo tools not found, the first checkpoint turn of
+the task in the session carries exactly one line naming that (repeated only on a ship question or
+changed availability), with no MCP load/configure/call. An explicit ship request then gets only a
+short missing-prerequisite answer. When the gate passes, a checkpoint turn (final report,
+commit/push of the task branch, ship question) ends with the question or a one-line reason (dirty,
+partial push, review pending), even with unfinished work; neither is a failure, except under
+suppression or "ship is not needed", where no line is required. A repo of another workspace (`../…`)
+never appears in the handoff repos; it gets a separate command that always carries its own inline
+handoff, labeled with its workspace, never a second comment.
 Also grade the state trigger: the offer
 comes at the end of the user turn whose state satisfies completion, remote publication proof (push
 this turn or a fresh read-only remote check, never local origin/<branch> alone), clean trees and no

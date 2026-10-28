@@ -189,9 +189,11 @@ Do not stop at a phase boundary unless phase-by-phase execution was requested or
 requires a decision.
 
 At the end of any user turn, offer the **Ship handoff** in `references/templates.md` when its gate
-and state trigger hold (not only after the report; a later commit/push turn counts). Without the ship
-skill and its Forgejo MCP tools in this session, skip it silently before any git/remote check. Give a
-command for a new session; run ship here only on an explicit user request.
+and state trigger hold (not only after the report; a later commit/push turn counts). Check the gate
+before any git/remote check: without the ship skill (or with rules naming another forge), skip
+silently. A checkpoint turn (final report, commit/push of the task branch, ship question) ends with
+the question or a one-line reason; the exceptions and the one-time missing-Forgejo notice are in
+the template. Give a command for a new session; run ship here only on an explicit user request.
 
 ## Permission boundaries
 

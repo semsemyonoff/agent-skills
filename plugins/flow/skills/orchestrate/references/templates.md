@@ -73,21 +73,35 @@ not whole-product failure, and never roll false/error into an undifferentiated p
 
 Gate first, before any status, remote, task-ID or target check: the handoff applies only when the
 current session's skill/tool catalog lists the ship skill and the Forgejo MCP tools it needs (repo,
-branches, pull request create/read, merge). Check metadata only: deferred tools need not be loaded,
+branches, pull request create/read, merge). Check metadata only: deferred tools need not be loaded
+(in omp, MCP tools may be listed only in the `xd://` device listing; reading it is a metadata check),
 one arbitrary Forgejo tool is not enough, and no forge API call is made. Loaded project rules or
 context that identify a non-Forgejo forge (GitLab, GitHub) or disable the shipping handoff also fail
-the gate; do not guess the forge from a remote URL. On a failed gate skip everything below silently:
-no menu, command, task comment, target discovery or notice about the missing optional skill. The
-final report's Integration line carries the remaining delivery steps instead. An explicit user
-request for ship without the prerequisite gets a short statement of what is missing, not a command.
+the gate; do not guess the forge from a remote URL. On a failed gate skip everything below: no menu,
+command, task comment or target discovery. The final report's Integration line carries the
+remaining delivery steps instead. Whether to mention it depends on the cause:
+
+- Ship skill not listed, or loaded rules name another forge or disable the handoff: say nothing
+  about ship or the missing optional skill.
+- Ship listed but the needed Forgejo tools are not found: at the first checkpoint turn (below) of
+  the task in this session, add one line naming that (e.g. «Handoff в ship не предлагается: в сессии
+  не найдены Forgejo MCP-инструменты для PR/merge.»). Repeat it only when the user asks about ship
+  or tool availability changes, not on every new commit. Do not load, configure or call MCP to fix it.
+
+An explicit user request for ship without the prerequisite gets a short statement of what is
+missing, not a command.
 
 Decide at the end of every user turn (not after internal steps; a later "commit and push" turn and a
 push done inside the approved plan both count). Offer the question only when ALL hold. Check in this
 cheap-first order: 1, 4 (by local HEADs), 3, then the remote proof in 2 (`ls-remote` last).
 
-While work is clearly not finished and the user has not explicitly chosen to hand it off, skip the
-check silently. Name the reason for not offering (dirty / partial push / review pending) only in a
-turn that carries the final report, a commit/push, or a user question about ship.
+Checkpoint turns are those that carry the final report, a commit/push of the task branch, or a user
+question about ship; every other turn is an ordinary working turn. In an ordinary working turn
+while work is clearly not finished (and the user has not chosen to hand it off), skip the check
+silently. A checkpoint turn always shows the outcome: the question, or one line naming why it is not
+offered (dirty / partial push / review pending), even when work is unfinished. Ending a checkpoint
+turn with neither is a defect. Exceptions, where no line is needed: a gate failure that calls for
+silence or whose notice was already given (above), suppression (4), and "ship is not needed".
 
 1. Complete: the agreed implementation and mandatory gates/independent review are done, or the user
    explicitly chose to hand off unfinished work. A failed or pending review means no offer (say what
@@ -146,7 +160,13 @@ the handoff comment, which must be the last progress/report comment (ship treats
 Report selection authorizes exactly the displayed progress comment through vikunja's report flow,
 not closing the task. Use its read-before-write/dedup conventions. Keep these wire labels in Russian
 even in an English report; values can use the user's language. Each field occupies one line, optional
-leading `- ` is allowed. Repo paths are workspace-relative (`.` for the root); one common branch:
+leading `- ` is allowed. Repo paths are relative to the workspace the ship session runs in (`.` for
+its root); ship rejects a path leaving it (`../…`). When the task branch also lives in a repo of
+another workspace (e.g. a sibling deploy checkout), keep that repo out of this handoff and give it a
+separate command, ALWAYS with its own full inline handoff (below) even after a successful task
+comment, to run in a new session in that workspace. With more than one command, name the workspace
+of each. Never post a second handoff comment for it: ship takes the latest handoff comment of the
+task, so it would replace the first. One common branch:
 
 ```text
 **Прогресс (YYYY-MM-DD)**
@@ -171,14 +191,15 @@ its actual error and give the command with the full inline handoff below so the 
 facts.
 
 After either command-producing choice, give a copyable command and explicitly say **run in a new
-session in the same workspace**. Use the adapter selected at entry, never the model vendor:
+session in the same workspace** (for a sibling-workspace command, in that workspace). Use the adapter selected at entry, never the model vendor:
 Claude Code `/ship:ship <id>`, omp `/skill:ship <id>` (including Codex inside omp). Append
 `into <base>` only for a non-default target (the comment and snapshot carry Цель either way).
 Without a task, use the branch instead of the ID. Do not launch a new session, invoke ship, push,
 open a PR, wait for CI or merge here; only an explicit user request to ship in this session
 overrides that.
 
-After a successful task comment, the task command is enough. For command-only, no task, missing
+After a successful task comment, the task command is enough for the comment's workspace (a
+sibling-workspace command stays inline). For command-only, no task, missing
 vikunja, or failed comment, append the full Ветка/Цель/Проверено/Не проверено block as multiline
 skill arguments (without the Прогресс header or Что осталось). Include it even with an ID: this
 inline snapshot replaces any earlier task handoff as a whole, preventing stale target/checks. Show

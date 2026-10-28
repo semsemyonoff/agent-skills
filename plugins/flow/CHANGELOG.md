@@ -1,5 +1,11 @@
 # Changelog
 
+## 2.7.0
+
+- Make the ship handoff outcome visible: a checkpoint turn (final report, commit/push of the task branch, ship question) ends with the question or a one-line reason, except under suppression or "ship is not needed"; with ship listed but its Forgejo MCP tools not found, say so once per task in the session (still silent without ship or with another forge). In omp, Forgejo tools in the `xd://` device listing satisfy the gate.
+- Keep repos of another workspace (`../…`) out of the handoff; give them a separate command, labeled with its workspace and always carrying its own inline handoff, instead of a second task comment.
+- Add behavioral scenarios for the omp device listing, a commit/push turn with pending review, a one-time missing-Forgejo notice and a sibling-workspace repo.
+
 ## 2.6.0
 
 - Gate the ship handoff on the ship skill and its Forgejo MCP tools being in the session catalog, and on no loaded context naming another forge, before any git/remote check; otherwise skip it silently and list only confirmed remaining delivery steps in Integration.

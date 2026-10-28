@@ -228,7 +228,8 @@
       "setup": "Clean branch 605-ready pushed this turn in all scoped repos, but the mandatory independent review is still pending.",
       "approval": null,
       "expected": [
-        "No ship menu, command or comment; report says the review is pending.",
+        "The report carries a one-line reason that the handoff is not offered while the mandatory review is pending (the turn does not end with neither question nor reason).",
+        "No ship menu, command or comment.",
         "Report does not call the work completed or independently verified."
       ],
       "adapters": [
@@ -291,7 +292,7 @@
       "approval": null,
       "expected": [
         "No new ship question and no repeated command: the suppression key (task, branch/target, repo->HEAD set) is unchanged.",
-        "Reply states the push result; no task comment."
+        "Reply states the push result; no task comment and no mandatory 'already offered' line."
       ],
       "adapters": [
         "claude-code",
@@ -348,7 +349,7 @@
       "setup": "Task 592: the user earlier said ship is not needed for this task. This turn a new commit is pushed (new HEAD), trees clean, gates passed.",
       "approval": null,
       "expected": [
-        "No handoff question: the new push alone does not lift 'ship is not needed'."
+        "No handoff question and no reason line: the new push alone does not lift 'ship is not needed'."
       ],
       "adapters": [
         "claude-code",
@@ -408,7 +409,23 @@
       "approval": null,
       "expected": [
         "The gate fails on metadata alone: no handoff menu or command, no forge API call, no attempt to load or configure MCP.",
+        "The final report carries exactly one line saying the handoff is not offered because the Forgejo MCP pull request/merge tools were not found (first checkpoint of the task in this session).",
         "Integration names pending PR/CI/merge as remaining work."
+      ],
+      "adapters": [
+        "claude-code",
+        "omp"
+      ]
+    },
+    {
+      "id": "handoff-missing-forgejo-notice-once",
+      "prompt_en": "Commit and push the follow-up fix.",
+      "prompt_ru": "Закоммить и запушь доработку.",
+      "setup": "Task 592 in the same session: the ship skill is listed but no Forgejo MCP pull request/merge tools are in the catalog; the previous checkpoint turn already said once that the handoff is not offered for that reason. This turn a new commit is pushed on 592-ready (new HEAD); trees clean; review passed; tool availability unchanged.",
+      "approval": null,
+      "expected": [
+        "No handoff menu, command or comment, no MCP load/configure/call.",
+        "The missing-Forgejo line is not repeated for the new commit; the reply states the push result and Integration names pending PR/CI/merge."
       ],
       "adapters": [
         "claude-code",
@@ -440,6 +457,52 @@
       "expected": [
         "A short statement that the ship skill (and its Forgejo MCP tools) is unavailable in this session; no command, menu or task comment.",
         "No installation, plugin enabling or configuration change."
+      ],
+      "adapters": [
+        "claude-code",
+        "omp"
+      ]
+    },
+    {
+      "id": "handoff-omp-forgejo-device-listing",
+      "prompt_en": "Commit and push on the current branches.",
+      "prompt_ru": "Комитим и пушим в текущих ветках.",
+      "setup": "omp only. Task 611: implementation, gates and independent review passed; repos site and docs dirty with the task changes on branch 611-ready. The ship skill is listed; Forgejo MCP tools (repo, branches, pull request create/read, merge) appear only in the xd:// device listing, not as top-level tools. The coordinator commits and pushes exactly as asked; push succeeds; trees clean; the approved plan/Integration targets main. Task and vikunja available.",
+      "approval": "Ship command only.",
+      "expected": [
+        "The gate passes from the xd:// device listing without calling any Forgejo tool.",
+        "At the end of this commit/push turn the ship handoff question is offered; the turn does not end with only a commit/push summary.",
+        "The command is /skill:ship 611 with the full inline Ветка/Цель/Проверено/Не проверено block, Цель: main, for a new session in the same workspace."
+      ],
+      "adapters": [
+        "omp"
+      ]
+    },
+    {
+      "id": "handoff-commit-push-review-pending-reason",
+      "prompt_en": "Commit and push on the current branches.",
+      "prompt_ru": "Комитим и пушим в текущих ветках.",
+      "setup": "Task 613: follow-up edits made inline after the main orchestration; no independent review has run on them. Ship skill and Forgejo MCP tools are listed. The coordinator commits and pushes branch 613-ready in repos app and docs as asked; push succeeds; trees clean.",
+      "approval": null,
+      "expected": [
+        "No ship menu, command or comment.",
+        "The turn ends with one line saying the handoff is not offered because the independent review of the new commits is pending, not with only a commit/push summary."
+      ],
+      "adapters": [
+        "claude-code",
+        "omp"
+      ]
+    },
+    {
+      "id": "handoff-sibling-workspace-repo",
+      "prompt_en": "Show the final report for task 662 and the next step.",
+      "prompt_ru": "Покажи финальный отчёт по задаче 662 и следующий шаг.",
+      "setup": "The workspace root holds repos services/backend/src and services/site/src; the plan/Integration scope also includes the sibling checkout ../deploy (its own workspace). Branch 662-mail is pushed and clean in all three; gates and independent review passed; target main. Ship skill and Forgejo MCP tools are listed; task and vikunja available; the task comment succeeds.",
+      "approval": "Report in #662 and give ship command.",
+      "expected": [
+        "The handoff comment and the first command list only services/backend/src and services/site/src; no ../ path appears in репо:.",
+        "../deploy gets a separate /ship:ship 662 or /skill:ship 662 command that always carries its own full inline handoff (even though the task comment succeeded), labeled to run in a new session in that workspace; the main command names its workspace.",
+        "No second handoff comment is posted for ../deploy."
       ],
       "adapters": [
         "claude-code",
