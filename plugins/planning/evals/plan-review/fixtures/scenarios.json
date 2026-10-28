@@ -88,6 +88,70 @@
         "Earlier version-bound native findings are preserved, failure route/status and final unresolved current-version state are reported without successful chain claims."
       ],
       "adapters": ["claude-code", "omp"]
+    },
+    {
+      "id": 7,
+      "name": "owner-item-walked-by-final-task",
+      "plan": "plan-live-client.md",
+      "evidence": "evidence-client.md",
+      "checkpoint": false,
+      "prompt_en": "Review plan-live-client.md against evidence-client.md once before implementation with one independent native reviewer. REVIEW ONLY: no edits, no external models, no tests. Return the verdict and grounded findings.",
+      "prompt_ru": "Проверь plan-live-client.md по evidence-client.md один раз перед реализацией независимым native reviewer. ТОЛЬКО REVIEW: без правок, внешних моделей и тестов. Верни вердикт и обоснованные findings.",
+      "setup": "Synthetic plan keeps its live-client check correctly under Owner acceptance after run, but the final task says to verify every acceptance criterion. Evidence states only environment facts, not review rules.",
+      "expected": [
+        "Verdict is NEEDS REVISION with a blocker on the final task walking all acceptance criteria, including the owner-only live-client check the run cannot perform.",
+        "The finding cites ENV-1 and proposes limiting the final task to Executor acceptance and reporting Owner acceptance as pending, without dropping or weakening the owner item.",
+        "The plan and evidence stay byte-identical; no other reviewer pass, external call or test run occurs."
+      ],
+      "adapters": ["claude-code", "omp"]
+    },
+    {
+      "id": 8,
+      "name": "live-state-unknown-without-prerequisite",
+      "plan": "plan-live-state.md",
+      "evidence": "evidence-state.md",
+      "checkpoint": false,
+      "prompt_en": "Review plan-live-state.md against evidence-state.md once before implementation with one independent native reviewer. REVIEW ONLY: no edits, no external models, no tests. Return the verdict and grounded findings.",
+      "prompt_ru": "Проверь plan-live-state.md по evidence-state.md один раз перед реализацией независимым native reviewer. ТОЛЬКО REVIEW: без правок, внешних моделей и тестов. Верни вердикт и обоснованные findings.",
+      "setup": "Synthetic plan's Task 2 relies on existing persona data on dev. Evidence says nothing about which personas have data; the plan has no Run prerequisites and no task creating the data.",
+      "expected": [
+        "Verdict is NEEDS REVISION with a blocker on Task 2 relying on existing live state that is neither listed with a check in Run prerequisites nor created by a task, although the actual data state is unknown.",
+        "The correction proposes a Run prerequisites entry with an exact read-only check through the API, a creating task only with explicit data-write permission added to Execution boundaries, or a different placement; it does not invent the data state.",
+        "The plan and evidence stay byte-identical; no other reviewer pass, external call or test run occurs."
+      ],
+      "adapters": ["claude-code", "omp"]
+    },
+    {
+      "id": 9,
+      "name": "clean-plan-without-new-sections",
+      "plan": "plan-clean.md",
+      "evidence": "evidence-clean.md",
+      "checkpoint": false,
+      "prompt_en": "Review plan-clean.md against evidence-clean.md once before implementation with one independent native reviewer. REVIEW ONLY: no edits, no external models, no tests. Return the verdict and grounded findings.",
+      "prompt_ru": "Проверь plan-clean.md по evidence-clean.md один раз перед реализацией независимым native reviewer. ТОЛЬКО REVIEW: без правок, внешних моделей и тестов. Верни вердикт и обоснованные findings.",
+      "setup": "Negative control: synthetic plan has plain acceptance criteria, no live-state dependency and no Owner acceptance or Run prerequisites sections. Absence of those sections is not a finding.",
+      "expected": [
+        "Verdict is APPROVE: the missing Executor/Owner acceptance split and Run prerequisites are not reported as findings by format alone.",
+        "No invented live-state dependency, owner-only item or unrelated blocker is reported.",
+        "The plan and evidence stay byte-identical; no other reviewer pass, external call or test run occurs."
+      ],
+      "adapters": ["claude-code", "omp"]
+    },
+    {
+      "id": 10,
+      "name": "sql-only-prerequisite-check",
+      "plan": "plan-sql-prerequisite.md",
+      "evidence": "evidence-sql-prerequisite.md",
+      "checkpoint": false,
+      "prompt_en": "Review plan-sql-prerequisite.md against evidence-sql-prerequisite.md once before implementation with one independent native reviewer. REVIEW ONLY: no edits, no external models, no tests. Return the verdict and grounded findings.",
+      "prompt_ru": "Проверь plan-sql-prerequisite.md по evidence-sql-prerequisite.md один раз перед реализацией независимым native reviewer. ТОЛЬКО REVIEW: без правок, внешних моделей и тестов. Верни вердикт и обоснованные findings.",
+      "setup": "Synthetic plan lists a Run prerequisites entry for the invoice, but its check is SQL-only while the scenario reads the invoice through the API under a member role, and no dependent task reruns the check. Evidence states neutral API facts only.",
+      "expected": [
+        "Verdict is NEEDS REVISION with a blocker that the Run prerequisites check goes through the database, not the API and role Task 2 uses, and is not rerun by the first dependent task.",
+        "The correction proposes an exact read-only API check under the member role with the expected result, run before the run and rerun by Task 2, without inventing the data state.",
+        "The plan and evidence stay byte-identical; no other reviewer pass, external call or test run occurs."
+      ],
+      "adapters": ["claude-code", "omp"]
     }
   ]
 }

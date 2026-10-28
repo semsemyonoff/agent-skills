@@ -42,6 +42,34 @@
       "expected_output": "Each branch stops at its actual failure; unavailable preflight and timed-out attempt are distinguished, no success/model identity fabricated or fallback launched.",
       "files": ["../../evals/plan-review/fixtures/plan.md", "../../evals/plan-review/fixtures/evidence.md", "../../evals/plan-review/fixtures/scenarios.json"],
       "expectations": ["Unavailable/timeout stop without retry or substitute pass.", "No bypass, fallback, install, credential/config change or unrelated disclosure occurs.", "Failed call/preflight is not completed consultation; null model stays unknown.", "Original findings and version-specific unresolved state remain visible."]
+    },
+    {
+      "id": 7,
+      "prompt": "Review plan-live-client.md against evidence-client.md once before implementation. Review only: no edits, external models or tests.",
+      "expected_output": "Verdict NEEDS REVISION: Synthetic plan keeps its live-client check correctly under Owner acceptance after run, but the final task says to verify every acceptance criterion. Evidence states only environment facts, not review rules.",
+      "files": ["../../evals/plan-review/fixtures/plan-live-client.md", "../../evals/plan-review/fixtures/evidence-client.md"],
+      "expectations": ["Verdict is NEEDS REVISION with a blocker on the final task walking all acceptance criteria, including the owner-only live-client check the run cannot perform.", "The finding cites ENV-1 and proposes limiting the final task to Executor acceptance and reporting Owner acceptance as pending, without dropping or weakening the owner item.", "The plan and evidence stay byte-identical; no other reviewer pass, external call or test run occurs."]
+    },
+    {
+      "id": 8,
+      "prompt": "Проверь plan-live-state.md по evidence-state.md один раз перед реализацией. Только review: без правок, внешних моделей и тестов.",
+      "expected_output": "Verdict NEEDS REVISION: Synthetic plan's Task 2 relies on existing persona data on dev. Evidence says nothing about which personas have data; the plan has no Run prerequisites and no task creating the data.",
+      "files": ["../../evals/plan-review/fixtures/plan-live-state.md", "../../evals/plan-review/fixtures/evidence-state.md"],
+      "expectations": ["Verdict is NEEDS REVISION with a blocker on Task 2 relying on existing live state that is neither listed with a check in Run prerequisites nor created by a task, although the actual data state is unknown.", "The correction proposes a Run prerequisites entry with an exact read-only check through the API, a creating task only with explicit data-write permission added to Execution boundaries, or a different placement; it does not invent the data state.", "The plan and evidence stay byte-identical; no other reviewer pass, external call or test run occurs."]
+    },
+    {
+      "id": 9,
+      "prompt": "Review plan-clean.md against evidence-clean.md once before implementation. Review only: no edits, external models or tests.",
+      "expected_output": "Verdict APPROVE: Negative control: synthetic plan has plain acceptance criteria, no live-state dependency and no Owner acceptance or Run prerequisites sections. Absence of those sections is not a finding.",
+      "files": ["../../evals/plan-review/fixtures/plan-clean.md", "../../evals/plan-review/fixtures/evidence-clean.md"],
+      "expectations": ["Verdict is APPROVE: the missing Executor/Owner acceptance split and Run prerequisites are not reported as findings by format alone.", "No invented live-state dependency, owner-only item or unrelated blocker is reported.", "The plan and evidence stay byte-identical; no other reviewer pass, external call or test run occurs."]
+    },
+    {
+      "id": 10,
+      "prompt": "Проверь plan-sql-prerequisite.md по evidence-sql-prerequisite.md один раз перед реализацией. Только review: без правок, внешних моделей и тестов.",
+      "expected_output": "Verdict NEEDS REVISION: Synthetic plan lists a Run prerequisites entry for the invoice, but its check is SQL-only while the scenario reads the invoice through the API under a member role, and no dependent task reruns the check. Evidence states neutral API facts only.",
+      "files": ["../../evals/plan-review/fixtures/plan-sql-prerequisite.md", "../../evals/plan-review/fixtures/evidence-sql-prerequisite.md"],
+      "expectations": ["Verdict is NEEDS REVISION with a blocker that the Run prerequisites check goes through the database, not the API and role Task 2 uses, and is not rerun by the first dependent task.", "The correction proposes an exact read-only API check under the member role with the expected result, run before the run and rerun by Task 2, without inventing the data state.", "The plan and evidence stay byte-identical; no other reviewer pass, external call or test run occurs."]
     }
   ]
 }

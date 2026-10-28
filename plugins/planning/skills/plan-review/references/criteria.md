@@ -8,6 +8,16 @@ Unknowns are not findings. Do not edit the plan or run its commands to prove a r
    Check assumptions, data flow, boundaries and relevant failure cases against repository evidence.
 2. **Completeness:** every explicit requirement/acceptance criterion has an achievable plan outcome;
    prerequisite information is not silently dropped, stubbed or hidden as an unspecified follow-up.
+   Blockers: an Executor acceptance criterion (or a task walking it) that needs an action the run
+   cannot perform (unavailable runner/tool, forbidden action, live client); a task or checkbox that
+   walks Owner acceptance after run, including a final "verify every acceptance criterion" when
+   owner items exist; a requirement moved to Owner acceptance that is weakened or dropped instead
+   of kept as stated; a task relying on existing live state unless Run prerequisites holds an exact
+   read-only check of it through the interface and role the scenario uses (SQL alone does not count
+   for an API-driven scenario) with the expected result, run before the run starts and rerun by the
+   first dependent task (or the preflight task the loaded rules designate), or a task creates that
+   state with explicit permission.
+   A plan without these sections that has no such problem is not a finding by format alone.
 3. **Scope and dependencies:** exact files/actions and protected areas are coherent. Tasks consume
    inputs already established by preceding work; no impossible ordering or unapproved outward action.
 4. **Proportionate design:** reuse existing conventions. Flag unnecessary abstraction/frameworks or

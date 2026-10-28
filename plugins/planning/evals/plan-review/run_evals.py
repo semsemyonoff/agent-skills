@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Prepare 24 isolated comparisons; optionally run ONE explicitly selected native session.
+"""Prepare 40 isolated comparisons; optionally run ONE explicitly selected native session.
 
 No model overrides, tool-name translation, retries, grading, installs or config writes.
 Tool lists are required inputs grounded in the coordinator's discovered native schemas.
@@ -60,7 +60,11 @@ def blocker(section, evidence, impact, fix):
             "impact": impact, "fix": fix}
 
 
-def checkpoint(case, adapter, plan, original):
+def checkpoint(case, adapter, plan, original, minimal=False):
+    if minimal:
+        return {"synthetic": True, "not_runtime_evidence": True,
+                "disclosure_scope": ["plan", "evidence", "explicit review request"],
+                "selected_rules_data": {"review_chain": None}, "real_user_answer": None}
     cursor = blocker("Implementation step 2", "API-1: short pages may have next_cursor",
                      "Premature termination loses invoices", "Stop only at next_cursor null")
     product = blocker("Goal", "PRODUCT-1 requires initial snapshot, not later invoices",
@@ -135,14 +139,15 @@ def prepare(args):
                 run = output / adapter / f"eval-{case['id']}-{case['name']}" / variant / "run-1"
                 run.mkdir(parents=True)
                 (run / "outputs").mkdir()
-                plan = run / "plan.md"
-                original = (ROOT / "fixtures/plan.md").read_text(encoding="utf-8")
+                plan = run / case.get("plan", "plan.md")
+                evidence_name = case.get("evidence", "evidence.md")
+                original = (ROOT / "fixtures" / case.get("plan", "plan.md")).read_text(encoding="utf-8")
                 plan.write_text(original, encoding="utf-8")
-                (run / "evidence.md").write_bytes((ROOT / "fixtures/evidence.md").read_bytes())
-                dump(run / "checkpoint.json", checkpoint(case["id"], adapter, plan, original))
+                (run / evidence_name).write_bytes((ROOT / "fixtures" / evidence_name).read_bytes())
+                dump(run / "checkpoint.json", checkpoint(case["id"], adapter, plan, original, not case.get("checkpoint", True)))
                 task = case[f"prompt_{language}"]
                 prompt = (f"Use the plan-review skill from this selected plugin only: {plugin.resolve()}.\n"
-                          f"Selected evaluation files: {plan}, {run / 'evidence.md'}, {run / 'checkpoint.json'}.\n"
+                          f"Selected evaluation files: {plan}, {run / evidence_name}, {run / 'checkpoint.json'}.\n"
                           "This is an isolated evaluation. Checkpoint history is synthetic data, not proof of live calls/UI. "
                           "Read only selected files and bundled skill resources. No external model calls, tests, builds, "
                           "installs, configuration/auth changes, commits, tracker/peer messages or unrelated reads. "
@@ -154,7 +159,7 @@ def prepare(args):
                 dump(run / "eval_metadata.json", {"eval_id": case["id"], "eval_name": case["name"],
                      "prompt": prompt, "assertions": case["expected"], "language": language})
                 dump(run / "initial-state.json", {"sha256": {name: hashlib.sha256((run / name).read_bytes()).hexdigest()
-                     for name in ("plan.md", "evidence.md", "checkpoint.json")}})
+                     for name in (plan.name, evidence_name, "checkpoint.json")}})
                 dump(run / "session.json", {"adapter": adapter, "plugin": str(plugin.resolve()),
                      "variant": variant, "language": language, "runtime_status": "not_run"})
                 records.append(str(run))
@@ -253,7 +258,7 @@ def execute(args):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     mode = parser.add_mutually_exclusive_group(required=True)
-    mode.add_argument("--output", type=Path, help="Prepare NEW workspace with 24 sessions, no model calls")
+    mode.add_argument("--output", type=Path, help="Prepare NEW workspace with 40 sessions, no model calls")
     mode.add_argument("--run", type=Path, help="Execute ONE prepared session; coordinator authorization required")
     parser.add_argument("--current", type=Path)
     parser.add_argument("--baseline", type=Path)

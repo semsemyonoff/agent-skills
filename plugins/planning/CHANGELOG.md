@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.0
+
+- Plan format separates Executor acceptance (proved by the run) from Owner acceptance after run (kept as stated, never walked by a task) and adds optional Run prerequisites with read-only checks; the final task verifies only Executor acceptance. Plan-review blocks unreachable executor criteria, tasks walking owner acceptance, weakened owner requirements and undeclared live-state dependencies; a live-state prerequisite must be an exact read-only check through the scenario's interface and role, rerun by the first dependent task; four eval cases added (three blockers, one negative control).
+
 ## 1.3.1
 
 - Plan-review `consult.py` no longer pins codex-cli 0.162.1: any Codex build is accepted when `codex features list` confirms every disabled feature and each config key is recognized by a wrongly typed probe (ported from peer `ask-other`).
