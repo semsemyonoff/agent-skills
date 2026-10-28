@@ -41,6 +41,14 @@ remains an omp session.
   root/task usage. `--include-exec` includes automation only when `originator == codex_exec` or
   `source == exec`; child inclusion does not override that filter, so automation children may require
   both options.
+- Codex user-role records are classified: `user`, `peer` (`Chat from Claude|Codex|omp` peer-chat
+  messages), `automation` (exec/automation sessions and markers) and `injected` (AGENTS.md,
+  environment/permission context). Only `user` becomes a prompt; `codex_message_kinds` counts all
+  four. Spawn calls feed `subagent_calls` and `codex_spawn_observations` (observed model/effort);
+  spawns recorded only in `codex_exec` sessions appear only with `--include-exec`, so an empty
+  routing section without it is not lost data. Both fields stay empty for other sources.
+- Failed Codex tool items are joined to their calls by item id and carry the recorded cause; when
+  none is recorded the error keeps the exit code with "diagnostic cause unavailable".
 - When a recorded call output/completion timestamp is available, Codex tool `duration_seconds` is
   call-to-result elapsed time (`duration_source: call_to_result_elapsed`), not process runtime.
 - Usage events come from per-response `token_usage_record.usage`; never sum cumulative turn/thread

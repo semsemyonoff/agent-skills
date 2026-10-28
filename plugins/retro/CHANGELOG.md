@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.3.4
+
+- Separate Codex user, peer, automation and injected messages; correlate tool failures with recorded causes, count spawn activity without duplicate calls, and attribute usage to recorded model/effort settings.
+
 ## 1.3.3
 
 - Quote the `reflection` skill description so strict YAML parsers (skills.sh) no longer skip the skill for Codex and omp.

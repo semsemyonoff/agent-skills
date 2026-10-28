@@ -423,6 +423,11 @@ def codex_usage(usage):
 
 def codex_status(item):
     """Only explicit stored status/result fields prove success or failure."""
+    if isinstance(item, str):
+        try:
+            item = json.loads(item)
+        except ValueError:
+            return "unknown"
     item = obj(item)
     code = numeric(item.get("exit_code"))
     if code is not None:
@@ -447,10 +452,59 @@ def codex_status(item):
     return "success" if status in ("completed", "success", "succeeded") else "unknown"
 
 
+def codex_message_kind(text, automation=False):
+    text = text.strip()
+    if text.startswith(("# AGENTS.md instructions", "<environment_context>",
+                        "<permissions instructions>", *META_PREFIXES)):
+        return "injected"
+    if re.match(r"Chat from (?:Claude|Codex|omp)(?: \(reply via peer-chat skill\))?:", text):
+        return "peer"
+    if automation or text.startswith(("<automation", "[Automated", "Automation:")):
+        return "automation"
+    return "user"
+
+
+def codex_failure_text(value):
+    """Prefer a recorded cause over transport envelopes and command echoes."""
+    if isinstance(value, str):
+        try:
+            decoded = json.loads(value)
+        except ValueError:
+            return value.strip()
+        return codex_failure_text(decoded) if isinstance(decoded, dict) else value.strip()
+    value = obj(value)
+    if isinstance(value.get("exit_code"), int):
+        output = value.get("stderr") or value.get("aggregated_output") or value.get("output")
+        if isinstance(output, str):
+            # A failed batch may print successful reads before its diagnostic.
+            lines = [line.strip() for line in output.splitlines() if line.strip()]
+            diagnostics = [line for line in lines if re.match(
+                r"(?:[\w.]*Error:|error:|fatal:|peer-chat:|peer composer|"
+                r"(?:rg|cat|bash|zsh|sh|ssh|curl|python3?):)", line, re.I)]
+            if diagnostics:
+                return diagnostics[-1]
+            if value.get("stderr"):
+                return codex_failure_text(value["stderr"])
+        return "Process exited with code " + str(value["exit_code"]) + "; diagnostic cause unavailable"
+    for field in ("error", "Err", "reason", "stderr", "aggregated_output", "message", "output",
+                  "result", "Ok", "formatted_output", "stdout"):
+        text = codex_failure_text(value.get(field)) if value.get(field) is not None else ""
+        if text:
+            return text
+    text = text_content(value.get("content"))
+    if text:
+        return text
+    if value.get("exit_code") is not None:
+        return "Process exited with code " + str(value["exit_code"])
+    return ""
+
+
 def normalize_codex(sess, diagnostics=None):
     diagnostics = diagnostics if diagnostics is not None else collections.Counter()
     sess["diagnostics"] = {}
     events, calls, outputs, completions = [], {}, {}, []
+    spawns = {}
+    turn_states = {}
     state = {"provider": string(sess.get("model_provider")), "model": None,
              "effort": None, "configured_effort": None}
     # Copies of the same append must not charge the same response twice.
@@ -472,9 +526,17 @@ def normalize_codex(sess, diagnostics=None):
         return event
 
     def usage_event_at(usage, source, key, record, raw_fingerprint, **coverage):
+        payload = obj(record.get("payload"))
+        route = dict(turn_states.get(payload.get("turn_id"), state))
+        for field, aliases in (("model", ("model",)), ("provider", ("model_provider_id", "model_provider")),
+                               ("effort", ("effort", "reasoning_effort"))):
+            for alias in aliases:
+                if alias in payload:
+                    route[field] = string(payload[alias])
+                    break
         emit("usage", key, record, raw_fingerprint, usage=codex_usage(usage),
              reported_total=numeric(obj(usage).get("total_tokens")) is not None,
-             usage_source=source, **state, **coverage)
+             usage_source=source, **route, **coverage)
 
     for raw_fingerprint, (path, number, record) in ordered:
         typ, payload = record.get("type"), obj(record.get("payload"))
@@ -485,6 +547,8 @@ def normalize_codex(sess, diagnostics=None):
             for field in ("model", "effort"):
                 state[field] = string(payload.get(field))
             state["configured_effort"] = state["effort"]
+            if string(payload.get("turn_id")):
+                turn_states[payload["turn_id"]] = dict(state)
             emit("meta", key, record, raw_fingerprint, **state)
         elif typ == "token_usage_record":
             if isinstance(payload.get("usage"), dict):
@@ -505,7 +569,9 @@ def normalize_codex(sess, diagnostics=None):
                     b["text"] for b in blocks(text) if isinstance(b.get("text"), str))
                 role = payload.get("role")
                 if role == "user" and text.strip() and not sess["is_subagent"]:
-                    emit("prompt", key, record, raw_fingerprint, text=text, command=False)
+                    message_kind = codex_message_kind(text, sess.get("automation", False))
+                    emit("prompt" if message_kind == "user" else "message", key, record,
+                         raw_fingerprint, text=text, command=False, message_kind=message_kind)
                 else:
                     emit("meta", key, record, raw_fingerprint)
             elif item_type in ("function_call", "custom_tool_call"):
@@ -522,6 +588,9 @@ def normalize_codex(sess, diagnostics=None):
                              raw_input=raw, status="unknown", **state)
                 if call_id:
                     calls[call_id] = event
+                if event["name"].split(".")[-1] == "spawn_agent":
+                    spawns[call_id or key] = emit("spawn", call_id or key, record, raw_fingerprint,
+                                                arguments=obj(arguments))
             elif item_type in ("function_call_output", "custom_tool_call_output"):
                 if string(payload.get("call_id")):
                     outputs[payload["call_id"]] = (payload.get("output"), timestamp(record.get("timestamp")))
@@ -531,10 +600,13 @@ def normalize_codex(sess, diagnostics=None):
         elif typ == "event_msg":
             event_type = payload.get("type")
             if event_type == "thread_settings_applied":
-                settings = obj(payload.get("settings")) or payload
+                settings = obj(payload.get("thread_settings")) or obj(payload.get("settings")) or payload
                 for field in ("model", "effort"):
-                    state[field] = string(settings.get(field, settings.get("reasoning_effort") if field == "effort" else None))
+                    alias = "reasoning_effort" if field == "effort" else field
+                    if field in settings or alias in settings:
+                        state[field] = string(settings.get(field, settings.get(alias)))
                 state["configured_effort"] = state["effort"]
+                state["provider"] = string(settings.get("model_provider_id")) or state["provider"]
                 emit("meta", key, record, raw_fingerprint, **state)
             elif event_type == "token_count":
                 snapshot = obj(payload.get("info")).get("total_token_usage")
@@ -555,7 +627,7 @@ def normalize_codex(sess, diagnostics=None):
                     previous_snapshot = snapshot
                     sess["usage_coverage_end"] = previous_snapshot_time
                     sess["thread_total"], sess["usage_source"] = codex_usage(snapshot), "token_count"
-            elif event_type in ("item_completed", "mcp_tool_call_end"):
+            elif event_type in ("item_completed", "mcp_tool_call_end", "exec_command_end", "patch_apply_end"):
                 item = obj(payload.get("item")) or payload
                 completions.append((item, payload, key, record, raw_fingerprint))
             elif event_type in ("error", "stream_error"):
@@ -587,29 +659,70 @@ def normalize_codex(sess, diagnostics=None):
     for call_id, (output, ended) in outputs.items():
         if call_id in calls:
             calls[call_id]["output"] = output
-            calls[call_id]["status"] = codex_status(obj(output))
+            calls[call_id]["status"] = codex_status(output)
             record_result_time(call_id, ended)
+    spawn_paths = {}
+    for call_id, event in spawns.items():
+        output = outputs.get(call_id, (None, None))[0]
+        if isinstance(output, str):
+            try:
+                output = json.loads(output)
+            except ValueError:
+                output = None
+        path = string(obj(output).get("task_name"))
+        if path:
+            spawn_paths[path] = event
+    seen_failures = set()
+    seen_agents = set()
     for item, payload, key, record, raw_fingerprint in completions:
-        call_id = string(item.get("call_id")) or string(payload.get("call_id"))
+        call_id = string(item.get("call_id")) or string(payload.get("call_id")) or string(item.get("id"))
+        if item.get("type") == "SubAgentActivity" and item.get("kind") == "started":
+            agent_id = string(item.get("agent_thread_id")) or string(item.get("agent_path"))
+            if agent_id and agent_id not in seen_agents:
+                seen_agents.add(agent_id)
+                spawn = spawn_paths.get(item.get("agent_path"))
+                if spawn is None:
+                    spawn = emit("spawn", call_id or key, record, raw_fingerprint, arguments={})
+                spawn["observed_model"] = string(item.get("model"))
+                spawn["observed_effort"] = string(item.get("reasoning_effort"))
+            continue
         status = codex_status(item)
+        # Nested exec calls can have no response_item: the persisted completion
+        # proves the invocation, but not its start time or parent wrapper call.
+        if call_id and call_id not in calls and item.get("type") in ("CommandExecution", "McpToolCall", "FileChange"):
+            name = {"CommandExecution": "exec_command", "FileChange": "apply_patch"}.get(
+                item["type"], item.get("tool") or "mcp")
+            calls[call_id] = emit("tool", call_id, record, raw_fingerprint, name=name,
+                                 arguments=obj(item.get("arguments")), status="unknown",
+                                 completion_only=True, **state)
         if call_id in calls:
             if status != "unknown":
                 calls[call_id]["status"] = status
-            if call_id not in result_times:
+            if call_id not in result_times and not calls[call_id].get("completion_only"):
                 record_result_time(call_id, timestamp(record.get("timestamp")))
             if "output" not in calls[call_id] and item.get("result") is not None:
                 calls[call_id]["output"] = item["result"]
+            if status == "error":
+                cause = codex_failure_text(item)
+                if cause:
+                    calls[call_id]["failure_text"] = cause
         elif status == "error":
+            if call_id and call_id in seen_failures:
+                continue
+            if call_id:
+                seen_failures.add(call_id)
             diagnostics["unjoined_tool_failures"] += 1
             sess["diagnostics"]["unjoined_tool_failures"] = sess["diagnostics"].get("unjoined_tool_failures", 0) + 1
-            emit("error", key, record, raw_fingerprint, name="session",
-                 text=item.get("error") or item.get("result") or "Unjoined failed tool item")
+            emit("error", key, record, raw_fingerprint, tool_id=call_id,
+                 name=item.get("tool") or item.get("type") or "session",
+                 text=codex_failure_text(item) or "Explicit tool failure; cause unavailable")
     for call_id, event in calls.items():
         if event["status"] == "error":
             ended = result_times.get(call_id) or event["time"]
             emit("error", "result:" + call_id, {"timestamp": ended.isoformat() if ended else None},
                  event["fingerprint"], tool_id=call_id, name=event["name"],
-                 text=event.get("output") or "Explicit tool failure")
+                 text=event.get("failure_text") or codex_failure_text(event.get("output"))
+                 or "Explicit tool failure; cause unavailable")
     return events
 
 
@@ -698,6 +811,8 @@ def digest(args):
                 families.setdefault(target, target)
             families[family(sid)] = family(target)
     tools, errors, denials, denial_tools, openers = (collections.Counter() for _ in range(5))
+    message_kinds = collections.Counter()
+    spawn_observations = collections.Counter()
     routing = collections.Counter()
     usage_groups = collections.defaultdict(list)
     usage_routes = collections.defaultdict(list)
@@ -753,6 +868,8 @@ def digest(args):
         session_usage = []
         for event in selected:
             kind = event["kind"]
+            if kind in ("prompt", "message") and sess["source"] == "codex":
+                message_kinds[event.get("message_kind", "user")] += 1
             if kind == "usage":
                 provider, model = event["provider"], event["model"]
                 group = f"{sess['source']}:{provider or 'unknown'}/{model or 'unknown'}"
@@ -771,6 +888,13 @@ def digest(args):
                     for item in items:
                         routing[(sess["source"], string(item.get("subagent_type")) or string(item.get("agent")) or "default", string(item.get("model")), string(item.get("effort")))] += 1
                         row["agents"] += 1
+            elif kind == "spawn":
+                arguments = event["arguments"]
+                routing[(sess["source"], string(arguments.get("agent_type")) or "default",
+                         string(arguments.get("model")), string(arguments.get("reasoning_effort")))] += 1
+                row["agents"] += 1
+                if event.get("observed_model") or event.get("observed_effort"):
+                    spawn_observations[(event.get("observed_model"), event.get("observed_effort"))] += 1
             elif kind == "error":
                 name = event.get("name") or names.get(string(event.get("tool_id")), "?")
                 text = str(event["text"])
@@ -816,6 +940,9 @@ def digest(args):
         "roots": {source: redact(root) for source, root in roots.items()}, "diagnostics": dict(diagnostics),
         "files_read": diagnostics["files_read"], "sessions_total": len(session_rows),
         "prompts_total": sum(row["prompts"] for row in session_rows),
+        "codex_message_kinds": dict(message_kinds),
+        "codex_spawn_observations": [{"model": model, "effort": effort, "count": count}
+                                     for (model, effort), count in spawn_observations.items()],
         "note": "heuristic extraction; all event totals obey source/project/period/SDK/subagent filters; null metrics are unavailable, known sums may be partial; all historical branches count, not just active context",
         "projects_top": top(collections.Counter(row["project"] for row in session_rows), 10),
         "tools_top": top(tools, 15), "errors_top": top(errors, 15), "denials": top(denials, 10),
@@ -867,6 +994,8 @@ def fmt_md(digest_value):
     lines.extend(("\n## Subagent routing", f"explicit model: {digest_value['subagent_model_set']} | no explicit model: {digest_value['subagent_model_unset']} (omp resolves roles/policy; Claude may inherit)"))
     for row in digest_value["subagent_calls"]:
         lines.append(f"- {row['count']}x {row['source']}:{row['subagent_type']} model={row['model'] or 'unavailable'} effort={row['effort'] or 'unavailable'}")
+    for row in digest_value["codex_spawn_observations"]:
+        lines.append(f"- observed Codex spawn: {row['count']}x model={row['model'] or 'unavailable'} effort={row['effort'] or 'unavailable'} (not an explicit override)")
     lines.append("\n## Tokens by source/provider/model")
     for key, usage in digest_value["tokens_by_model"].items():
         lines.append(f"- {key}: " + " | ".join(f"{name} {metric(usage[name])}" for name in METRICS) + f" | calls {usage['messages']} | known {json.dumps(usage['known'])} | missing {json.dumps(usage['missing'])}")
@@ -875,6 +1004,8 @@ def fmt_md(digest_value):
         lines.append(f"- {row['source']}:{row['provider'] or 'unavailable'}/{row['model'] or 'unavailable'} effort={row['effort'] or 'unavailable'} configured={row['configured_effort'] or 'unavailable'} calls={row['usage']['messages']}")
     if "output_tokens_main_vs_subagent" in digest_value:
         lines.append("output main/subagent: " + json.dumps(digest_value["output_tokens_main_vs_subagent"]))
+    if digest_value["codex_message_kinds"]:
+        lines.append("\nCodex message kinds: " + json.dumps(digest_value["codex_message_kinds"]))
     lines.extend(("\n## Prompt openers", counts(digest_value["prompt_openers_top"]),
                   f"\n## User prompts ({digest_value['prompts_omitted']} omitted)"))
     for row in digest_value["prompts"]:

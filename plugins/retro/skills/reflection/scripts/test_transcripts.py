@@ -414,6 +414,119 @@ class CodexTranscriptTest(unittest.TestCase):
         session = sessions["codex:native"]
         return session, transcripts.normalize(session, diagnostics), diagnostics
 
+    def test_user_peer_automation_and_injected_messages_are_separate(self):
+        messages = ["# AGENTS.md instructions for /work/demo\n<INSTRUCTIONS>rules</INSTRUCTIONS>",
+                    "<environment_context>cwd</environment_context>",
+                    "Chat from Claude (reply via peer-chat skill): проверь diff",
+                    "Chat from omp: inspect the patch", "Automation: scheduled check",
+                    "Explain how AGENTS.md instructions work"]
+        self.load_codex([*self.base, *[
+            codex_record(index, "response_item", type="message", role="user", content=text)
+            for index, text in enumerate(messages, 3)]])
+        digest = self.run_cli("codex")
+        self.assertEqual(digest["prompts_total"], 2)
+        self.assertEqual(digest["codex_message_kinds"],
+                         {"user": 2, "peer": 2, "automation": 1, "injected": 2})
+        self.assertTrue(all(not p["text"].startswith(("# AGENTS", "Chat from", "Automation:"))
+                            for p in digest["prompts"]))
+        self.assertEqual(digest["sessions"][0]["first_prompt"], "implement synthetic plan")
+
+    def test_included_exec_messages_are_not_user_prompts(self):
+        records = [codex_record(0, "session_meta", id="native", cwd="/work/demo", source="exec"),
+                   *self.base[1:]]
+        self.load_codex(records)
+        digest = self.run_cli("codex", "--include-exec")
+        self.assertEqual(digest["prompts_total"], 0)
+        self.assertEqual(digest["codex_message_kinds"], {"automation": 1})
+
+    def test_completion_ids_join_calls_and_normalize_causes_once(self):
+        _, events, diagnostics = self.load_codex([*self.base,
+            codex_record(3, "response_item", type="function_call", call_id="cmd",
+                         name="exec_command", arguments='{"cmd":"missing"}'),
+            codex_record(4, "event_msg", type="exec_command_end", call_id="cmd",
+                         exit_code=127, stderr="command not found: missing"),
+            codex_record(5, "event_msg", type="item_completed", item={
+                "type": "CommandExecution", "id": "cmd", "status": "failed", "exit_code": 127,
+                "stderr": "command not found: missing", "aggregated_output": "wrapper header"})])
+        errors = [e for e in events if e["kind"] == "error"]
+        self.assertEqual(len(errors), 1)
+        self.assertEqual((errors[0]["tool_id"], errors[0]["name"], errors[0]["text"]),
+                         ("cmd", "exec_command", "command not found: missing"))
+        self.assertEqual(diagnostics["unjoined_tool_failures"], 0)
+        self.assertEqual(len([e for e in events if e["kind"] == "tool"]), 1)
+
+    def test_completion_only_tool_keeps_identity_without_inventing_duration(self):
+        item = {"type": "CommandExecution", "id": "nested", "status": "failed",
+                "stderr": "permission denied", "exit_code": 1}
+        _, events, _ = self.load_codex([*self.base,
+            codex_record(3, "event_msg", type="item_completed", item=item),
+            codex_record(4, "event_msg", type="item_completed", item=item)])
+        tool = next(e for e in events if e["kind"] == "tool")
+        self.assertTrue(tool["completion_only"])
+        self.assertNotIn("duration_seconds", tool)
+        errors = [e for e in events if e["kind"] == "error"]
+        self.assertEqual(len(errors), 1)
+        self.assertEqual(errors[0]["tool_id"], tool["key"])
+        self.assertEqual(self.run_cli("codex")["denials_by_tool"],
+                         [{"name": "exec_command / permission denied", "count": 1}])
+
+    def test_json_tool_failure_and_batch_diagnostics(self):
+        _, events, _ = self.load_codex([*self.base,
+            codex_record(3, "response_item", type="function_call", call_id="mcp",
+                         name="mcp", arguments="{}"),
+            codex_record(4, "response_item", type="function_call_output", call_id="mcp",
+                         output=json.dumps({"isError": True, "content": [
+                             {"type": "text", "text": "backend unavailable"}]})),
+            codex_record(5, "event_msg", type="item_completed", item={
+                "type": "CommandExecution", "id": "batch", "exit_code": 2,
+                "aggregated_output": "successful file listing\nrg: /work/demo/missing: No such file or directory"}),
+            codex_record(6, "event_msg", type="item_completed", item={
+                "type": "CommandExecution", "id": "unknown", "exit_code": 1,
+                "aggregated_output": "some source code"})])
+        errors = {e["tool_id"]: e["text"] for e in events if e["kind"] == "error"}
+        self.assertEqual(errors["mcp"], "backend unavailable")
+        self.assertEqual(errors["batch"], "rg: /work/demo/missing: No such file or directory")
+        self.assertEqual(errors["unknown"], "Process exited with code 1; diagnostic cause unavailable")
+
+    def test_spawn_calls_and_activity_are_deduplicated_with_observed_routing(self):
+        self.load_codex([*self.base,
+            codex_record(3, "response_item", type="function_call", call_id="spawn",
+                         name="spawn_agent", arguments=json.dumps({
+                             "task_name": "review", "model": "small", "reasoning_effort": "high"})),
+            codex_record(4, "response_item", type="function_call_output", call_id="spawn",
+                         output=json.dumps({"task_name": "/root/review"})),
+            codex_record(5, "event_msg", type="item_completed", item={
+                "type": "SubAgentActivity", "id": "activity", "kind": "started",
+                "agent_thread_id": "child", "agent_path": "/root/review",
+                "model": "small", "reasoning_effort": "high"}),
+            codex_record(6, "event_msg", type="item_completed", item={
+                "type": "SubAgentActivity", "id": "second", "kind": "started",
+                "agent_thread_id": "other", "agent_path": "/root/other", "model": "inherited"}),
+            codex_record(7, "event_msg", type="item_completed", item={
+                "type": "SubAgentActivity", "id": "end", "kind": "completed",
+                "agent_thread_id": "child", "agent_path": "/root/review"})])
+        digest = self.run_cli("codex")
+        self.assertEqual(digest["sessions"][0]["agents"], 2)
+        self.assertEqual(digest["subagent_model_set"], 1)
+        self.assertEqual(digest["subagent_model_unset"], 1)
+        self.assertEqual(digest["codex_spawn_observations"], [
+            {"model": "small", "effort": "high", "count": 1},
+            {"model": "inherited", "effort": None, "count": 1}])
+
+    def test_thread_settings_and_delayed_turn_usage_keep_recorded_routes(self):
+        _, events, _ = self.load_codex([*self.base,
+            codex_record(3, "turn_context", turn_id="first", model="first-model", effort="low"),
+            codex_record(4, "event_msg", type="thread_settings_applied", thread_settings={
+                "model": "next-model", "model_provider_id": "provider", "reasoning_effort": "high"}),
+            codex_record(5, "token_usage_record", usage=codex_tokens()),
+            codex_record(6, "token_usage_record", turn_id="first", usage=codex_tokens()),
+            codex_record(7, "token_usage_record", model="reported", reasoning_effort="medium",
+                         usage=codex_tokens())])
+        usage = [e for e in events if e["kind"] == "usage"]
+        self.assertEqual([(e["model"], e["effort"], e["provider"]) for e in usage], [
+            ("next-model", "high", "provider"), ("first-model", "low", "openai"),
+            ("reported", "medium", "provider")])
+
     def test_identity_archives_exec_history_and_project(self):
         archived = [
             codex_record(0, "session_meta", id="archive", session_id="ancestor",
