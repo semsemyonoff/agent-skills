@@ -352,6 +352,42 @@
         "claude-code",
         "omp"
       ]
+    },
+    {
+      "id": "bounded-local-diagnosis",
+      "setup": "Discovered permitted light, standard and strong editing/review profiles have equivalent tools. A parser bug reproduces locally with a fixed input and expected output. The cause is not yet known, but investigation is contained in one component; no security, persisted-data or lifecycle risk is involved. No implementation approval is supplied.",
+      "prompt_en": "Orchestrate diagnosing and fixing this reproducible local parser bug. Its cause is still unknown. Show the assessed implementation and independent-review routes with reasons before asking for approval.",
+      "prompt_ru": "Оркестрируй диагностику и исправление воспроизводимого локального бага парсера. Причина пока неизвестна. До запроса утверждения покажи маршруты реализации и независимого ревью с обоснованием.",
+      "expected": [
+        "Choose standard for the bounded diagnosis and implementation, rather than strong solely because the cause is unknown or light as if the fix were already settled.",
+        "A separate standard reviewer is sufficient for this stated low-risk bounded result; independence does not require a stronger model or another family.",
+        "Show the configured/requested native pairs separately from unobserved actual execution; do not dispatch or edit before plan approval."
+      ],
+      "adapters": ["claude-code", "omp"]
+    },
+    {
+      "id": "settled-wiring-versus-high-risk",
+      "setup": "Discovered permitted light, standard and strong profiles have equivalent tools. Assess two independent slices separately: wiring several callers to a fixed internal API with settled error/lifecycle behavior and contained failure cost; correcting a one-line authorization check with a known fix but high security failure cost. No implementation approval is supplied.",
+      "prompt_en": "Orchestrate these two changes. The first is called integration and touches several callers; the second is only one line. Assess implementation and independent review for each, and show the plan without executing it.",
+      "prompt_ru": "Оркестрируй эти два изменения. Первое называется интеграцией и затрагивает несколько callers; второе — всего одна строка. Отдельно оцени реализацию и независимое ревью каждого и покажи план без выполнения.",
+      "expected": [
+        "Choose light for the settled low-risk wiring; neither the integration label nor caller count makes it strong.",
+        "Choose strong for the authorization fix and security-sensitive review, naming the authorization invariant and failure cost despite the known one-line solution.",
+        "Keep implementation and review assessments separate; a combined reviewer may use strong for security coverage without escalating the low-risk implementation."
+      ],
+      "adapters": ["claude-code", "omp"]
+    },
+    {
+      "id": "isolate-contract-without-tier-ladder",
+      "setup": "Discovered permitted light, standard and strong profiles have equivalent tools. A cross-subsystem ownership/lifecycle contract has competing hypotheses and weak observability, but can be settled as a separate output. Subsequent adapter implementation will have bounded local design decisions once that contract is fixed. Contrast a variant where the decision and implementation cannot be separated safely. No implementation approval or automatic retry policy is supplied.",
+      "prompt_en": "Orchestrate resolving this lifecycle contract and implementing its adapters. Avoid escalating all routine work, but do not split tightly coupled work merely to use cheaper models. Show ownership, dependencies and routes before approval.",
+      "prompt_ru": "Оркестрируй определение контракта жизненного цикла и реализацию адаптеров. Не повышай весь обычный объём до сильной модели, но и не дроби тесно связанную работу только ради экономии. До утверждения покажи владельцев, зависимости и маршруты.",
+      "expected": [
+        "Use strong for the uncertain cross-subsystem contract and standard for the subsequent bounded adapter implementation, which waits for the settled contract.",
+        "In the inseparable variant, keep the coupled implementation with a sufficient strong owner instead of forcing a cheap split.",
+        "Assess lifecycle review risk independently; do not introduce an automatic light-to-standard-to-strong retry ladder or unapproved escalation."
+      ],
+      "adapters": ["claude-code", "omp"]
     }
   ]
 }

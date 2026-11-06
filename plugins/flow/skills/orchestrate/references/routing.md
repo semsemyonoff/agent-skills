@@ -32,8 +32,8 @@ Record a concise evidence-based reason using these factors:
 | --- | --- | --- |
 | Exact | Complete mechanical spec; no unresolved judgment or hidden boundary | Minimum permitted exact-work pair; specialist capability still appropriate |
 | Light | Small bounded implementation/review; approach/API/paths settled; low uncertainty and contained failure cost | Minimum permitted light pair, not a mechanical worker pretending to implement |
-| Standard | Ordinary development/review with genuine local decisions or several interacting known boundaries | Permitted standard pair |
-| Strong | High failure cost, unknown cause, complex lifecycle/concurrency or important cross-boundary uncertainty | Permitted strong pair with adequate reasoning |
+| Standard | Ordinary development/review with bounded local decisions or interacting known boundaries; diagnosis can start with an unknown cause when the search is contained and acceptance is observable | Permitted standard pair |
+| Strong | High failure cost, complex lifecycle/concurrency, or substantial cross-boundary uncertainty such as competing subsystem hypotheses with weak observability | Permitted strong pair with adequate reasoning |
 
 These labels are not hard-coded model families. Read the user's permitted native mappings; exact
 levels/pairs come from effective profile configuration. Do not assume all development uses the
@@ -41,13 +41,28 @@ session model, all docs are mechanical, all reviews are strongest, or all task w
 made cheaper globally. If evidence spans classes, isolate the uncertain/high-risk part when that
 reduces coupling rather than escalating the entire simple remainder.
 
+Use standard for ordinary development with bounded engineering judgment; use light when the
+approach/contracts are already settled. An unknown cause alone does not make a local reproducible
+bug strong. For strong, name the concrete uncertainty or at-risk invariant and why standard is
+insufficient. File count, an integration label or an unfamiliar API alone does not establish that.
+High failure cost can still require strong even when the fix is known.
+
+When a difficult contract can be settled separately, assign that decision to a strong-capable worker
+and the resulting well-defined implementation to an assessed light/standard worker. Preserve the
+dependency: implementation waits for the contract. Keep tightly coupled work together rather than
+creating extra handoffs merely to use cheaper workers.
+
 Illustrations, not benchmarks or measured model adequacy:
 - Wiring two callers to a fixed editor API can be light when error/lifecycle behavior is already fixed.
 - An onboarding/documentation change with known configuration keys can be light, despite editing files.
 - Portable runtime instructions can be light with settled contracts or standard when cross-adapter
   decisions remain; the docs label decides neither.
+- A reproducible local parser bug with unknown cause, contained search and observable expected output
+  can be standard; an unknown distributed-state race with competing subsystem hypotheses is strong.
 - Viewer focus/dialog/lifecycle ownership can warrant strong reasoning even in a small change.
 - A reviewer of a public/data/lifecycle boundary may need strong despite a light author's initial estimate.
+- Ordinary bounded implementation and its separate review can both be standard; reviewers assess
+  the result's risk independently, not the author's model or a requirement to use another family.
 
 ## Resolve the allowed pair
 

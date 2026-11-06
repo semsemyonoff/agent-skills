@@ -1,5 +1,11 @@
 # Changelog
 
+## Unreleased
+
+- Make standard the route for ordinary bounded development and local diagnosis even when the cause is not yet known; require a concrete uncertainty or at-risk invariant to justify strong, while retaining strong for high failure cost.
+- Separate difficult contract decisions from subsequent bounded implementation only when the dependency is safe; assess review risk independently without requiring a stronger model family.
+- Add bilingual routing scenarios for local unknown-cause diagnosis, settled integration versus a high-risk one-line fix, and separable versus coupled lifecycle work. Keep concrete model bindings in native configuration.
+
 ## 2.7.0
 
 - Make the ship handoff outcome visible: a checkpoint turn (final report, commit/push of the task branch, ship question) ends with the question or a one-line reason, except under suppression or "ship is not needed"; with ship listed but its Forgejo MCP tools not found, say so once per task in the session (still silent without ship or with another forge). In omp, Forgejo tools in the `xd://` device listing satisfy the gate.
