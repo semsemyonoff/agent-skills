@@ -18,7 +18,7 @@
     {
       "name": "planning",
       "source": "./plugins/planning",
-      "description": "Portable brainstorm, compact planning and independent read-only plan review, preserving project/user custom rules"
+      "description": "Portable brainstorm, compact planning and independent read-only review with bounded corrections, opt-in review chain and preserved custom rules"
     },
     {
       "name": "retro",

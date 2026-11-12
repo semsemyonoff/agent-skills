@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.5.1
+
+- Align the marketplace description with the planning plugin manifest; skill behavior is unchanged.
+
 ## 1.5.0
 
 - Preserve compact stop/resume state, settled decisions and permission provenance in the existing plan; handoff does not start execution or grant new permissions.
