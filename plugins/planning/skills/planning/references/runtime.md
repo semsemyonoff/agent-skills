@@ -5,10 +5,19 @@ the loaded SKILL.md directory. Ordinary planning does not mutate configuration o
 
 ## Questions
 
-Use the exposed native ask schema. omp `ask` uses question `id`, options, optional `multi` and
-`recommended`; Claude `AskUserQuestion` uses `header` and `multiSelect`. If unavailable, ask one
-necessary question in text and wait. Timeouts/defaults/cancellation/redirects are not approval.
-No mandatory EnterPlanMode, Skill tool, or shell slash-command API.
+Discover the exposed native ask schema before use. In omp, current `ask` takes `i` (short intent)
+and `html`: one semantic `<form>` with named, labeled controls; group choices with
+`<fieldset>`/`<legend>`, using radios for one choice and checkboxes for several. No scripts, styles,
+buttons or submit inputs; the UI supplies Submit/Cancel and an Other choice for eligible groups.
+Write visible text in the user's language. Claude `AskUserQuestion`, when exposed, uses its own
+actual schema (`header` and `multiSelect`), not omp HTML.
+
+Read the returned named values and result metadata. Pass the explicit chosen value or custom text
+to the selected next workflow, with the original decisions and exact permissions. Timeout,
+automatic default, cancellation, redirect, silence or missing answer is not approval; if explicit
+response provenance is unclear, ask for confirmation. If UI is unavailable, ask the necessary
+question in text and wait for a real answer. No mandatory EnterPlanMode, Skill tool, or shell
+slash-command API.
 
 ## Translate the selected route
 

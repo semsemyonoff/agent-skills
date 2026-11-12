@@ -75,3 +75,20 @@ its actual approved contract rather than importing ralphex assumptions silently.
 Other project-specific constraints come only from the loaded rules. Apply them when the conditions
 defined by those rules are confirmed, not because of the project's name or remembered conventions.
 Record unestablished conditions as unknown; do not claim their constraints were checked.
+
+## Stop and resume handoff
+
+At a real stop or transfer, update one compact block in the existing plan, not a separate state
+file or a routine phase report. Record what is known and mark unknowns:
+
+- goal and current stage; completed and remaining work; settled decisions and next concrete step;
+- relevant repositories, branch/revision and code/data provenance when applicable;
+- checks with commands, outcomes and useful log locations, plus unverified work; distinguish a
+  command issued from executed and its result verified;
+- live or unknown processes/workers and their observed state, without inferring a hang from sleep;
+- exact permitted and forbidden actions and their provenance, outstanding approvals and constraints.
+
+On resume read the plan and handoff, preserve decisions and permission provenance, and inspect
+current state as needed before proceeding. Reuse a check only if still applicable to current code,
+data and environment; otherwise treat it as unverified. Do not require project-wide hashes or copy
+secrets. A handoff, route choice or planned command grants no new permission and starts nothing.

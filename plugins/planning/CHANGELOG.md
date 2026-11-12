@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.5.0
+
+- Preserve compact stop/resume state, settled decisions and permission provenance in the existing plan; handoff does not start execution or grant new permissions.
+- Update the self-contained omp question adapters for semantic HTML forms, explicit answers and text fallback while preserving Claude and opt-in independent plan review. Add bilingual behavioral handoff and question scenarios.
+
 ## 1.4.0
 
 - Plan format separates Executor acceptance (proved by the run) from Owner acceptance after run (kept as stated, never walked by a task) and adds optional Run prerequisites with read-only checks; the final task verifies only Executor acceptance. Plan-review blocks unreachable executor criteria, tasks walking owner acceptance, weakened owner requirements and undeclared live-state dependencies; a live-state prerequisite must be an exact read-only check through the scenario's interface and role, rerun by the first dependent task; four eval cases added (three blockers, one negative control).

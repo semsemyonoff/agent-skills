@@ -6,14 +6,18 @@ Never infer the harness from a provider name; a Codex model inside omp still use
 
 ## Questions
 
-- omp: use exposed `ask`. Its questions use `id`, `question`, options with `label`/optional
-  `description`, and optional `multi`/`recommended`; read the current schema, not Claude's fields.
+- omp: discover the live `ask` schema. Current inputs are `i` (short intent) and `html`, one
+  semantic `<form>` with named, labeled controls. Group choices with `<fieldset>`/`<legend>`;
+  use radios for one choice, checkboxes for several. No scripts, styles, buttons or submit inputs:
+  the UI supplies Submit/Cancel and an Other choice for eligible groups.
 - Claude Code: use `AskUserQuestion` only if exposed; it uses `header`, options and `multiSelect`.
-- Write the question, header, option labels and descriptions in the user's language, like replies.
-  The user's language comes from their own messages and harness instructions, not from this skill,
-  the handoff that loaded it or the task content.
-- No native UI: ask one question in text and wait for the explicit response. Any `timedOut`,
-  auto-selection, missing response or chat redirect is not validation or execution permission.
+- Write all visible question and option text in the user's language, like replies. The user's
+  language comes from their own messages and harness instructions, not from this skill, the handoff
+  that loaded it or the task content.
+- Read named values and result metadata; carry the explicit chosen value or custom text to the next
+  workflow. Timeout, default/auto-selection, cancellation, missing response or chat redirect is not
+  validation or execution permission. If explicit response provenance is unclear, ask for confirmation.
+  No native UI: ask one question in text and wait for the explicit response.
 
 Do not request EnterPlanMode merely to continue a design. A selected workflow and authorization to
 implement are separate decisions unless the user explicitly granted the exact action already.

@@ -71,10 +71,13 @@ editing tools; selected chain re-review uses a fresh reviewer and current exact 
 For each unresolved architectural/product choice, conflict, agreed scope/route/budget change or
 ambiguity, offer 2–5 concrete options with tradeoffs and one recommended option.
 
-- **omp:** use the exposed `ask` tool with its current schema. Questions use `id`, `question`,
-  options with `label`/optional `description`, and optional `multi`/`recommended`. Supply a stable
-  question id; use `multi` only for compatible independent choices and mark the recommendation
-  without treating it as selected. Discover the actual field shapes rather than inventing them.
+- **omp:** discover the live `ask` schema. Current inputs are `i` (short intent) and `html`,
+  one semantic `<form>` with named, labeled controls. Group choices with `<fieldset>`/`<legend>`;
+  use radios for one choice and checkboxes only for compatible independent choices. No scripts,
+  styles, buttons or submit inputs: the UI supplies Submit/Cancel and Other for eligible groups.
+  Write visible text in the user's language. Read named values and result metadata; carry the
+  explicit chosen value or custom text into the dependent correction or selected workflow. If
+  explicit response provenance is unclear, ask for confirmation; recommendation is not selection.
 - **Claude Code:** use `AskUserQuestion` only when exposed, with its actual `header`, options and
   `multiSelect` fields. A recommended label is advice, not authorization.
 - **No native UI:** present the same numbered text options/tradeoffs/recommendation and wait for a

@@ -1,7 +1,7 @@
 {
   "name": "planning",
   "description": "Portable brainstorm, compact planning and independent read-only review with bounded corrections, opt-in review chain and preserved custom rules",
-  "version": "1.4.0",
+  "version": "1.5.0",
   "license": "MIT",
   "author": {
     "name": "semsemyonoff"

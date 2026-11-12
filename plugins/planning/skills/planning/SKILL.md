@@ -24,6 +24,12 @@ Ask one materially necessary question only when repository/context cannot answer
 questionnaire about goals, titles or testing. Do not re-open validated choices. Explore tradeoffs
 only for a genuinely unresolved decision, and obtain its answer before treating it as settled.
 
+For a real stop or session transfer, update a compact handoff block in the existing plan as described
+in `references/plan-format.md`; do not create a second state file or a report after every phase.
+On resume, read that block and the plan, retain settled decisions and permission provenance, and
+establish the next step from current evidence. Do not re-decide settled choices or execute a
+workflow merely because it appears in the handoff; unknown or changed state is not a prior PASS.
+
 ## 2. Write the plan
 
 Use the actual current date and a short descriptive slug: `docs/plans/YYYYMMDD-name.md`.
