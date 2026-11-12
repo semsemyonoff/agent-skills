@@ -23,8 +23,8 @@ Read `references/native-setup.md` only for native-profile setup or missing/unexp
 | Research | Discovered `scout` or approved research profile | Source-grounded facts, not an editing substitute |
 | Mechanics | Discovered `sonic` with a verified permitted exact-work pair | Exact known transformations only, not universal development |
 | Implementation | Discovered `flow-worker-light`, `flow-worker-standard`, `flow-worker-strong` or approved equivalent | Same full editing capability; choose by uncertainty/risk, not the category name |
-| Review | Separate discovered risk-appropriate `flow-review-*`, reviewer/security specialist or approved equivalent | Assess required pair independently; combine compatible coverage |
-| Optional second opinion | Discovered `second-opinion` agent, explicitly selected by the user | Separate supplemental instance after required review, not its replacement |
+| Selected review | Separate discovered risk-appropriate `flow-review-*`, reviewer/security specialist or approved equivalent | Only selected/required review; minimum sufficient pair |
+| Optional extra opinion | Discovered `second-opinion`, explicitly selected | No hidden native-review prerequisite |
 
 Assess with `references/routing.md`; bundled resource files do not prove deployment. Missing
 profiles/aliases are prerequisites. Omitting `agent` requires an explicit permitted effective pair
@@ -45,46 +45,48 @@ Never dump private profiles or credentials. [1][4][5][6]
 
 ## Native confirmation UI
 
-Use main-session `ask` when available. It takes `questions`, each with unique `id`, `question`, and `options` (`label`, optional `description`/`preview`), plus optional `header`, `multi`, and `recommended` (zero-based index). Do not send Claude's `multiSelect` field. Present the complete plan and authorization boundary first. Example question body, using the current tool schema:
+Use main-session `ask` when available; inspect its live schema. The current payload has `i`
+(short intent) and `html` (one semantic `<form>`). Every control needs a `name` and a wrapping
+`<label>`; group choices with `<fieldset>`/`<legend>`. Use radio inputs for one choice, checkboxes
+for several, select for long lists. No scripts, styles, `style=`, buttons or submit inputs: the UI
+supplies Submit/Cancel. Do not add a manual Other option; the UI provides it. Example:
 
 ```json
 {
-  "questions": [{
-    "id": "plan-approval",
-    "question": "Start the approved local plan? / Запустить согласованный локальный план?",
-    "options": [
-      {"label": "Start approved plan / Запустить план"},
-      {"label": "Start phase by phase / Запустить по фазам"},
-      {"label": "Change plan / Изменить план"},
-      {"label": "Do not start / Не запускать"}
-    ],
-    "multi": false
-  }]
+  "i": "Confirming local execution",
+  "html": "<form><p>Approved scope and checks go here; no commit, push or external writes.</p><fieldset><legend>Execution</legend><label><input type=\"radio\" name=\"execution\" value=\"start\">Start</label><label><input type=\"radio\" name=\"execution\" value=\"phased\">Start phase by phase</label><label><input type=\"radio\" name=\"execution\" value=\"change\" checked>Change plan / do not start</label></fieldset></form>"
 }
 ```
 
-Local rich UI may show a multi-question form, notes/custom answers, previews, images, or a chat redirect; fallback UI is a selector/editor. Both are native omp surfaces, not Claude buttons. Inspect the actual selected/custom answer and notes. A `chatRedirect` is not consent. Configured timeouts can auto-select a recommended or first option: any `timedOut` result or auto-selected-after-timeout notice is **not authorization**, even if its label says Start. Cancellation and absent UI also do not authorize. If `ask` is absent/headless, ask in chat and wait for an explicit user answer; do not enable it or change the timeout. Phase-by-phase execution requires an explicit request. External/irreversible actions need exact explicit permission separate from ordinary local-plan approval. [2]
+Write all visible form text in the user's language and include the actual plan/permissions, not
+the example's placeholder. Use a conservative non-authorizing default. When review is relevant,
+add a separate named group to the existing form; do not insert a mandatory review question.
+Submitted radio/select values arrive by name (e.g. `{"execution":"start"}`); checkbox groups
+return arrays and unchecked controls may be omitted. Carry the actual selected value/custom text
+into the next step; an omitted review choice authorizes no call.
+
+Inspect result metadata/notices as well as values. Timeout, automatic default, cancellation,
+redirect, silence or a worker answer is not consent, even if the value says Start. If provenance
+cannot distinguish an explicit response from an automatic selection, ask for explicit confirmation
+before acting. Absent/headless UI means ask in text and wait; do not enable UI/change timeout or
+invent another payload. Phase-by-phase needs explicit choice. External/irreversible actions still
+need exact permission separate from ordinary local-plan approval. [2]
 
 Workers have no interactive approval UI; omp's child tool approval mode is headless. Give every worker the approved-action boundary and require it to return blockers instead of performing an unapproved effect. Do not rely on a worker permission dialog to stop it. [1]
 
 ## Supplemental second opinion
 
-At plan confirmation, offer "Additional review via second-opinion / No additional review"
-(«Дополнительное ревью через second-opinion / Без дополнительного ревью») as a separate question
-in the same `ask` form when available. Discover the exact `second-opinion` agent, its read-only
-capability and permitted native route; do not inspect credentials or launch a probe model call.
-This is a separate context, not a promise of another provider/model. Honor an earlier explicit
-decision. If the agent is missing or blocked, disclose that and omit its offer; do not substitute
-Codex CLI, a default worker or the required reviewer. An explicitly required unavailable opinion
-remains a blocker until the user chooses otherwise.
+Only when requested or relevant, offer an additional opinion as described in `references/review.md`;
+no automatic offer or call is required. Discover `second-opinion` and its permitted read-only route.
+Combine any choice with plan confirmation when useful and preserve a previous yes/no. Start alone
+grants no call. If an explicitly selected route is missing, name the gap; never substitute Codex CLI
+or a default worker, and never silently add a native reviewer.
 
-After explicit acceptance, launch one new `second-opinion` instance at the agreed stable-final
-checkpoint through the actual task/eval schema. Supply goal, acceptance, final changed-file/artifact
-inventory, scope/version, pre-existing edits, observed verification evidence and a read-only brief.
-It must neither edit nor delegate; request material findings with source locations and remaining
-verification gaps, not a token APPROVE. Do not demand shell/tests from a read-only profile without
-those capabilities. Freeze its scope until the result arrives. Apply the shared finding-disposition,
-mandatory re-verification and no-automatic-second-round rules. No approval, no supplemental call.
+After explicit acceptance, launch one fresh `second-opinion` at the agreed stable checkpoint
+through the live task/eval schema. Supply goal, scope, original acceptance, pre-existing edits and
+observed checks. It must neither edit nor delegate. Do not require shell/tests from a read-only
+profile without those capabilities. Freeze the scope; assess actual findings and apply the selected
+review-mode/failure rules in `references/review.md`. Another extra round needs new permission.
 
 ## Dispatch, completion, and review
 
@@ -118,11 +120,10 @@ for outstanding dependencies. A receipt is not completion. `agent://<id>` holds 
 Before idle, follow SKILL.md's waiting notice and point to Agent Hub (`Alt+A`), pinned progress and
 transcripts. These are user-visible; report material evidence in the main response too. [4]
 
-Use one separate risk-appropriate reviewer for compatible scopes, with acceptance, changes, paths
-and permitted checks. It may own gates and return the brief's evidence packet. Discover profile tools
-before delegating browser smoke; do not assume parent browser access. If absent, the coordinator
-reproduces the scenario and delegates diagnosis/fixes. Missing independent capability is a blocker;
-self-checks cannot replace it. Follow SKILL.md §5 for fix batching and review provenance.
+Only for selected or higher-priority-required review, use a separate risk-appropriate reviewer;
+follow `references/review.md`. Otherwise executor checks suffice. Discover tools before delegating
+browser smoke; absent browser tooling means reproduce in the coordinator and delegate diagnosis.
+Missing selected review remains a gap; missing unselected review does not block completion.
 
 Sharpen the failing brief or isolate its genuinely hard part first, then reassess. A stronger profile
 within the already authorized policy/plan needs no redundant question; a new route/budget outside it

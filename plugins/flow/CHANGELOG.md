@@ -6,6 +6,13 @@
 - Separate difficult contract decisions from subsequent bounded implementation only when the dependency is safe; assess review risk independently without requiring a stronger model family.
 - Add bilingual routing scenarios for local unknown-cause diagnosis, settled integration versus a high-risk one-line fix, and separable versus coupled lifecycle work. Keep concrete model bindings in native configuration.
 
+## 2.8.0
+
+- Default to executor checks without a separate reviewer; retain explicitly selected and higher-priority review obligations, scoped repair verification and exact external permissions.
+- Move review and compact stop/resume/ship handoff details out of the core; distinguish issued commands, observed execution and verified results.
+- Use the current omp HTML ask contract with explicit choices and no timeout/default authorization.
+- Extend trace validation and bilingual scenarios for opt-in review, unavailable selected reviewers and honest unfinished/unknown handoff state.
+
 ## 2.7.0
 
 - Make the ship handoff outcome visible: a checkpoint turn (final report, commit/push of the task branch, ship question) ends with the question or a one-line reason, except under suppression or "ship is not needed"; with ship listed but its Forgejo MCP tools not found, say so once per task in the session (still silent without ship or with another forge). In omp, Forgejo tools in the `xd://` device listing satisfy the gate.

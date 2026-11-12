@@ -17,6 +17,7 @@ Context:
 - Skills to load: <slice's language/domain skills; workers read them for their own work>.
 - <workspace, exact files/entry points, input artifact paths and relevant source locations>
 - <approved approach, contracts, constraints, versions, decisions already settled>
+- Review mode: <executor checks by default; exact selected review/extra-opinion scope or higher-priority requirement>.
 - <pre-existing edits to preserve and facts already learned>
 
 Change/questions:
@@ -42,6 +43,7 @@ Return compactly:
 - Checks: tree version/state (including dirty changes), scenario/environment, command + exit code
   (or browser tool + returned status),
   full log/screenshot paths and unverified items. Distinguish suggested checks from observed results.
+- Distinguish executor checks from selected independent review; no unselected reviewer is required.
 - Uncertainties, changed complexity/risk, missing capabilities and precise blockers.
 - Requested/configured pair versus exposed actual model/reasoning; never infer actual from a profile.
 ```

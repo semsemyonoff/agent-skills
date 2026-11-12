@@ -1,6 +1,6 @@
 {
   "adapter": "claude-code",
-  "schema_version": 2,
+  "schema_version": 3,
   "synthetic": true,
   "events": [
     {
@@ -65,6 +65,7 @@
       ],
       "text": "Approve P1. Continue autonomously through verification and report."
     },
+    {"type": "review_choice", "source": "fixture:synthetic-user", "actor": "user", "decision": "accept", "text": "I select separate independent review of checkout and repaired changes."},
     {
       "type": "phase",
       "source": "fixture:synthetic-observation",
@@ -94,6 +95,7 @@
       "source": "fixture:synthetic-observation",
       "name": "verification"
     },
+    {"type": "check", "source": "fixture:synthetic-check", "scopes": ["checkout"], "command": "python3 check_rounding.py", "exit_code": 0, "result": "pass", "text": "Synthetic observed rounding boundary checks passed."},
     {
       "type": "dispatch",
       "source": "fixture:synthetic-observation",

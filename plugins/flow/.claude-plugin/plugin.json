@@ -1,7 +1,7 @@
 {
   "name": "flow",
-  "description": "Complexity-driven permitted native model/reasoning profiles, plan approval and independent review in Claude Code/omp",
-  "version": "2.7.0",
+  "description": "Orchestrate Claude Code/omp work with permitted native profiles, plan approval, result checks, optional independent review and compact handoff",
+  "version": "2.8.0",
   "author": {
     "name": "semsemyonoff"
   }

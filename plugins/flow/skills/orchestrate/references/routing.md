@@ -12,8 +12,8 @@ provider ladder or second orchestration settings file.
 | Research | Read-only source-grounded facts; use the real research specialist |
 | Mechanics | Exact prescribed transformation with known inputs/paths and no design decisions |
 | Implementation | Full editing/command capability inside assigned files; code, docs and debugging all need assessment |
-| Review | Separate read/verification worker, not the author; evaluate risk independently |
-| Optional second opinion | Explicit additional checkpoint, not required review or automatic fallback |
+| Review | Only when selected/required: separate read/verification worker, not the author; assess risk independently |
+| Optional second opinion | Explicit opt-in checkpoint; no automatic review prerequisite or fallback |
 
 Do not make a scout or mechanical specialist a generic developer to save tokens. All implementation
 profiles must have the same adequate editing capability; different budgets are not different scopes.
@@ -90,10 +90,10 @@ Do not change shared model roles/agent overrides between parallel calls: that is
 
 ## Overhead and verification
 
-Do trivial work inline when allowed; combine related simple changes with one ownership/contract.
-Do not fragment work just to populate a plan table. Preserve explicitly requested delegation/review.
-Use one risk-appropriate independent reviewer covering compatible changed scopes, not compulsory
-reviews per implementation item. Independence is separation from the author, not highest reasoning.
-Reserve shared gates/formatters for the verification owner after edits land. Missing review remains
-missing; an implementer's self-check cannot become independent. Do not promise subscription-quota
-savings from API price cards: context, overhead, retries and provider accounting differ.
+Default is executor checks without a separate reviewer. Do trivial work inline when allowed and
+combine related simple changes; preserve explicit delegation/review acceptance. Recommend review
+for material risk, but a recommendation is not permission to launch it. When selected or required
+by higher-priority rules, use one minimum-sufficient reviewer for compatible scopes; see `review.md`.
+Reserve shared gates/formatters for the checks owner after edits land. Missing unselected review
+blocks nothing; missing selected review stays missing and self-checks cannot be relabeled independent.
+Do not promise subscription-quota savings from API prices: context, overhead and accounting differ.

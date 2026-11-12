@@ -43,6 +43,10 @@ def check_trace(trace):
     dispatches = {}
     implementers = {"main"}
     changed_scopes = set()
+    checked_scopes = set()
+    review_selected = False
+    review_scopes = set()
+    required_review_scopes = set()
     reviewed_scopes = set()
     failures = {}
     sharpened = {}
@@ -51,6 +55,9 @@ def check_trace(trace):
     review_results = set()  # Terminal attempts; only actual verdicts grant scope coverage.
     revision = 0
     review_revisions = {}
+    review_targets = {}
+    review_starts = {}
+    review_invalidations = {}
     opinion_choice = None
     opinion_offer = False
     opinion_workers = {}
@@ -168,6 +175,40 @@ def check_trace(trace):
             plan = event
             approved.clear()
             next_approval = None
+        elif kind == "review_choice":
+            decision = event.get("decision")
+            required = event.get("actor") == "instructions" and decision == "require"
+            valid_choice = (required or event.get("actor") == "user") and bool(event.get("text"))
+            valid_choice = valid_choice and all(event.get(flag, False) is False
+                                               for flag in ("timed_out", "dismissed", "auto_selected"))
+            require(valid_choice and decision in {"accept", "decline", "require"}
+                    and (decision != "require" or required),
+                    "review-choice", "review needs an explicit user choice or cited higher-priority requirement")
+            require(all(worker in review_results for worker in review_revisions),
+                    "review-incomplete", "resolve running review before changing the selected mode")
+            if valid_choice:
+                if decision == "decline":
+                    require(not required_review_scopes, "review-required", "a user choice cannot waive higher-priority review")
+                    if not required_review_scopes:
+                        review_selected = False
+                        review_scopes.clear()
+                elif decision in {"accept", "require"}:
+                    scopes = event.get("scopes", plan["scopes"] if plan else [])
+                    valid_scopes = (isinstance(scopes, list) and bool(scopes)
+                                    and all(isinstance(scope, str) and scope for scope in scopes))
+                    if not valid_scopes:
+                        raise TraceError(f"event {index + 1}: review choice requires nonempty string scopes")
+                    valid_scopes = require(plan is not None and set(scopes).issubset(plan["scopes"]),
+                                           "review-scope", "select review within the current plan")
+                    if decision == "require" and valid_scopes:
+                        required_review_scopes.update(scopes)
+                        review_scopes.update(scopes)
+                        review_selected = True
+                    elif decision == "accept" and valid_scopes:
+                        if require(required_review_scopes.issubset(scopes),
+                                   "review-required", "a changed choice cannot narrow higher-priority review"):
+                            review_scopes = set(scopes)
+                            review_selected = True
         elif kind == "ask":
             require(event.get("channel") in {"ui", "text"}, "ask-channel", "use UI or text")
             if capabilities and not capabilities.get("ask_ui"):
@@ -182,7 +223,9 @@ def check_trace(trace):
                         "opinion-offer", "offer only the actual available route and decline")
                 opinion_offer = True
         elif kind == "approval":
-            valid_approval = event.get("actor") == "user" and event.get("timed_out", False) is False and event.get("dismissed", False) is False and bool(event.get("text"))
+            valid_approval = (event.get("actor") == "user" and bool(event.get("text"))
+                              and all(event.get(flag, False) is False
+                                      for flag in ("timed_out", "dismissed", "auto_selected")))
             require(event.get("actor") == "user", "inferred-approval", "only an observed user response grants approval")
             require(valid_approval,
                     "inferred-approval", "a timeout or auto-selection is not a user approval")
@@ -198,14 +241,13 @@ def check_trace(trace):
                     next_approval = phases[0]
             else:
                 require(set(phases) == set(PHASES[2:]), "autonomous-approval", "approve autonomous execution through report together")
-            if capabilities and capabilities.get("second_opinion_route") and capabilities.get("second_opinion"):
-                require(opinion_offer or opinion_choice is not None, "missing-opinion-offer",
-                        "ask separately about supplemental review at approval unless already decided")
             if valid_approval and plan is not None and event.get("plan") == plan["id"]:
                 approved.update(phases)
         elif kind in {"permission", "opinion_choice"}:
             is_choice = kind == "opinion_choice"
-            valid_grant = event.get("actor") == "user" and event.get("timed_out", False) is False and event.get("dismissed", False) is False and bool(event.get("text"))
+            valid_grant = (event.get("actor") == "user" and bool(event.get("text"))
+                           and all(event.get(flag, False) is False
+                                   for flag in ("timed_out", "dismissed", "auto_selected")))
             require(event.get("actor") == "user", "permission-origin", "permission must come from the user")
             require(valid_grant, "permission-origin", "capture exact user permission, not timeout/dismissal/default")
             if is_choice:
@@ -281,12 +323,21 @@ def check_trace(trace):
                 require(execution_allowed(event.get("scope")), "execution-approval", "dispatch is outside approved execution/scope")
                 implementers.add(worker)
             if category == "review":
+                require(review_selected, "review-permission", "available/recommended review is not selected review")
                 require(not pending_model_changes, "unexpected-model-route", "stop verification until observed native substitution is explicitly approved")
                 require(capabilities is not None and capabilities.get("reviewer") is True,
                         "no-reviewer", "independent reviewer capability is unavailable")
                 require(phase == "verification" and "verification" in approved,
                         "review-phase", "review requires approved verification")
                 review_revisions[worker] = revision
+                review_starts[worker] = index
+                scopes = event.get("scopes", list(review_scopes))
+                if not isinstance(scopes, list) or not all(isinstance(s, str) and s for s in scopes):
+                    raise TraceError(f"event {index + 1}: review dispatch scopes must be strings")
+                require(bool(scopes) and set(scopes).issubset(review_scopes), "review-scope",
+                        "review dispatch requires a nonempty subset of selected scopes")
+                review_targets[worker] = set(scopes)
+                reviewed_scopes.difference_update(scopes)
             if category == "second_opinion":
                 require(not pending_model_changes, "unexpected-model-route",
                         "stop supplemental review until exposed native substitution is resolved")
@@ -301,10 +352,10 @@ def check_trace(trace):
                             "omp must select the exact discovered second-opinion agent, not a CLI substitute")
                 require(opinion_choice == event.get("permission") and opinion_choice != "decline",
                         "opinion-permission", "Start is not supplemental approval; a decline never permits a call")
-                require(phase == "verification" and bool(reviewed_scopes)
-                        and changed_scopes.issubset(reviewed_scopes)
+                require(phase == "verification" and changed_scopes.issubset(checked_scopes)
+                        and (not review_selected or review_scopes.issubset(reviewed_scopes))
                         and all(worker in review_results for worker in review_revisions),
-                        "opinion-checkpoint", "supplemental review follows finished final required independent passing review")
+                        "opinion-checkpoint", "extra opinion follows checks and any separately selected review")
                 require(event.get("permission") not in opinion_workers.values(), "opinion-count",
                         "each explicit grant authorizes exactly one supplemental call")
                 opinion_workers[worker] = event.get("permission")
@@ -327,12 +378,29 @@ def check_trace(trace):
                 require(all(worker in review_results for worker in review_revisions),
                         "review-stability", "do not change the tree while independent review is running")
                 reviewed_scopes.clear()
+                checked_scopes.clear()
                 revision += 1
                 changed_scopes.add(scope)
             if isinstance(actor, str):
                 implementers.add(actor)
+        elif kind == "check":
+            scopes = event.get("scopes")
+            if not isinstance(scopes, list) or not scopes or not all(isinstance(s, str) and s for s in scopes):
+                raise TraceError(f"event {index + 1}: check requires nonempty string scopes")
+            valid_check = (phase == "verification" and "verification" in approved
+                           and plan is not None and set(scopes).issubset(plan["scopes"])
+                           and not pending_model_changes
+                           and isinstance(event.get("command"), str) and bool(event["command"].strip())
+                           and type(event.get("exit_code")) is int
+                           and event.get("result") in {"pass", "fail"} and bool(event.get("text")))
+            require(valid_check, "check-evidence", "capture an executed check, exit code and observed outcome on approved current scope")
+            if valid_check and event["result"] == "pass":
+                checked_scopes.update(scopes)
+            else:
+                checked_scopes.difference_update(scopes)
         elif kind == "review":
             actor = event.get("actor")
+            require(review_selected, "review-permission", "independent review was not selected or required")
             require(not pending_model_changes, "unexpected-model-route", "do not accept review after an unresolved native substitution")
             require(capabilities is not None and capabilities.get("reviewer") is True,
                     "no-reviewer", "cannot claim review when no reviewer is available")
@@ -342,14 +410,19 @@ def check_trace(trace):
             scopes = event.get("scopes")
             if not isinstance(scopes, list) or not all(isinstance(s, str) for s in scopes):
                 raise TraceError(f"event {index + 1}: review scopes must be strings")
+            require(bool(scopes) and set(scopes).issubset(review_targets.get(actor, set())),
+                    "review-scope", "review result must stay within its assigned selected scope")
             require(bool(event.get("text")) and event.get("result") in {"pass", "fail"}, "review-output", "capture actual review findings")
             require(actor not in review_results, "review-round", "each unique reviewer instance returns only one round")
             require(review_revisions.get(actor) == revision, "stale-review", "new work invalidates an in-flight review snapshot")
             review_results.add(actor)
             if event.get("result") == "pass":
-                reviewed_scopes.update(scopes)
+                reviewed_scopes.update(scope for scope in scopes
+                                       if review_starts.get(actor, -1) > review_invalidations.get(scope, -1))
             else:
-                reviewed_scopes.difference_update(scopes)
+                for scope in review_targets.get(actor, set()):
+                    review_invalidations[scope] = index
+                    reviewed_scopes.discard(scope)
         elif kind == "opinion_result":
             actor = event.get("actor")
             require(actor in opinion_workers and actor not in opinion_results,
@@ -377,6 +450,9 @@ def check_trace(trace):
                     require(worker not in review_results, "review-round",
                             "a reviewer attempt has only one terminal outcome")
                     review_results.add(worker)
+                    for scope in review_targets.get(worker, set()):
+                        review_invalidations[scope] = index
+                        reviewed_scopes.discard(scope)
         elif kind == "sharpen_brief":
             worker = event.get("worker")
             require(worker in failures and bool(event.get("text")), "brief-first", "sharpen the brief after an observed failure")
@@ -407,15 +483,23 @@ def check_trace(trace):
                     require(event.get("supplemental_status") == "waived", "opinion-waiver-report",
                             "report the failed supplemental requirement as waived, never completed")
                 require(all(worker in review_results for worker in review_revisions),
-                        "review-incomplete", "completion cannot precede an active mandatory reviewer result")
-                require(capabilities is not None and capabilities.get("delegation") is True and capabilities.get("reviewer") is True,
-                        "capability-completion", "missing delegation/reviewer blocks completion")
-                require(bool(reviewed_scopes) and changed_scopes.issubset(reviewed_scopes),
-                        "unverified-completion", "independent passing review must cover every changed scope")
+                        "review-incomplete", "completion cannot precede a running selected reviewer result")
+                require(capabilities is not None and capabilities.get("delegation") is True,
+                        "capability-completion", "missing required delegation blocks orchestration completion")
+                require(changed_scopes.issubset(checked_scopes),
+                        "unchecked-completion", "observed current result checks must cover every changed scope")
+                if review_selected:
+                    require(capabilities is not None and capabilities.get("reviewer") is True,
+                            "capability-completion", "selected independent review is unavailable")
+                    require(review_scopes.issubset(reviewed_scopes),
+                            "unverified-completion", "selected passing review must cover its agreed scopes")
             if event.get("independent_verified") is True:
                 require(not pending_model_changes, "unexpected-model-route", "cannot claim verification with an unresolved observed native substitution")
-                require(bool(reviewed_scopes) and changed_scopes.issubset(reviewed_scopes),
-                        "false-review-claim", "report claims independent verification without evidence")
+                claimed = event.get("independent_scopes", list(changed_scopes))
+                valid_claim = (isinstance(claimed, list) and bool(claimed)
+                               and all(isinstance(scope, str) and scope for scope in claimed))
+                require(valid_claim and set(claimed).issubset(reviewed_scopes),
+                        "false-review-claim", "independent claims need explicit covered scopes; absent scopes means all changes")
             if status == "blocked":
                 require(bool(event.get("reason")), "blocker-output", "name the missing capability or other actual blocker")
             report_seen = True

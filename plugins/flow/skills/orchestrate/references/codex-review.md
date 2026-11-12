@@ -1,9 +1,9 @@
 # Optional Codex CLI second opinion
 
-This is an extra, explicitly chosen read-only review at the approved checkpoint, not the required
-native independent reviewer. A Codex model inside omp still uses omp's task tools; do not launch the
-CLI merely because it is installed or because the session model comes from OpenAI. The CLI's native
-configuration decides its model/provider, so this is not necessarily another vendor's model.
+This is an explicitly selected read-only opinion, not an automatic requirement or a reason to
+launch another native reviewer. A Codex model inside omp uses omp's task tools, not this CLI merely
+because it is installed. The CLI's native configuration decides its model/provider; it is not
+necessarily another vendor. Apply `review.md` to selected scope, independence and findings.
 
 Resolve `scripts/codex_review.py` from the directory of the loaded `SKILL.md`; below, `SKILL_ROOT`
 is that resolved directory, not a required environment variable. Use the running adapter's real
@@ -11,7 +11,7 @@ shell/background tools. The Claude-only adapter may substitute its skill-directo
 
 ## Availability and approval
 
-In Claude Code, check locally before plan confirmation unless the user already declined this route:
+In Claude Code, when this route is relevant/requested and not already declined, check locally:
 
 ```sh
 python3 "$SKILL_ROOT/scripts/codex_review.py" check
@@ -28,9 +28,9 @@ python3 "$SKILL_ROOT/scripts/codex_review.py" check
 choices, not skill settings. The guard is a user-supplied shell command; do not manufacture one.
 In omp do not automatically run this check/guard or offer/execute a CLI call as native review.
 
-In a separate question within plan confirmation, offer "Additional review via Codex CLI /
-No additional review" («Дополнительное ревью через Codex CLI / Без дополнительного ревью»).
-Reuse an explicit earlier yes/no; do not ask twice. Start alone grants no supplemental permission.
+When offering this route, combine its choice with existing confirmation: "Additional review via
+Codex CLI / No additional review" («Дополнительное ревью через Codex CLI / Без дополнительного ревью»).
+Reuse an explicit earlier yes/no; no mandatory offer or duplicate question. Start grants no call.
 Record permission for one external model call on the final stable scope and its observed/permitted
 route. Do not guess model/effort. Offer `--xhigh` only if that effort is known supported by the
 configured route and the user explicitly chooses it. Record the start commit and pre-existing
@@ -39,8 +39,8 @@ changed-file/artifact inventory for accurate findings.
 
 ## Run on the stable final tree
 
-After all implementation and required independent review/checks finish, write the approved intent
-to a local temporary file, then run through the adapter's actual background mechanism if available:
+After implementation, applicable checks and any separately selected independent review, write the
+approved intent to a temporary file, then use the adapter's actual background mechanism if available:
 
 ```sh
 python3 "$SKILL_ROOT/scripts/codex_review.py" run \
@@ -72,10 +72,10 @@ adapter; do not poll while other work remains. Read the artifacts after completi
 - 2: invalid repository/start commit.
 - Any other nonzero status or an empty final message: failed review, never "no findings".
 
-Assess every finding against the approved acceptance criteria and actual run scope. Accept by
-routing a scoped fix through an implementation worker followed by independent review/checks;
-reject with a concrete reason. Do not start a second CLI round without user approval. Report route
-if observed, accepted/rejected findings, and any timeout/failure/unverified scope truthfully.
+Assess findings against the original acceptance and actual scope. Accept a scoped fix through the
+implementation owner followed by applicable self-checks and independent re-verification only within
+the selected review mode; reject with reasons. Another CLI round needs new permission. Report actual
+route, outcome, findings and later unreviewed changes; failures never become clean reviews.
 
 ## Official sources
 

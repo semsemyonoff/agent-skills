@@ -1,6 +1,6 @@
 {
   "adapter": "omp",
-  "schema_version": 2,
+  "schema_version": 3,
   "synthetic": true,
   "scenario": "supplemental-review-accept",
   "events": [
@@ -11,10 +11,12 @@
     {"type": "ask", "source": "fixture:synthetic-question", "channel": "ui", "supplemental_review": true, "opinion_options": ["second-opinion", "decline"], "text": "Start P1, phase by phase, or change plan? Separately: one read-only second-opinion agent round, or decline?"},
     {"type": "opinion_choice", "source": "fixture:synthetic-user", "actor": "user", "decision": "accept", "id": "opinion-grant", "target": "second-opinion", "text": "Yes, exactly one read-only discovered second-opinion agent round after required final review and gates."},
     {"type": "approval", "source": "fixture:synthetic-user", "actor": "user", "plan": "P1", "phases": ["execution", "verification", "report"], "text": "Start this exact local checkout plan autonomously."},
+    {"type": "review_choice", "source": "fixture:synthetic-user", "actor": "user", "decision": "accept", "text": "I select independent checkout review as well as the extra opinion."},
     {"type": "phase", "source": "fixture:synthetic-action", "name": "execution"},
     {"type": "dispatch", "source": "fixture:synthetic-tool", "worker": "implementer-1", "category": "implementation", "scope": "checkout", "params": {"context": "Approved local checkout rounding plan P1.", "tasks": [{"agent": "flow-worker-standard", "task": "Fix checkout rounding only", "solutionSpace": "Known exact Decimal rounding boundary; no external actions."}]}},
     {"type": "work", "source": "fixture:synthetic-diff", "actor": "implementer-1", "scope": "checkout", "kind": "local_write", "target": "checkout/rounding.py"},
     {"type": "phase", "source": "fixture:synthetic-action", "name": "verification"},
+    {"type": "check", "source": "fixture:synthetic-check", "scopes": ["checkout"], "command": "python3 check_rounding.py", "exit_code": 0, "result": "pass", "text": "Synthetic observed rounding checks passed."},
     {"type": "dispatch", "source": "fixture:synthetic-tool", "worker": "reviewer-1", "category": "review", "params": {"context": "Stable checkout implementation under P1; independent verification only.", "tasks": [{"agent": "flow-review-standard", "task": "Independently review current checkout diff and rounding gates", "solutionSpace": "Verify acceptance and scoped changes with boundary cases; no edits."}]}},
     {"type": "review", "source": "fixture:synthetic-result", "actor": "reviewer-1", "scopes": ["checkout"], "result": "pass", "text": "Required current-tree independent review and rounding gates passed."},
     {"type": "dispatch", "source": "fixture:synthetic-tool", "worker": "opinion-1", "category": "second_opinion", "target": "second-opinion", "permission": "opinion-grant", "read_only": true, "params": {"context": "Final frozen P1 checkout result after mandatory independent review; one authorized supplemental call.", "tasks": [{"agent": "second-opinion", "task": "Read-only supplemental review of stable final checkout diff", "solutionSpace": "Assess remaining material acceptance risks from supplied evidence; no edits or delegation."}]}},

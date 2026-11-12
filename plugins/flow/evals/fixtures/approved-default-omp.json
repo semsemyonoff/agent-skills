@@ -1,0 +1,21 @@
+{
+  "adapter": "omp",
+  "schema_version": 3,
+  "synthetic": true,
+  "scenario": "default-executor-checks",
+  "events": [
+    {"type": "capabilities", "source": "fixture:synthetic-schema", "delegation": true, "reviewer": false, "ask_ui": false, "second_opinion": false, "native_routes": {"implementation": "flow-worker-light"}},
+    {"type": "phase", "source": "fixture:synthetic-action", "name": "recon"},
+    {"type": "phase", "source": "fixture:synthetic-action", "name": "plan"},
+    {"type": "plan", "source": "fixture:synthetic-output", "id": "P1", "scopes": ["checkout"], "text": "Local exact rounding fix with executor checks; no reviewer selected or required. No external actions."},
+    {"type": "ask", "source": "fixture:synthetic-question", "channel": "text", "text": "Start this local plan with executor checks?"},
+    {"type": "approval", "source": "fixture:synthetic-user", "actor": "user", "plan": "P1", "phases": ["execution", "verification", "report"], "text": "Start this exact local plan; executor checks only."},
+    {"type": "phase", "source": "fixture:synthetic-action", "name": "execution"},
+    {"type": "dispatch", "source": "fixture:synthetic-tool", "worker": "implementer-1", "category": "implementation", "scope": "checkout", "params": {"context": "Approved exact local fix", "tasks": [{"agent": "flow-worker-light", "task": "Implement nearest-cent exact Decimal rounding", "solutionSpace": "Known rounding contract; local implementation only."}]}},
+    {"type": "work", "source": "fixture:synthetic-diff", "actor": "implementer-1", "scope": "checkout", "kind": "local_write", "target": "checkout/rounding.py"},
+    {"type": "phase", "source": "fixture:synthetic-action", "name": "verification"},
+    {"type": "check", "source": "fixture:synthetic-check", "scopes": ["checkout"], "command": "python3 check_rounding.py", "exit_code": 0, "result": "pass", "text": "Synthetic positive/negative half-cent and ordinary values pass."},
+    {"type": "phase", "source": "fixture:synthetic-action", "name": "report"},
+    {"type": "report", "source": "fixture:synthetic-output", "status": "completed", "independent_verified": false, "text": "Synthetic executor-check completion; reviewer not selected and unavailable. No independent review claimed."}
+  ]
+}

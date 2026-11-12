@@ -12,7 +12,7 @@ Discover the actual Agent/Task schema, loaded scoped agent names, plugin identit
 | Mechanics | `flow-mechanics` | `haiku` | Exact known transformations |
 | Full editing | `flow-implementation` | `sonnet` | Same implementation capability across permitted complexity profiles |
 | Independent review | `flow-review` | `opus` | Separate read/verification; assess budget by risk, not this default |
-| Optional opinion | Available Codex CLI, explicitly selected by the user | Native CLI configuration, not a fixed model | Supplemental after required review |
+| Optional opinion | Available Codex CLI, explicitly selected | Native CLI configuration, not a fixed model | After checks and any separately selected review |
 
 These native templates establish capabilities, not a blanket implementation→sonnet or review→opus
 budget rule. Apply `references/routing.md` first. Native user/project/session definitions can provide
@@ -33,7 +33,7 @@ If an observed model substitution is outside the approved selection/fallback per
 
 ## Native confirmation UI
 
-Use main-session `AskUserQuestion` when available. Follow its live schema: Claude's picker uses question text, `header`, option `label`/`description`, and `multiSelect`; do not send omp's `id`, `multi`, or `recommended` fields. Put the complete plan and authorization boundary before the question. Offer concise choices in the user's language:
+Use main-session `AskUserQuestion` when available. Follow its live schema: Claude's picker uses question text, `header`, option `label`/`description`, and `multiSelect`; do not send omp's `i`/`html` payload. Put the complete plan and authorization boundary before the question. Offer concise choices in the user's language:
 
 - English: **Start approved plan**, **Start phase by phase**, **Change plan**, **Do not start**.
 - Russian: **Запустить согласованный план**, **Запустить по фазам**, **Изменить план**, **Не запускать**.
@@ -42,19 +42,16 @@ A request for phase-by-phase execution is an explicit user choice, not the defau
 
 ## Supplemental Codex review
 
-Before confirmation, use the local availability check in `references/codex-review.md`. When
-available, ask "Additional review via Codex CLI / No additional review"
-(«Дополнительное ревью через Codex CLI / Без дополнительного ревью») separately in the same
-`AskUserQuestion` form as plan approval. Explain its final stable-tree scope and external model call;
-Start alone does not authorize it. Honor an explicit earlier yes/no instead of asking again.
-If unavailable, say so once and omit its offer, without installing or substituting another route.
-An explicitly required unavailable review is a blocker until the user changes that requirement.
+Read `references/review.md` only when review is relevant. Default executor checks do not require a
+Codex offer or a native reviewer. When an extra opinion is wanted, use the local availability check
+in `references/codex-review.md`, then obtain exact permission for one read-only model call on the
+stable scope, preferably within existing confirmation. Preserve an earlier explicit yes/no.
+Start is not permission for this call; unavailable unselected review blocks nothing.
 
-Acceptance authorizes one read-only CLI review after implementation, required independent review
-and checks, not instead of them. Capture scope/baseline at approval, invoke the existing helper and
-consume its completed artifacts as described in `references/codex-review.md`. No model call before
-acceptance; no automatic extra round. Keep the reviewed tree stable and apply the shared rules for
-findings, mandatory re-verification, failure reporting and later unreviewed changes.
+An explicitly selected unavailable route remains a gap until the user changes the requirement.
+Do not install or substitute a route. The opinion follows checks and any separately selected
+independent review; it never secretly enables another mandatory pass. Use the existing helper,
+freeze the reviewed scope, and assess findings and failures under the selected review mode.
 
 ## Dispatch, completion, and review
 
@@ -74,13 +71,12 @@ follow SKILL.md's waiting notice and point to `/tasks` for status/transcripts. R
 at the returned path when needed; `TaskOutput` is deprecated. Report observed results/evidence;
 worker summaries may be visible to the user. [1][4]
 
-Dispatch one separate risk-appropriate reviewer for compatible scopes, with original acceptance,
-changed surface and permitted checks. It may also own gates and return the brief's evidence packet.
-Bundled `flow-review` has Read/Glob/Grep/Bash, no Playwright MCP tools; do not assume the parent's
-browser tools reach it. Delegate smoke only with confirmed browser tooling (including an available
-permitted Bash browser runner); otherwise reproduce in the coordinator and delegate diagnosis/fixes.
+For selected or higher-priority-required review only, dispatch a separate risk-appropriate reviewer
+with original acceptance, changed scope and permitted checks; follow `references/review.md`.
+Bundled `flow-review` has Read/Glob/Grep/Bash, not Playwright MCP tools. Confirm tools before
+delegating browser smoke; otherwise reproduce in the coordinator and delegate diagnosis/fixes.
 Bash is not a sandbox: prohibit source/config changes and unapproved external effects. Missing
-reviewer/pair/capability blocks independent verification. Follow SKILL.md §5 for batching/provenance.
+selected review is an acceptance gap; missing unselected review does not block executor checks.
 
 Sharpen the brief or isolate the hard part and reassess first. Stronger profiles must stay within
 the pre-authorized policy/plan; otherwise ask for the exact route/budget. No fixed ladder, blind

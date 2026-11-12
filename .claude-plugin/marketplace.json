@@ -8,7 +8,7 @@
     {
       "name": "flow",
       "source": "./plugins/flow",
-      "description": "Orchestrate Claude Code/omp work by capability and complexity with permitted native model/reasoning profiles, plan approval and independent verification"
+      "description": "Orchestrate Claude Code/omp work with permitted native profiles, plan approval, result checks, optional independent review and compact handoff"
     },
     {
       "name": "peer",

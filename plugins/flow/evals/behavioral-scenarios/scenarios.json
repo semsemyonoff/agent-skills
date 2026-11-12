@@ -1,6 +1,6 @@
 {
   "skill_name": "orchestrate",
-  "checkpoint": "final report and ship handoff",
+  "checkpoint": "compact stop/resume or final report and conditional ship handoff",
   "scenarios": [
     {
       "id": "handoff-task-report",
@@ -210,7 +210,7 @@
       "id": "handoff-review-incomplete-failed",
       "prompt_en": "Show the final report for task 605.",
       "prompt_ru": "Покажи финальный отчёт по задаче 605.",
-      "setup": "Clean branch 605-ready pushed this turn in all scoped repos, but the mandatory independent review failed.",
+      "setup": "Clean branch 605-ready pushed this turn in all scoped repos, but the explicitly selected independent review failed.",
       "approval": null,
       "expected": [
         "No ship menu, command or comment; report says the review failed and what is missing.",
@@ -225,10 +225,10 @@
       "id": "handoff-review-incomplete-pending",
       "prompt_en": "Show the final report for task 605.",
       "prompt_ru": "Покажи финальный отчёт по задаче 605.",
-      "setup": "Clean branch 605-ready pushed this turn in all scoped repos, but the mandatory independent review is still pending.",
+      "setup": "Clean branch 605-ready pushed this turn in all scoped repos, but the explicitly selected independent review is still pending.",
       "approval": null,
       "expected": [
-        "The report carries a one-line reason that the handoff is not offered while the mandatory review is pending (the turn does not end with neither question nor reason).",
+        "The report gives one line explaining that handoff is not offered while the selected review is pending.",
         "No ship menu, command or comment.",
         "Report does not call the work completed or independently verified."
       ],
@@ -241,7 +241,7 @@
       "id": "handoff-unfinished-explicit",
       "prompt_en": "Give me the ship command for task 605 now, the review can finish later.",
       "prompt_ru": "Дай команду ship для задачи 605 сейчас, ревью закончится позже.",
-      "setup": "Clean branch 605-ready pushed this turn in all scoped repos (successful push of exactly the current HEADs); the mandatory independent review is still pending. The user explicitly asks to hand off the unfinished work now. The approved plan/Integration targets main. Task and vikunja available.",
+      "setup": "Clean branch 605-ready pushed this turn in all scoped repos (successful push of exactly the current HEADs); explicitly selected independent review is still pending. The user asks to hand off unfinished work now. The approved plan targets main. Task and vikunja available.",
       "approval": "Report in #605 and give ship command.",
       "expected": [
         "Because the user explicitly chose to hand off unfinished work, the handoff question is offered despite the pending review.",
@@ -482,7 +482,7 @@
       "id": "handoff-commit-push-review-pending-reason",
       "prompt_en": "Commit and push on the current branches.",
       "prompt_ru": "Комитим и пушим в текущих ветках.",
-      "setup": "Task 613: follow-up edits made inline after the main orchestration; no independent review has run on them. Ship skill and Forgejo MCP tools are listed. The coordinator commits and pushes branch 613-ready in repos app and docs as asked; push succeeds; trees clean.",
+      "setup": "Task 613: behavioral follow-up edits made inline after the main orchestration; user-selected independent review covers repairs but has not run on these edits. Ship skill and Forgejo MCP tools are listed. The coordinator commits and pushes branch 613-ready in app and docs as asked; push succeeds; trees clean.",
       "approval": null,
       "expected": [
         "No ship menu, command or comment.",
@@ -508,6 +508,33 @@
         "claude-code",
         "omp"
       ]
+    },
+    {
+      "id": "compact-handoff-running-issued",
+      "prompt_en": "Stop after this stage. Update the existing plan with a compact handoff; do not start the next stage.",
+      "prompt_ru": "Остановись после этого этапа. Обнови компактный handoff в существующем плане; следующий этап не начинай.",
+      "setup": "Disposable task plan exists. Worker W is still running with output location and last observed start; command C was only issued to another session and has no execution result. A different local check passed on known code/data. No review or external action selected.",
+      "approval": null,
+      "expected": ["Update one block in the existing plan; no new state file or report per phase.", "Separate done/remaining, checked code/data and log, running W, issued-only C, permissions and next step.", "No completed/verified claim for W or C; no command resend, process stop or next-stage execution without permission.", "Do not run ship discovery for a local stop."],
+      "adapters": ["claude-code", "omp"]
+    },
+    {
+      "id": "compact-resume-after-sleep",
+      "prompt_en": "The Mac slept overnight. Resume from this plan's handoff; the worker state is unknown.",
+      "prompt_ru": "Mac спал всю ночь. Продолжи по handoff этого плана; состояние исполнителя неизвестно.",
+      "setup": "Existing plan has an old PASS on revision A/data D and a started worker; current code/data applicability and worker status are not yet established. Expose fresh read-only observations only when requested.",
+      "approval": null,
+      "expected": ["Read the handoff and establish code/data/process state before dependent actions.", "No hang diagnosis from wall time or inherited PASS under unknown conditions.", "No overlapping replacement writer, automatic power-management changes or new timeout budget.", "Reuse only applicable evidence and retain the previous permissions and next-step boundary."],
+      "adapters": ["claude-code", "omp"]
+    },
+    {
+      "id": "ship-without-unselected-review",
+      "prompt_en": "Show the completed task report and the ship handoff.",
+      "prompt_ru": "Покажи отчёт о завершённой задаче и handoff в ship.",
+      "setup": "Ship skill and needed Forgejo tools listed; no conflicting forge. Task branch 700-ready in one repo, clean and pushed at current HEAD this turn; target main. Actual executor checks passed. No review was selected/required and no reviewer exists. No tracker task; ship not suppressed.",
+      "approval": "Ship command.",
+      "expected": ["Do not block on an unselected absent reviewer or claim independent verification.", "Apply normal clean/published/permission gates; provide full inline checked/unverified handoff for a new session.", "No ship execution, tracker write or extra review call."],
+      "adapters": ["claude-code", "omp"]
     }
   ]
 }

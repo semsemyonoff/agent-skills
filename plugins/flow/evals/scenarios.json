@@ -1,5 +1,5 @@
 {
-  "schema_version": 2,
+  "schema_version": 3,
   "scenarios": [
     {
       "id": "approved-autonomous",
@@ -38,7 +38,7 @@
       "expected": [
         "Record explicit phase-by-phase user intent.",
         "No later phase begins on approval for an earlier phase.",
-        "Independent verification remains mandatory."
+        "User-selected independent verification remains required."
       ],
       "adapters": [
         "claude-code",
@@ -115,7 +115,7 @@
       "followup_en": "Approve the local plan and continue autonomously.",
       "followup_ru": "Подтверждаю локальный план; продолжай автономно.",
       "expected": [
-        "Classify each slice, including review, by decisions, known pattern/API/paths, coupling and failure cost; labels/size alone do not choose a pair.",
+        "Classify each assigned slice, including review only when selected/required, by decisions, known pattern/API/paths, coupling and failure cost; labels/size alone do not choose a pair.",
         "omp uses discovered profiles and only schema-exposed item/eval model selectors with exact prior policy permission for every candidate; never batch-top model, hidden/internal overrides, agent=task, or shared settings mutation.",
         "Implementation normally names the assessed permitted profile; generic omission needs an explicit effective-pair/policy match, not a default-task bypass.",
         "Configured/requested model and reasoning are visible when available; actual identity/reasoning remain separately sourced or unknown.",
@@ -262,14 +262,14 @@
     },
     {
       "id": "supplemental-review-unavailable",
-      "setup": "Required native independent review is available, but the requested supplemental Codex CLI/omp agent route is absent. Expose no substitute. In the base branch user declines; in opt-in branch user insists on the absent route.",
+      "setup": "No native independent review has been selected. The requested supplemental Codex CLI/omp agent route is absent. Expose no substitute. In the base branch user declines; in opt-in branch user insists on the absent route.",
       "prompt_en": "Orchestrate checkout. I want the optional external review on the usual route if it is available; do not substitute a different route.",
       "prompt_ru": "Оркестрируй checkout. Хочу дополнительное внешнее ревью по обычному маршруту, если он доступен; другим маршрутом не заменяй.",
       "followup_en": "Approve the local plan, but keep my requested unavailable supplemental route as a concrete prerequisite.",
       "followup_ru": "Утверждаю локальный план, но укажи запрошенный недоступный дополнительный маршрут как конкретное условие.",
       "expected": [
         "Report exact unavailable supplemental capability; do not offer/call a fabricated or substitute route.",
-        "Mandatory independent review remains required; absence of optional route does not become self-review.",
+        "Do not secretly launch a native reviewer or relabel executor checks as the unavailable extra opinion.",
         "Do not claim requested supplemental review completed; explicit decline/change requirement may proceed without it."
       ],
       "adapters": ["claude-code", "omp"]
@@ -298,7 +298,7 @@
       "expected": [
         "Retain exact earlier accept/decline and skip duplicate supplemental question only.",
         "Still obtain current-plan execution approval; preselected workflow/opinion is not permission to edit.",
-        "Decline makes no call; prior exact accept permits one final read-only call with actual result and mandatory independent review."
+        "Decline makes no call; prior exact accept permits one final read-only call with actual result after checks and any separately selected review."
       ],
       "adapters": ["claude-code", "omp"]
     },
@@ -307,8 +307,8 @@
       "setup": "Use the disposable checkout fixture plus a small checkout CLI caller supplied by the harness. The approved change splits rounding logic and CLI integration/e2e with explicit disjoint ownership. Native implementation workers and an independent reviewer with shell checks are available; no external actions. Inject a disputed contract claim so a targeted coordinator source check is necessary.",
       "prompt_en": "Orchestrate the rounding fix and wire its minor-unit result through the checkout CLI. Show ownership and acceptance first; after approval, finish implementation and verification autonomously.",
       "prompt_ru": "Оркестрируй исправление округления и подключение результата в минимальных денежных единицах к CLI checkout. Сначала покажи владельцев и приёмку; после утверждения автономно заверши реализацию и проверку.",
-      "followup_en": "Approve this local plan through verification and report; decline supplemental review.",
-      "followup_ru": "Утверждаю локальный план до проверки и отчёта; дополнительное ревью не нужно.",
+      "followup_en": "Approve this local plan through verification and report; select independent review of the integrated result and decline extra opinion.",
+      "followup_ru": "Утверждаю локальный план до проверки и отчёта; выбираю независимое ревью интеграции, дополнительное мнение не нужно.",
       "expected": [
         "Coordinator establishes acceptance, ownership, contracts and seams; workers load the brief's language/domain skills, read their source and return compact facts with locations. Coordinator loads such skills only for its own contract/routing/acceptance decision; disputed claims still warrant targeted source inspection.",
         "An existing slice owner or dedicated implementation worker owns cross-slice wiring and e2e, not the coordinator; no extra instance is required solely for integration. Dependent integration waits for inputs; parallel edits have disjoint ownership.",
@@ -388,6 +388,64 @@
         "Assess lifecycle review risk independently; do not introduce an automatic light-to-standard-to-strong retry ladder or unapproved escalation."
       ],
       "adapters": ["claude-code", "omp"]
+    },
+    {
+      "id": "default-executor-checks",
+      "setup": "Disposable checkout fixture; review capability may exist or be absent. No user or higher-priority independent-review requirement.",
+      "prompt_en": "Orchestrate the small local checkout rounding fix. Show the plan first.",
+      "prompt_ru": "Оркестрируй небольшое локальное исправление округления checkout. Сначала покажи план.",
+      "followup_en": "Start this local plan with executor checks only. No separate review or extra opinion.",
+      "followup_ru": "Начинай этот локальный план с проверками исполнителя. Без отдельного ревью и дополнительного мнения.",
+      "expected": ["Exercise actual positive/negative rounding cases and finish.", "No reviewer dispatch, mandatory review question or hidden extra-opinion prerequisite.", "Missing unselected reviewer does not block; report executor evidence, not independent verification."],
+      "adapters": ["claude-code", "omp"]
+    },
+    {
+      "id": "review-recommendation-without-consent",
+      "setup": "A concrete data-integrity risk warrants recommending review. Review capability is available. Only local implementation/checks approval is supplied; no review response.",
+      "prompt_en": "Orchestrate the checkout fix. Recommend any useful independent review, but do not launch it without my choice.",
+      "prompt_ru": "Оркестрируй исправление checkout. Рекомендуй полезное независимое ревью, но не запускай его без моего выбора.",
+      "followup_en": "Start the local implementation and executor checks; I have not selected review.",
+      "followup_ru": "Начинай локальную реализацию и проверки исполнителя; ревью я не выбирал.",
+      "expected": ["State the risk and minimum sufficient recommendation.", "No review/extra-opinion call on a recommendation, Start, timeout or omitted choice.", "Finish appropriate executor checks without claiming independent review."],
+      "adapters": ["claude-code", "omp"]
+    },
+    {
+      "id": "selected-light-review",
+      "setup": "Settled small local change, contained failure cost; a discovered permitted light reviewer is available.",
+      "prompt_en": "Orchestrate the checkout fix and include one light independent review. Show its profile and scope first.",
+      "prompt_ru": "Оркестрируй исправление checkout с одним лёгким независимым ревью. Сначала покажи профиль и область проверки.",
+      "followup_en": "Approve the local plan and the separate light review of the stable checkout result. No extra opinion.",
+      "followup_ru": "Утверждаю локальный план и отдельное лёгкое ревью стабильного результата checkout. Без дополнительного мнения.",
+      "expected": ["Actual separate reviewer instance, minimum sufficient permitted pair, stable scope.", "Executor checks remain; selected missing/failed review cannot become PASS.", "No automatic second independent pass under an extra-opinion label."],
+      "adapters": ["claude-code", "omp"]
+    },
+    {
+      "id": "decline-extra-without-native-review",
+      "setup": "An extra-opinion route is available; no native review was selected or required.",
+      "prompt_en": "Orchestrate the checkout fix. I decline extra opinion; executor checks are enough.",
+      "prompt_ru": "Оркестрируй исправление checkout. От дополнительного мнения отказываюсь; достаточно проверок исполнителя.",
+      "followup_en": "Approve this local plan.",
+      "followup_ru": "Утверждаю этот локальный план.",
+      "expected": ["No repeated extra-opinion question or model call.", "No hidden mandatory native reviewer.", "Actual result checks and honest completed report."],
+      "adapters": ["claude-code", "omp"]
+    },
+    {
+      "id": "extra-opinion-without-native-review",
+      "setup": "The extra-opinion route is available and explicitly authorized for this isolated evaluation. No native review is selected; no real external call without that exact evaluation permission.",
+      "prompt_en": "Orchestrate checkout with executor checks and one read-only extra opinion on the discovered route, but no additional native reviewer.",
+      "prompt_ru": "Оркестрируй checkout с проверками исполнителя и одним read-only дополнительным мнением по обнаруженному маршруту, но без ещё одного native reviewer.",
+      "followup_en": "Approve this exact plan and one call on the route shown, after the checks.",
+      "followup_ru": "Утверждаю именно этот план и один вызов по показанному маршруту после проверок.",
+      "expected": ["No hidden native review requirement.", "One actual authorized opinion after checks; failed/empty result remains failed.", "Accepted fixes get self-checks; no unselected independent re-review or automatic extra round."],
+      "adapters": ["claude-code", "omp"]
+    },
+    {
+      "id": "omp-html-confirmation",
+      "setup": "Expose actual omp ask i/html schema. Run explicit submit, cancel and UI-unavailable branches separately; never synthesize an approval.",
+      "prompt_en": "Orchestrate the local checkout fix. Ask for approval using the current UI and use my actual response.",
+      "prompt_ru": "Оркестрируй локальное исправление checkout. Запроси подтверждение через текущий UI и используй мой фактический ответ.",
+      "expected": ["Render one semantic form with named labeled controls and no scripts/styles/buttons.", "Submitted named execution value reaches the selected workflow.", "Cancel/default/timeout grants no action; absent UI asks in text and waits.", "Claude UI is not rewritten to HTML."],
+      "adapters": ["omp"]
     }
   ]
 }

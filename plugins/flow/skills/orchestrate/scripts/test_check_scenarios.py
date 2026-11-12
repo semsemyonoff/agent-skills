@@ -39,6 +39,25 @@ def permission(kind, target, identifier="G1"):
                     text=f"I explicitly permit {kind}: {target}.")
 
 
+def checked():
+    return recorded("check", scopes=["checkout"], command="python3 check_rounding.py",
+                    exit_code=0, result="pass", text="Observed positive and negative rounding cases pass.")
+
+
+def default_trace(adapter="omp"):
+    trace = fixture(adapter)
+    trace["events"] = [event for event in trace["events"]
+                       if event["type"] not in {"review_choice", "review"}
+                       and not (event["type"] == "dispatch" and event["category"] == "review")]
+    ask = find(trace, "ask")
+    ask.pop("supplemental_review", None)
+    ask.pop("opinion_options", None)
+    ask["text"] = "Start the scoped local plan with executor checks?"
+    find(trace, "report").update(independent_verified=False,
+                                 text="Rounding verified by executor checks; no review selected.")
+    return trace
+
+
 def authorize_models(trace, dispatch, selectors, surface="task_item"):
     capabilities = find(trace, "capabilities")
     capabilities.setdefault("native_model", {})[surface] = ["string", "ordered"]
@@ -61,6 +80,7 @@ def repair_cycle(trace, phase_by_phase=False):
         recorded("work", actor="implementer-1", scope="checkout",
                  kind="local_write", target="checkout/rounding.py"),
         recorded("phase", name="verification"),
+        checked(),
         reviewer,
         recorded("review", actor="reviewer-repair", scopes=["checkout"], result="pass",
                  text="Independently checked the repaired negative half-cent boundary."),
@@ -582,17 +602,17 @@ class BehavioralTraceTests(unittest.TestCase):
         insert_before(trace, find(trace, "phase", name="report"), copy.deepcopy(find(trace, "review")))
         self.assert_violation(trace, "review-round")
 
-    def test_supplemental_offered_separately_and_decline_makes_no_call(self):
+    def test_extra_opinion_offer_is_not_mandatory_and_decline_makes_no_call(self):
         for adapter in ("omp", "claude-code"):
             with self.subTest(adapter=adapter):
                 trace = fixture(adapter)
                 insert_before(trace, find(trace, "approval"),
                               recorded("opinion_choice", actor="user", decision="decline",
-                                       text="Decline supplemental review; retain required independent review."))
+                                       text="Decline extra opinion; retain selected independent review."))
                 self.assertEqual(CHECKER.check_trace(trace), [])
                 find(trace, "ask").pop("supplemental_review")
                 trace["events"].remove(find(trace, "opinion_choice"))
-                self.assert_violation(trace, "missing-opinion-offer")
+                self.assertEqual(CHECKER.check_trace(trace), [])
 
     def test_start_does_not_authorize_supplemental_call(self):
         trace = supplemental(fixture())
@@ -612,7 +632,7 @@ class BehavioralTraceTests(unittest.TestCase):
                     insert_before(trace, find(trace, "ask"), choice)
                 self.assert_violation(trace, "opinion-offer")
                 find(trace, "ask").pop("supplemental_review")
-                find(trace, "ask")["text"] = "Approve this exact local plan through mandatory independent review and report?"
+                find(trace, "ask")["text"] = "Approve this exact local plan through selected review and report?"
                 self.assertEqual(CHECKER.check_trace(trace), [])
                 trace["events"].remove(find(trace, "approval"))
                 self.assert_violation(trace, "execution-approval")
@@ -633,7 +653,7 @@ class BehavioralTraceTests(unittest.TestCase):
         insert_before(trace, find(trace, "phase", name="report"), extra)
         self.assert_violation(trace, "opinion-count")
 
-    def test_supplemental_requires_final_mandatory_review_and_stable_tree(self):
+    def test_supplemental_respects_selected_review_and_stable_tree(self):
         trace = supplemental(fixture())
         dispatch = find(trace, "dispatch", category="second_opinion")
         trace["events"].remove(dispatch)
@@ -649,7 +669,7 @@ class BehavioralTraceTests(unittest.TestCase):
                       and event["name"] == "execution" and trace["events"].index(event) > trace["events"].index(first_review)), dispatch)
         self.assert_violation(trace, "opinion-stability")
 
-    def test_supplemental_findings_can_be_fixed_with_mandatory_rereview_only(self):
+    def test_supplemental_fixes_retain_selected_rereview(self):
         trace = supplemental(repair_cycle(fixture()))
         first_review = find(trace, "review", actor="reviewer-1")
         first_review["result"] = "pass"
@@ -772,7 +792,7 @@ class BehavioralTraceTests(unittest.TestCase):
                 report["supplemental_status"] = "completed"
                 self.assert_violation(trace, "opinion-waiver-report")
 
-    def test_waiver_cannot_cover_missing_result_wrong_grant_or_mandatory_review(self):
+    def test_waiver_cannot_cover_missing_result_wrong_grant_or_selected_review(self):
         for variant in ("missing-result", "wrong-grant", "missing-independent-review"):
             with self.subTest(variant=variant):
                 trace = supplemental(fixture())
@@ -789,7 +809,7 @@ class BehavioralTraceTests(unittest.TestCase):
                     trace["events"].remove(find(trace, "review"))
                 self.assert_violation(trace, "unverified-completion" if variant == "missing-independent-review" else "opinion-waiver")
 
-    def test_supplemental_and_report_wait_for_all_mandatory_reviewer_results(self):
+    def test_supplemental_and_report_wait_for_selected_reviewer_results(self):
         trace = supplemental(fixture())
         extra = copy.deepcopy(find(trace, "dispatch", category="review"))
         extra["worker"] = "reviewer-extra"
@@ -883,6 +903,162 @@ class BehavioralTraceTests(unittest.TestCase):
         self.assert_violation(trace, "opinion-incomplete")
         insert_before(trace, find(trace, "phase", name="report"), first_result)
         self.assertEqual(CHECKER.check_trace(trace), [])
+
+    def test_default_checks_complete_without_reviewer_capability(self):
+        for adapter in ("omp", "claude-code"):
+            trace = default_trace(adapter)
+            find(trace, "capabilities")["reviewer"] = False
+            self.assertEqual(CHECKER.check_trace(trace), [])
+
+    def test_recommendation_or_start_alone_does_not_select_review(self):
+        trace = fixture()
+        trace["events"].remove(find(trace, "review_choice"))
+        find(trace, "plan")["text"] += " Recommend review for risk; no response supplied."
+        self.assert_violation(trace, "review-permission")
+
+    def test_review_choice_needs_real_user_response(self):
+        for field, value in (("actor", "main"), ("timed_out", True),
+                             ("dismissed", True), ("auto_selected", True)):
+            trace = fixture()
+            find(trace, "review_choice")[field] = value
+            self.assert_violation(trace, "review-choice")
+            self.assert_violation(trace, "review-permission")
+
+    def test_selected_light_review_can_complete(self):
+        trace = fixture()
+        find(trace, "capabilities")["native_routes"]["review"] = "flow-review-light"
+        find(trace, "dispatch", category="review")["params"]["tasks"][0]["agent"] = "flow-review-light"
+        self.assertEqual(CHECKER.check_trace(trace), [])
+
+    def test_checks_cannot_be_omitted_or_replaced_by_review(self):
+        for trace in (fixture(), default_trace()):
+            trace["events"] = [event for event in trace["events"] if event["type"] != "check"]
+            self.assert_violation(trace, "unchecked-completion")
+
+    def test_issued_or_failed_check_is_not_verified_result(self):
+        for change in ({"exit_code": None}, {"command": ""}, {"result": "issued"},
+                       {"result": "fail", "exit_code": 1}):
+            trace = default_trace()
+            find(trace, "check").update(change)
+            self.assert_violation(trace, "unchecked-completion")
+
+    def test_new_work_invalidates_executor_checks(self):
+        trace = default_trace()
+        insert_before(trace, find(trace, "phase", name="report"),
+                      recorded("phase", name="execution"),
+                      recorded("work", actor="implementer-1", scope="checkout",
+                               kind="local_write", target="checkout/rounding.py"),
+                      recorded("phase", name="verification"))
+        self.assert_violation(trace, "unchecked-completion")
+        insert_before(trace, find(trace, "phase", name="report"), checked())
+        self.assertEqual(CHECKER.check_trace(trace), [])
+
+    def test_extra_opinion_alone_does_not_require_hidden_reviewer(self):
+        for adapter in ("omp", "claude-code"):
+            trace = supplemental(default_trace(adapter))
+            find(trace, "capabilities")["reviewer"] = False
+            self.assertEqual(CHECKER.check_trace(trace), [])
+            trace["events"].remove(find(trace, "check"))
+            self.assert_violation(trace, "opinion-checkpoint")
+
+    def test_standalone_opinion_fix_needs_checks_not_hidden_rereview(self):
+        trace = supplemental(default_trace())
+        insert_before(trace, find(trace, "phase", name="report"),
+                      recorded("phase", name="execution"),
+                      recorded("work", actor="implementer-1", scope="checkout",
+                               kind="local_write", target="checkout/rounding.py"),
+                      recorded("phase", name="verification"), checked())
+        self.assertEqual(CHECKER.check_trace(trace), [])
+
+    def test_selected_review_cannot_disappear_without_user_decision(self):
+        trace = fixture()
+        trace["events"] = [event for event in trace["events"] if event["type"] != "review"
+                           and not (event["type"] == "dispatch" and event["category"] == "review")]
+        find(trace, "report")["independent_verified"] = False
+        self.assert_violation(trace, "unverified-completion")
+        insert_before(trace, find(trace, "phase", name="report"),
+                      recorded("review_choice", actor="user", decision="decline",
+                               text="Change the review mode to executor checks only."))
+        self.assertEqual(CHECKER.check_trace(trace), [])
+
+    def test_higher_priority_review_cannot_be_waived_by_user(self):
+        trace = fixture()
+        find(trace, "review_choice").update(actor="instructions", decision="require",
+                                            text="Harness requires independent review for this task.")
+        self.assertEqual(CHECKER.check_trace(trace), [])
+        insert_before(trace, find(trace, "phase", name="report"),
+                      recorded("review_choice", actor="user", decision="decline",
+                               text="No independent review."))
+        self.assert_violation(trace, "review-required")
+
+    def test_automatic_default_does_not_authorize_execution(self):
+        trace = default_trace()
+        find(trace, "approval")["auto_selected"] = True
+        self.assert_violation(trace, "inferred-approval")
+
+    def test_later_failed_review_cannot_reuse_earlier_pass(self):
+        trace = fixture()
+        later = copy.deepcopy(find(trace, "dispatch", category="review"))
+        later["worker"] = "reviewer-later"
+        insert_before(trace, find(trace, "phase", name="report"), later,
+                      recorded("failure", worker="reviewer-later"))
+        self.assert_violation(trace, "unverified-completion")
+        self.assert_violation(trace, "false-review-claim")
+        replacement = copy.deepcopy(later)
+        replacement["worker"] = "reviewer-replacement"
+        verdict = copy.deepcopy(find(trace, "review"))
+        verdict["actor"] = "reviewer-replacement"
+        insert_before(trace, find(trace, "phase", name="report"), replacement, verdict)
+        self.assertEqual(CHECKER.check_trace(trace), [])
+
+    def test_selected_partial_review_does_not_expand_to_other_changes(self):
+        trace = fixture()
+        find(trace, "plan")["scopes"].append("docs")
+        find(trace, "review_choice")["scopes"] = ["checkout"]
+        insert_before(trace, find(trace, "phase", name="verification"),
+                      recorded("work", actor="implementer-1", scope="docs",
+                               kind="local_write", target="docs/rounding.md"))
+        find(trace, "check")["scopes"].append("docs")
+        find(trace, "report")["independent_scopes"] = ["checkout"]
+        self.assertEqual(CHECKER.check_trace(trace), [])
+        find(trace, "report").pop("independent_scopes")
+        self.assert_violation(trace, "false-review-claim")
+
+    def test_review_cannot_cover_unassigned_scope_or_narrow_required_scope(self):
+        trace = fixture()
+        find(trace, "review")["scopes"] = ["billing"]
+        self.assert_violation(trace, "review-scope")
+        trace = fixture()
+        find(trace, "plan")["scopes"].append("docs")
+        find(trace, "review_choice").update(actor="instructions", decision="require",
+                                            scopes=["checkout", "docs"])
+        insert_before(trace, find(trace, "phase", name="execution"),
+                      recorded("review_choice", actor="user", decision="accept",
+                               scopes=["checkout"], text="Only review checkout."))
+        self.assert_violation(trace, "review-required")
+
+    def test_overlapping_review_results_need_fresh_dispatch_after_failure(self):
+        for failure_first in (False, True):
+            for outcome in ("failure", "review"):
+                with self.subTest(failure_first=failure_first, outcome=outcome):
+                    trace = fixture()
+                    first_result = find(trace, "review")
+                    later = copy.deepcopy(find(trace, "dispatch", category="review"))
+                    later["worker"] = "reviewer-later"
+                    insert_before(trace, first_result, later)
+                    failure = (recorded("failure", worker="reviewer-later") if outcome == "failure"
+                               else recorded("review", actor="reviewer-later", scopes=["checkout"],
+                                             result="fail", text="Unresolved rounding finding."))
+                    insert_before(trace, first_result if failure_first else find(trace, "phase", name="report"),
+                                  failure)
+                    self.assert_violation(trace, "unverified-completion")
+                    self.assert_violation(trace, "false-review-claim")
+                    replacement = copy.deepcopy(later)
+                    replacement["worker"] = "reviewer-fresh"
+                    verdict = copy.deepcopy(first_result)
+                    verdict["actor"] = "reviewer-fresh"
+                    insert_before(trace, find(trace, "phase", name="report"), replacement, verdict)
+                    self.assertEqual(CHECKER.check_trace(trace), [])
 
     def test_cli_returns_nonzero_for_unsafe_trace_and_reports_both_inputs(self):
         safe = fixture()

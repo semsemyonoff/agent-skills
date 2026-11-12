@@ -76,7 +76,7 @@ An absent independent reviewer remains a blocker, not a successful author self-r
 ### flow — `orchestrate`
 
 For tasks too big for one pass but small enough for one session. One shared Claude Code/omp process:
-recon → plan → confirmation → execution → independent verification → report. Choose **capability**
+recon → plan → confirmation → execution → result checks → report. Choose **capability**
 and **complexity/risk** separately for every slice, including review: remaining decisions, known
 pattern/API/paths, coupling and failure cost. Then choose the minimum sufficient **permitted native
 model + reasoning profile**; implementation or docs is not a fixed expensive default-task route.
@@ -87,16 +87,17 @@ not silent fallbacks. Native configuration owns selectors, not another orchestra
 Approved execution stays autonomous; phase-by-phase only on request. Sharpen the brief or isolate
 the hard part before escalating within an already authorized policy/plan; outside routes/budgets
 need explicit permission. Do not mutate shared settings between parallel calls. Trivial work may be
-inline; combine related simple work and use one risk-appropriate independent reviewer for compatible
-changes, not automatically highest reasoning or a review per worker. Explicit review requirements
-still apply. Optional second opinion remains chosen, read-only and supplemental, never paid fallback.
+inline; combine related simple work. Default: executor checks without a separate reviewer. Recommend
+independent review for material risk, but launch it only when selected or higher-priority rules
+require it. Use the minimum sufficient permitted profile. No mandatory extra opinion or hidden
+native review prerequisite accompanies an optional opinion.
 
-Bounded replacement briefs cover runtime consumers and default/fallback/environment precedence,
-not just literals. Batch review fixes; coordinators may check obvious nonbehavioral tails locally,
-but substantive changes still need independent review. Report the reviewed scope/version and later
-coordinator-only changes separately. Smoke evidence distinguishes browser, HTTP/API, transport and
-deployment: a neighboring pass does not close a required gap. Non-required failures remain explicit
-limits; completed implementation/gates and pending PR/CI/merge are separate outcomes.
+Bounded briefs cover runtime consumers and default/fallback/environment precedence, not just
+literals. Check fixes according to their behavior; independent re-verification follows the selected
+review mode, with honest scope/version and later changes. Smoke evidence distinguishes browser,
+HTTP/API, transport and deployment; a neighboring pass does not close a required gap. At a real
+stop/transfer, update a compact handoff in the existing plan (or one task-local handoff.md), not a
+report per phase. Keep issued/executed/verified states distinct and reuse only applicable evidence.
 
 `/flow:orchestrate <task>`; add "phase by phase" to stop after each phase.
 
@@ -115,10 +116,10 @@ and an available server; source resources neither install one nor promise availa
 An operator must expose those resources in native agent discovery and bind `modelRoles.flow_*` to
 permitted selectors; no profiles or role mappings are activated by these source changes. Existing
 scout/sonic remain research/exact-mechanics specialists. Generic default dispatch requires a verified
-allowed pair and explicit suitability reason. Task/public eval have no model-override argument;
-optional relative lo/med/hi hints do not select the model or guarantee literal medium. See the native
-setup reference below for deployment and override/ceiling boundaries. No quota-savings percentage
-is inferred from API prices.
+allowed pair and explicit suitability reason. Native task/public eval selectors require live-schema
+discovery and prior permission; optional lo/med/hi hints neither select models nor guarantee medium.
+See the native setup reference below for deployment and override/ceiling boundaries. No
+quota-savings percentage is inferred from API prices.
 
 See [flow native setup](plugins/flow/skills/orchestrate/references/native-setup.md) for Claude
 Code's agent-definition/model-selection mechanism and omp's existing
