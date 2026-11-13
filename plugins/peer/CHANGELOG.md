@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.1.5
+
+- Recognize omp composer titles with a single leading rule character, restoring replies
+  to narrow panes with long titles while retaining draft, cursor and dialog checks.
+
 ## 2.1.4
 
 - Recognize omp's compact text-attachment chips with their matching character-count cards,

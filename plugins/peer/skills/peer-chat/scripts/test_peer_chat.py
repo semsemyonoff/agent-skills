@@ -356,6 +356,32 @@ class SendSafetyTest(unittest.TestCase):
                     self.assertIn("screen", preflight)
                     self.assertIn("cursor", preflight)
 
+    def test_omp_single_rule_title_allows_delivery_but_not_drafts_or_dialogs(self):
+        # Captured from omp 18.20.0 in the failed agterm recipient pane.
+        title = "─ 󰐨 KIMI: Обсудить… ·  132K ·  prolite · 7d 45% (4d) · ✦ 3 exp 17d 11h ·  10.9%/922K…─"
+
+        def screen(*rows):
+            return composer("omp", *rows).replace(
+                RULE[:24] + " Follow-up " + RULE[24:], title, 1,
+            )
+
+        backend = self.tape(
+            "omp", before=[screen()],
+            pasted=[screen(pc.normalize("omp", MESSAGE))],
+            submitted=[screen()], sender="omp",
+        )
+        self.assertEqual(self.deliver(backend, "omp"), len(MESSAGE))
+        self.assertEqual(backend.writes[-1], "\x11")
+        for unsafe in (
+            screen("unfinished draft"),
+            screen() + "\nPermission required\n1. Allow once\n2. Deny",
+        ):
+            with self.subTest(unsafe=unsafe):
+                backend = self.tape("omp", before=[unsafe])
+                with self.assertRaises(RuntimeError):
+                    self.deliver(backend)
+                self.assertEqual(backend.writes, [])
+
     def test_occupied_text_with_caret_at_start_never_writes(self):
         for harness in ("claude", "codex", "omp"):
             with self.subTest(harness=harness):

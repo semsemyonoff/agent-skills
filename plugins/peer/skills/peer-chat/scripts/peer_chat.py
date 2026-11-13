@@ -22,7 +22,7 @@ BOX_LINES = 80
 EMPTY_CURSOR_COLUMN = 2
 MIN_WRAPPED_PROBE = 40
 RULE_RE = re.compile(r"^\s*[─━—-]{10,}\s*$")
-TOP_RULE_RE = re.compile(r"^\s*(?:[─━—-]{10,}|[─━]{2,}\s+\S.*[─━]\s*$)")
+TOP_RULE_RE = re.compile(r"^\s*(?:[─━—-]{10,}|[─━]+\s+\S.*[─━]\s*$)")
 CODEX_PROMPT_RE = re.compile(r"^\s*›\s?(.*?)\s*$")
 # Codex dims these hints in an empty composer; plain screen text loses the
 # styling. send()/doctor still require the caret right after the prompt glyph.
