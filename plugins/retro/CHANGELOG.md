@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.3.5
+
+- Separate omp user, peer, automation and injected messages without dropping associated tool or usage activity.
+- Add explicit source-qualified session exclusions, including proven child journals but not independent forks.
+- Report read completeness and evidence loss separately from usage completeness in JSON and Markdown.
+
 ## 1.3.4
 
 - Separate Codex user, peer, automation and injected messages; correlate tool failures with recorded causes, count spawn activity without duplicate calls, and attribute usage to recorded model/effort settings.

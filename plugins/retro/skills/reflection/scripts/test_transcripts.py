@@ -136,6 +136,82 @@ class TranscriptTest(unittest.TestCase):
         self.assertEqual((route["provider"], route["effort"], route["configured_effort"]), ("openai-codex", "high", "auto"))
         self.assertEqual(digest["sessions"][0]["usage"]["total"], 40)
 
+    def test_omp_peer_and_automation_messages_are_not_user_intents(self):
+        records = [
+            {"type": "session", "id": "kinds", "timestamp": OLD, "cwd": "/work/kinds"},
+            omp_entry(20, message={"role": "user", "content": "Проверь импорт"}),
+            omp_entry(21, message={"role": "user", "content": "Chat from omp (reply via peer-chat skill): нет, переделай"}),
+            omp_entry(22, message={"role": "user", "content": "Chat from Claude: inspect this"}),
+            omp_entry(23, message={"role": "user", "content": "Automation: refresh status"}),
+            omp_entry(24, message={"role": "user", "content": "<system-reminder>injected</system-reminder>"}),
+            omp_entry(25, message={"role": "user", "content": "Explain the phrase Chat from omp"}),
+            omp_entry(26, message={"role": "user", "content": "<command-name>/clear</command-name>"}),
+            omp_assistant(27, output=17),
+        ]
+        self.write("omp-sessions/kinds/main.jsonl", records)
+        digest = self.run_cli("omp", "--project", "kinds")
+        self.assertEqual(digest["omp_message_kinds"],
+                         {"user": 3, "peer": 2, "automation": 1, "injected": 1})
+        self.assertEqual({row["text"] for row in digest["prompts"]},
+                         {"Проверь импорт", "Explain the phrase Chat from omp", "/clear"})
+        self.assertEqual(digest["correction_candidates"], [])
+        self.assertEqual(digest["tools_top"], [{"name": "bash", "count": 1}])
+        self.assertEqual(digest["tokens_by_model"]["omp:openai-codex/gpt-demo"]["output"], 17)
+        filtered = self.run_cli("omp", "--project", "absent")
+        self.assertEqual(filtered["omp_message_kinds"], {})
+        markdown = transcripts.fmt_md(digest)
+        self.assertIn('"peer": 2', markdown)
+        self.assertNotIn("переделай", markdown)
+
+    def test_session_exclusion_removes_children_not_forks_or_other_sources(self):
+        parent = os.path.join(self.omp, "demo", "main.jsonl")
+        self.write("omp-sessions/demo/main/worker.jsonl", [
+            {"type": "session", "id": "worker", "timestamp": OLD, "cwd": "/work/demo"},
+            omp_entry(20, "session_init", agent="worker"),
+            omp_assistant(21, output=500),
+        ])
+        self.write("omp-sessions/demo/fork.jsonl", [
+            {"type": "session", "id": "fork", "parentSession": parent, "timestamp": OLD, "cwd": "/work/demo"},
+            omp_entry(22, message={"role": "user", "content": "keep independent fork"}),
+            omp_assistant(23, output=11),
+        ])
+        digest = self.run_cli("both", "--include-subagents", "--exclude-session", "omp:shared-id",
+                              "--exclude-session", "omp:absent")
+        self.assertEqual({row["id"] for row in digest["sessions"]}, {"claude:shared-id", "omp:fork"})
+        self.assertEqual(digest["session_exclusions"]["matched"], ["omp:shared-id", "omp:worker"])
+        self.assertEqual(digest["tokens_by_model"]["omp:openai-codex/gpt-demo"]["output"], 11)
+        self.assertNotIn("omp:local/tiny", digest["tokens_by_model"])
+        self.assertEqual(digest["denials"], [
+            {"name": "classifier: Git Destructive", "count": 1}, {"name": "user rejected", "count": 1}])
+        self.assertEqual(digest["omp_message_kinds"], {"user": 1})
+        self.assertEqual(digest["prompts_total"], 4)
+        self.assertEqual(digest["output_tokens_main_vs_subagent"]["subagents"], {})
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            transcripts.parse_args(["--source", "omp", "--exclude-session", "shared-id"])
+
+    def test_read_loss_is_separate_from_observed_usage(self):
+        digest = self.run_cli("omp")
+        self.assertEqual(digest["read_completeness"], "partial")
+        self.assertEqual(digest["evidence_loss"], {"malformed_records": 2})
+        usage = digest["tokens_by_model"]["omp:openai-codex/gpt-demo"]
+        self.assertEqual((usage["completeness"], usage["total"]), ("observed", 35))
+        self.assertIn("partial | evidence loss:", transcripts.fmt_md(digest))
+        self.write("omp-sessions/demo/invalid.jsonl", [{"type": "unexpected"}])
+        invalid = self.run_cli("omp")
+        self.assertEqual(invalid["evidence_loss"]["invalid_headers"], 1)
+
+    def test_clean_and_empty_read_coverage(self):
+        root = os.path.join(self.tmp.name, "clean")
+        os.makedirs(root)
+        empty = self.run_cli("omp", "--omp-sessions-dir", root)
+        self.assertEqual((empty["read_completeness"], empty["sessions_total"]), ("unknown", 0))
+        with open(os.path.join(root, "clean.jsonl"), "w", encoding="utf-8") as stream:
+            for record in OMP:
+                stream.write(json.dumps(record) + "\n")
+        clean = self.run_cli("omp", "--omp-sessions-dir", root)
+        self.assertEqual(clean["read_completeness"], "observed")
+        self.assertEqual(clean["evidence_loss"], {})
+
     def test_explicit_selection_and_mixed_identity(self):
         mixed = self.run_cli()
         self.assertEqual({r["id"] for r in mixed["sessions"]}, {"claude:shared-id", "omp:shared-id"})

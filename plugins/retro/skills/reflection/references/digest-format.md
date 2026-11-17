@@ -20,6 +20,11 @@ remains an omp session.
   default 7). These options are mutually exclusive. Event timestamps, **not file mtimes**, select data.
 - `--project <substring>` matches recorded cwd or project bucket, case-insensitively. The source,
   project, period, SDK and child filters apply to **all** prompt/tool/error/routing/usage totals.
+- `--exclude-session <source>:<full-id>` is repeatable and exact, never a prefix match. It removes
+  matching sessions and proven artifact/spawn descendants from all activity totals; opaque forks
+  remain independent. `session_exclusions` reports requested and matched identities. Excluding a
+  session does not suppress read diagnostics from scanned files. Supply the current retrospective's
+  identity from runtime metadata; do not guess it from file order or prompt content.
 - `--include-subagents` adds child tools/errors/usage; child task text never becomes a user prompt.
   Claude `--include-sdk` adds sdk-* automation; that option has no meaning for omp.
 - `--out json|md`, `--max-prompts 80`, `--max-sessions 25`, `--max-corrections 30`. Caps limit
@@ -229,12 +234,22 @@ Non-header entries have `type`, stable `id`, `parentId`, `timestamp`. Relevant s
 ## Normalized digest (schema_version 2)
 
 - `source`, `roots`, `period_since_utc`, read `diagnostics`, `files_read`, sessions/prompts totals.
+- `read_completeness` is `partial` on known read/event-time loss, `unknown` when no files were read,
+  otherwise `observed`. `evidence_loss` reports nonzero skipped compression, unreadable files,
+  malformed records, invalid headers and untimed events. These are scan-level bounds: lost records
+  cannot reliably be assigned to the selected period/project. Usage completeness separately describes
+  loaded events, not proof that the full source history was available.
 - `sessions[].id` and prompt/correction refs use full **source-qualified** identities (`claude:...`,
   `omp:...`), so ids from mixed stores cannot collide. Rows carry cwd/project, relative evidence
   filenames (up to 3), child status, known child agent/model-role/resolved-model, event dates and counts.
 - Prompt rows group complete redacted normalized text, preserving counts and distinct session refs
   (up to 10 refs). Clipped identical prefixes do not merge distinct prompts. Slash commands remain
   `/name args`; meta/sidechain/interrupt/skill-injected text and child tasks are excluded.
+- `omp_message_kinds` separates user, peer, automation and injected messages. Recognized peer-chat
+  envelopes (`Chat from Claude|Codex|omp:` with the optional reply instruction), explicit automation
+  prefixes and injected context are not user prompts or correction candidates. Their associated
+  tool/error/usage events remain included. Missing provenance is not guessed from topic or wording
+  elsewhere in a user's message. Child task prompts remain excluded.
 - `tools_top`, `errors_top` (paths/numbers normalized), denials/by-tool, subagent invocation counts,
   prompt openers and RU/EN correction candidates. omp batch task calls count each task item. Missing
   explicit model means unresolved policy/role in omp, **not necessarily inherited parent model**.

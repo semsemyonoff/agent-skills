@@ -105,6 +105,8 @@ def parse_args(argv=None):
     period.add_argument("--since", help="YYYY-MM-DD (local date, inclusive)")
     period.add_argument("--days", type=int, help="last N days (default 7)")
     p.add_argument("--project", help="substring of recorded cwd or project bucket; filters ALL totals")
+    p.add_argument("--exclude-session", action="append", default=[], metavar="SOURCE:ID",
+                   help="exclude an exact session and proven child journals; repeatable")
     p.add_argument("--config-dir", default=os.environ.get("CLAUDE_CONFIG_DIR") or "~/.claude",
                    help="Claude config root containing projects/ (CLAUDE_CONFIG_DIR or ~/.claude)")
     p.add_argument("--omp-sessions-dir", default="~/.omp/agent/sessions",
@@ -125,6 +127,8 @@ def parse_args(argv=None):
     for name in ("max_prompts", "max_sessions", "max_corrections"):
         if getattr(args, name) < 0:
             p.error("caps must be nonnegative")
+    if any(not re.fullmatch(r"(?:claude|omp|codex):\S+", ref) for ref in args.exclude_session):
+        p.error("--exclude-session requires a full source-qualified session identity")
     if args.since:
         try:
             dt.datetime.strptime(args.since, "%Y-%m-%d")
@@ -400,8 +404,16 @@ def normalize(sess, diagnostics=None):
             kind, text = user_text(msg)
             if text_content(content).startswith("[Request interrupted"):
                 emit("interrupt", identity)
-            if kind in ("prompt", "command") and not sess["is_subagent"] and not d.get("isSidechain") and not d.get("isMeta"):
-                emit("prompt", identity, text=text, command=kind == "command")
+            if not sess["is_subagent"] and not d.get("isSidechain"):
+                if source == "omp" and kind != "tool_result":
+                    label = ("injected" if d.get("isMeta") or kind == "meta"
+                             else classify_message(text_content(content)))
+                    if label != "user":
+                        emit("message", identity, message_kind=label)
+                    else:
+                        emit("prompt", identity, text=text, command=kind == "command", message_kind=label)
+                elif kind in ("prompt", "command") and not d.get("isMeta"):
+                    emit("prompt", identity, text=text, command=kind == "command")
     return list(events.values())
 
 
@@ -452,7 +464,7 @@ def codex_status(item):
     return "success" if status in ("completed", "success", "succeeded") else "unknown"
 
 
-def codex_message_kind(text, automation=False):
+def classify_message(text, automation=False):
     text = text.strip()
     if text.startswith(("# AGENTS.md instructions", "<environment_context>",
                         "<permissions instructions>", *META_PREFIXES)):
@@ -569,7 +581,7 @@ def normalize_codex(sess, diagnostics=None):
                     b["text"] for b in blocks(text) if isinstance(b.get("text"), str))
                 role = payload.get("role")
                 if role == "user" and text.strip() and not sess["is_subagent"]:
-                    message_kind = codex_message_kind(text, sess.get("automation", False))
+                    message_kind = classify_message(text, sess.get("automation", False))
                     emit("prompt" if message_kind == "user" else "message", key, record,
                          raw_fingerprint, text=text, command=False, message_kind=message_kind)
                 else:
@@ -798,6 +810,23 @@ def digest(args):
         return sid
 
     paths = {os.path.abspath(path): sid for sid, sess in sessions.items() for path in sess["paths"]}
+    excluded = set(getattr(args, "exclude_session", [])) & sessions.keys()
+    # Only artifact/spawn proof authorizes excluding children; forks are independent sessions.
+    children = collections.defaultdict(list)
+    for sid, sess in sessions.items():
+        if not sess["is_subagent"]:
+            continue
+        parent = paths.get(os.path.abspath(sess["artifact_parent"])) if sess["artifact_parent"] else None
+        if sess["source"] == "codex" and sess.get("parent_thread_id"):
+            parent = "codex:" + sess["parent_thread_id"]
+        if parent is not None:
+            children[parent].append(sid)
+    pending = list(excluded)
+    while pending:
+        for child in children[pending.pop()]:
+            if child not in excluded:
+                excluded.add(child)
+                pending.append(child)
     for sid, sess in sessions.items():
         parent = sess["artifact_parent"] or sess["parent_lineage"]
         if isinstance(parent, str):
@@ -811,7 +840,7 @@ def digest(args):
                 families.setdefault(target, target)
             families[family(sid)] = family(target)
     tools, errors, denials, denial_tools, openers = (collections.Counter() for _ in range(5))
-    message_kinds = collections.Counter()
+    message_kinds = {"omp": collections.Counter(), "codex": collections.Counter()}
     spawn_observations = collections.Counter()
     routing = collections.Counter()
     usage_groups = collections.defaultdict(list)
@@ -820,6 +849,8 @@ def digest(args):
     prompts, corrections, session_rows = {}, [], []
     seen_copies = set()
     for sid, sess in sorted(sessions.items(), key=lambda pair: (pair[1]["is_subagent"], pair[0])):
+        if sid in excluded:
+            continue
         if sess["is_subagent"] and not args.include_subagents:
             continue
         if sess["source"] == "claude" and not args.include_sdk and sess["entrypoint"].startswith("sdk"):
@@ -868,8 +899,8 @@ def digest(args):
         session_usage = []
         for event in selected:
             kind = event["kind"]
-            if kind in ("prompt", "message") and sess["source"] == "codex":
-                message_kinds[event.get("message_kind", "user")] += 1
+            if kind in ("prompt", "message") and sess["source"] in message_kinds:
+                message_kinds[sess["source"]][event.get("message_kind", "user")] += 1
             if kind == "usage":
                 provider, model = event["provider"], event["model"]
                 group = f"{sess['source']}:{provider or 'unknown'}/{model or 'unknown'}"
@@ -935,12 +966,20 @@ def digest(args):
     subagent_calls = [{"source": source, "subagent_type": clip(agent), "model": clip(model) if model else None,
                        "effort": clip(effort) if effort else None, "count": count}
                       for (source, agent, model, effort), count in routing.most_common(20)]
+    loss_keys = ("zst_skipped", "unreadable_files", "malformed_records", "invalid_headers", "untimed_events")
+    evidence_loss = {key: diagnostics[key] for key in loss_keys if diagnostics[key]}
+    read_completeness = ("partial" if evidence_loss else
+                         "observed" if diagnostics["files_read"] else "unknown")
     result = {
         "schema_version": 2, "source": args.source, "period_since_utc": since.isoformat(),
         "roots": {source: redact(root) for source, root in roots.items()}, "diagnostics": dict(diagnostics),
+        "read_completeness": read_completeness, "evidence_loss": evidence_loss,
+        "session_exclusions": {"requested": sorted(set(getattr(args, "exclude_session", []))),
+                               "matched": sorted(excluded)},
         "files_read": diagnostics["files_read"], "sessions_total": len(session_rows),
         "prompts_total": sum(row["prompts"] for row in session_rows),
-        "codex_message_kinds": dict(message_kinds),
+        "omp_message_kinds": dict(message_kinds["omp"]),
+        "codex_message_kinds": dict(message_kinds["codex"]),
         "codex_spawn_observations": [{"model": model, "effort": effort, "count": count}
                                      for (model, effort), count in spawn_observations.items()],
         "note": "heuristic extraction; all event totals obey source/project/period/SDK/subagent filters; null metrics are unavailable, known sums may be partial; all historical branches count, not just active context",
@@ -988,6 +1027,10 @@ def fmt_md(digest_value):
     lines = [f"# Transcript digest (since {digest_value['period_since_utc']})",
              f"source: {digest_value['source']} | roots: {json.dumps(digest_value['roots'], ensure_ascii=False)} | files: {digest_value['files_read']} | sessions: {digest_value['sessions_total']} | prompts: {digest_value['prompts_total']}",
              f"_{digest_value['note']}_", "\n## Projects", counts(digest_value["projects_top"])]
+    lines.extend(("\n## Read coverage",
+                  f"{digest_value['read_completeness']} | evidence loss: {json.dumps(digest_value['evidence_loss'])}",
+                  "Usage metrics describe loaded events, not guaranteed complete history.",
+                  "Session exclusions: " + json.dumps(digest_value["session_exclusions"])))
     for title, key in (("Tools", "tools_top"), ("Errors (normalized)", "errors_top"),
                        ("Permission denials / rejections", "denials"), ("Denials by tool", "denials_by_tool")):
         lines.extend((f"\n## {title}", counts(digest_value[key])))
@@ -1004,8 +1047,9 @@ def fmt_md(digest_value):
         lines.append(f"- {row['source']}:{row['provider'] or 'unavailable'}/{row['model'] or 'unavailable'} effort={row['effort'] or 'unavailable'} configured={row['configured_effort'] or 'unavailable'} calls={row['usage']['messages']}")
     if "output_tokens_main_vs_subagent" in digest_value:
         lines.append("output main/subagent: " + json.dumps(digest_value["output_tokens_main_vs_subagent"]))
-    if digest_value["codex_message_kinds"]:
-        lines.append("\nCodex message kinds: " + json.dumps(digest_value["codex_message_kinds"]))
+    for source in ("omp", "codex"):
+        if digest_value[f"{source}_message_kinds"]:
+            lines.append(f"\n{source} message kinds: " + json.dumps(digest_value[f"{source}_message_kinds"]))
     lines.extend(("\n## Prompt openers", counts(digest_value["prompt_openers_top"]),
                   f"\n## User prompts ({digest_value['prompts_omitted']} omitted)"))
     for row in digest_value["prompts"]:
